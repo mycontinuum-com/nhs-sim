@@ -1,0 +1,19 @@
+# Existing Traefik must join the external network named "traefik".
+# docker compose -f compose.yaml -f compose.traefik.yaml up -d --build
+services:
+  app:
+    ports: !reset []
+    networks:
+      - default
+      - traefik
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: traefik
+      traefik.http.routers.nhs-sim.rule: Host(`${SIM_HOST:-nhs-sim.example.com}`)
+      traefik.http.routers.nhs-sim.entrypoints: websecure
+      traefik.http.routers.nhs-sim.tls: "true"
+      traefik.http.routers.nhs-sim.tls.certresolver: ${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      traefik.http.services.nhs-sim.loadbalancer.server.port: "8080"
+networks:
+  traefik:
+    external: true

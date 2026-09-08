@@ -1,0 +1,86 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { Engine } from '../packages/engine/src/index.ts';
+import { MockOIDC, bundle } from '../packages/nhs-mocks/src/index.ts';
+import { createHash } from 'node:crypto';
+
+test('world starts paused, seeded and deterministic',()=>{
+  const a=new Engine(),b=new Engine();
+  a.tick(1000);assert.equal(a.require('default').now,b.require('default').now);
+  a.clock('default',{advanceMinutes:180});b.clock('default',{advanceMinutes:180});
+  assert.deepEqual(a.state,b.state);
+});
+test('team worlds are isolated',()=>{
+  const e=new Engine();e.create('team-a');e.clock('team-a',{advanceMinutes:60});
+  assert.notEqual(e.require('team-a').now,e.require('default').now);
+});
+test('clock steps match incremental ticks',()=>{
+  const a=new Engine(),b=new Engine();a.clock('default',{advanceMinutes:60});
+  for(let i=0;i<60;i++)b.clock('default',{advanceMinutes:1});
+  assert.deepEqual(a.state,b.state);
+});
+test('hidden records cannot be mutated; sharing changes visibility',()=>{
+  const e=new Engine();const r=e.require('default').resources.find(r=>r.owner==='legacy')!;
+  assert.equal(e.view('default','gp').resources.some(x=>x.id===r.id),false);
+  assert.throws(()=>e.action('default','gp',{type:'review',resourceId:r.id},'team'),/not visible/);
+  e.action('default','legacy',{type:'share_record',resourceId:r.id,target:'gp'},'team');
+  assert.equal(e.view('default','gp').resources.some(x=>x.id===r.id),true);
+});
+test('test order produces delayed report and honours lab outage',()=>{
+  const e=new Engine();e.fault('default','pathology-outage',true);
+  const r=e.action('default','gp',{type:'order_test',patientId:'SIM-000001'},'team');
+  assert.equal(r.status,'open');e.clock('default',{advanceMinutes:121});
+  assert.equal(e.view('default','gp').resources.some(x=>x.id===r.id),false);
+  assert.equal(e.view('default','diagnostics').resources.find(x=>x.id===r.id)?.status,'available');
+  e.fault('default','pathology-outage',false);
+  assert.ok(e.view('default','gp').resources.some(x=>x.id===r.id));
+});
+test('capacity rejection is atomic',()=>{
+  const e=new Engine();for(let i=0;i<4;i++)e.action('default','gp',{type:'schedule_visit',patientId:'SIM-000001'},'team');
+  const before=structuredClone(e.state);
+  assert.throws(()=>e.action('default','gp',{type:'schedule_visit',patientId:'SIM-000001'},'team'),/capacity/);
+  assert.deepEqual(e.state,before);
+});
+test('idempotency and optimistic concurrency prevent duplicates',()=>{
+  const e=new Engine(),a={type:'create_task',patientId:'SIM-000001',title:'Test'};
+  const first=e.action('default','gp',a,'team','key');const second=e.action('default','gp',a,'team','key');
+  assert.equal(first.id,second.id);
+  assert.throws(()=>e.action('default','gp',{...a,title:'Other'},'team','key'),/reused/);
+  e.action('default','gp',{type:'review',resourceId:first.id,expectedVersion:1},'team');
+  assert.throws(()=>e.action('default','gp',{type:'complete',resourceId:first.id,expectedVersion:1},'team'),/Stale/);
+});
+test('prescription lifecycle requires review then approval',()=>{
+  const e=new Engine(),r=e.action('default','gp',{type:'draft_prescription',patientId:'SIM-000001'},'team');
+  assert.throws(()=>e.action('default','pharmacy',{type:'dispense',resourceId:r.id},'team'),/transition/);
+  e.action('default','pharmacy',{type:'review',resourceId:r.id},'team');
+  e.action('default','pharmacy',{type:'accept',resourceId:r.id},'team');
+  e.action('default','pharmacy',{type:'dispense',resourceId:r.id},'team');
+  e.action('default','patient',{type:'collect',resourceId:r.id},'team');
+  assert.equal(e.require('default').resources.find(x=>x.id===r.id)?.status,'collected');
+});
+test('HR absence and roster affect emergency capacity',()=>{
+  const e=new Engine(),w=e.require('default');const initial=e.staffing(w).staffedSpaces;
+  e.action('default','hr',{type:'report_absence',resourceId:'staff-0'},'team');
+  assert.ok(e.staffing(e.require('default')).staffedSpaces<initial);
+  for(const r of e.require('default').resources.filter(r=>r.kind==='staff'&&r.data.role==='doctor'&&r.status==='available'))e.action('default','roster',{type:'allocate_shift',resourceId:r.id},'team');
+  assert.equal(e.staffing(e.require('default')).staffedSpaces,0);
+  const encounter=e.require('default').resources.find(r=>r.kind==='encounter')!;
+  assert.throws(()=>e.action('default','hospital',{type:'complete',resourceId:encounter.id},'team'),/staffed/);
+});
+test('robot dispatch has causal completion and capacity',()=>{
+  const e=new Engine(),r=e.action('default','pharmacy',{type:'dispatch_robot',patientId:'SIM-000001'},'team');
+  assert.throws(()=>e.action('default','pharmacy',{type:'dispatch_robot',patientId:'SIM-000001'},'team'),/unavailable/);
+  e.clock('default',{advanceMinutes:31});assert.equal(e.require('default').resources.find(x=>x.id===r.id)?.status,'completed');
+});
+test('NHS mock bundles preserve synthetic labelling',()=>{
+  const b=bundle(new Engine(),'default','pds','SIM-000001')!;
+  assert.equal(b.resourceType,'Bundle');assert.equal(b.entry.length,1);
+});
+test('CIS2 mock enforces redirect, one-time code and PKCE',async()=>{
+  const oidc=new MockOIDC('http://localhost:8080');await oidc.init();
+  const verifier='a'.repeat(43),params=new URLSearchParams({client_id:'nhs-sim-client',redirect_uri:'http://localhost:8080/cis2/callback',response_type:'code',code_challenge_method:'S256',code_challenge:createHash('sha256').update(verifier).digest('base64url'),state:'random-state',nonce:'random-nonce'});
+  const redirect=new URL(oidc.authorize(params));const tokenParams=new URLSearchParams({client_id:'nhs-sim-client',redirect_uri:'http://localhost:8080/cis2/callback',grant_type:'authorization_code',code:redirect.searchParams.get('code')!,code_verifier:verifier});
+  const tokens=await oidc.token(tokenParams);assert.ok(tokens.id_token);assert.equal(oidc.userinfo(tokens.access_token).nhs_sim,true);
+  await assert.rejects(()=>oidc.token(tokenParams));
+  params.set('redirect_uri','https://evil.example');assert.throws(()=>oidc.authorize(params));
+});

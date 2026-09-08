@@ -1,0 +1,25 @@
+name: Verify ecosystem
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start app plus PostgreSQL
+        run: docker compose up -d --build --wait --wait-timeout 180
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Single-origin integration checks
+        run: node scripts/smoke.mjs
+      - name: Verify database-backed restart
+        run: |
+          docker compose restart app
+          docker compose up -d --wait
+          node scripts/smoke.mjs
+      - name: Logs
+        if: failure()
+        run: docker compose logs --tail=100
+      - name: Stop ephemeral CI containers
+        if: always()
+        run: docker compose down
