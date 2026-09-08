@@ -32,6 +32,8 @@ Prescription flow: draft → reviewed → approved → dispensed → collected. 
 
 Staff absence and roster allocation determine a simplified A&E staffing capacity from doctor/nurse counts. If no staffed space exists, emergency encounter/handover completion is rejected. This is an operational scaffold, not a validated staffing model.
 
+The acute-flow agent adds three synthetic arrivals every twenty simulation minutes and processes older work at a rate derived from staffed spaces. Removing staff therefore increases waiting work over time. These rates are explicit game parameters, not clinical evidence.
+
 ## Boundaries still to deepen
 
 - Independent frontends currently share a workbench implementation; custom vendor screens belong in their respective app packages.

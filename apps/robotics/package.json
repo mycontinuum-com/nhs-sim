@@ -1,1 +1,9 @@
-{"name":"@nhs-sim/robotics","private":true,"type":"module","scripts":{"dev":"vp dev","build":"vp build"}}
+{
+  "name": "@nhs-sim/robotics",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build"
+  }
+}

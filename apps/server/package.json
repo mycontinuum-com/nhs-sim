@@ -1,1 +1,5 @@
-{"name":"@nhs-sim/server","private":true,"type":"module"}
+{
+  "name": "@nhs-sim/server",
+  "private": true,
+  "type": "module"
+}

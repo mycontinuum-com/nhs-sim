@@ -1,1 +1,9 @@
-{"name":"@nhs-sim/gp","private":true,"type":"module","scripts":{"dev":"vp dev","build":"vp build"}}
+{
+  "name": "@nhs-sim/gp",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build"
+  }
+}

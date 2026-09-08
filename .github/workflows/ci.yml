@@ -16,7 +16,7 @@ jobs:
         run: |
           docker compose restart app
           docker compose up -d --wait
-          node scripts/smoke.mjs
+          SMOKE_RESTORE=1 node scripts/smoke.mjs
       - name: Logs
         if: failure()
         run: docker compose logs --tail=100

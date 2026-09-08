@@ -1,3 +1,2 @@
-import { mount } from '../../../packages/ui/src/index.tsx';
-mount('patient');
-
+import { mount } from "../../../packages/ui/src/index.tsx";
+mount("patient");

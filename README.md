@@ -120,7 +120,7 @@ Use Docker Compose for the complete local ecosystem. For frontend HMR, run `pnpm
 
 ## Agents and hackathon depth
 
-Rule agents run without internet or credentials: demand arrivals, delayed lab work, home observations and logistics completion. Their actions use simulation time, so pausing pauses their effects. Optional LLM proposals require `OPENAI_API_KEY` and `OPENAI_MODEL`, and an explicit operator request. They are not automatically executed and may only propose tasks.
+Rule agents run without internet or credentials: demand arrivals, delayed lab work, home observations, logistics completion and staffing-dependent A&E flow. Their actions use simulation time, so pausing pauses their effects. Optional LLM proposals require `OPENAI_API_KEY` and `OPENAI_MODEL`, and an explicit operator request. They are not automatically executed and may only propose tasks.
 
 Read [hackathon projects and coverage](docs/hackathon.md), [API contracts](docs/api-contracts.md), and [security](SECURITY.md).
 
