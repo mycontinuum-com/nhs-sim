@@ -129,6 +129,22 @@ pnpm start
 
 Use Docker Compose for the complete local ecosystem. For frontend HMR, run `pnpm --filter @nhs-sim/gp dev` against a running server on localhost:8080; this development-only mode uses an extra port. Production always uses one.
 
+## Agent workflow
+
+The repository vendors pstack from the canonical `cursor/plugins` source. `.agents/skills` is the single skill tree used by Codex; `.cursor/skills` is a symlink to the same tree for Cursor, so the two installations cannot drift. Start substantial work with `$poteto-mode` in Codex or `/poteto-mode` in Cursor.
+
+NHS-SIM also has a project-specific verification skill and control program:
+
+```bash
+pnpm verify -- doctor --static # checkout and skill health
+pnpm verify -- launch         # app + PostgreSQL through Compose
+pnpm verify -- journey        # GP order -> virtual time -> diagnostics result
+pnpm verify -- smoke          # every portal/API and the legacy HTML workflow
+pnpm verify -- cleanup --dry-run
+```
+
+Proof is written to the ignored `.verification/evidence/` directory. See `AGENTS.md` and `.agents/skills/verify-nhs-sim/features/` for the maintained feature map.
+
 ## Agents and hackathon depth
 
 Rule agents run without internet or credentials: front-door and cross-service demand, delayed lab work, home observations, logistics completion, prevention recalls, bed-pressure alerts and staffing-dependent A&E flow. Their actions use simulation time, so pausing pauses their effects. Optional LLM proposals require `OPENAI_API_KEY` and `OPENAI_MODEL`, and an explicit operator request. They are not automatically executed and may only propose tasks.

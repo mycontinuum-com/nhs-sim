@@ -1,0 +1,8 @@
+{
+  "source": "cursor/plugins",
+  "path": "pstack/skills",
+  "commit": "27e2a62ff94f9af4b5e68435e41cdceacadb840c",
+  "installed": "2026-09-09",
+  "cursorPath": ".cursor/skills -> ../.agents/skills",
+  "codexPath": ".agents/skills"
+}

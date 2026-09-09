@@ -1,8 +1,8 @@
 node_modules/
 dist/
 .data/
+.verification/
 .env
 *.db
 *.db-shm
 *.db-wal
-

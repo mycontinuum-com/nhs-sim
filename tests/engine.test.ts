@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Engine } from "../packages/engine/src/index.ts";
-import { MockOIDC, bundle } from "../packages/nhs-mocks/src/index.ts";
+import { MockOIDC, bundle, matchAdapterPath } from "../packages/nhs-mocks/src/index.ts";
 import { createHash } from "node:crypto";
 
 test("A&E backlog responds to roster staffing over time", () => {
@@ -215,6 +215,10 @@ test("NHS mock bundles preserve synthetic labelling", () => {
   const b = bundle(new Engine(), "default", "pds", "SIM-000001")!;
   assert.equal(b.resourceType, "Bundle");
   assert.equal(b.entry.length, 1);
+});
+test("NHS adapter routes accept numeric identifiers", () => {
+  assert.equal(matchAdapterPath("/api/nhs/111")?.[1], "111");
+  assert.equal(matchAdapterPath("/api/nhs/eps-tracker/actions")?.[2], "actions");
 });
 test("CIS2 mock enforces redirect, one-time code and PKCE", async () => {
   const oidc = new MockOIDC("http://localhost:8080");

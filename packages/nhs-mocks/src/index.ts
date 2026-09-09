@@ -3,6 +3,9 @@ import { generateKeyPair, exportJWK, SignJWT } from "jose";
 import type { Engine } from "../../engine/src/index.ts";
 import type { SiteId } from "../../contracts/src/index.ts";
 
+export const matchAdapterPath = (path: string) =>
+  path.match(/^\/api\/nhs\/([a-z0-9-]+)(?:\/([^/]+))?$/);
+
 export const catalogue = [
   {
     id: "pds",

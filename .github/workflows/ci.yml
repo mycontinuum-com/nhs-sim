@@ -5,6 +5,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Verify agent control surface
+        run: |
+          node scripts/validate-skills.mjs
+          node .agents/skills/verify-nhs-sim/control-nhs-sim.mjs doctor --static
       - name: Build and start app plus PostgreSQL
         run: docker compose up -d --build --wait --wait-timeout 180
       - uses: actions/setup-node@v4

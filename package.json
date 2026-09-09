@@ -12,7 +12,9 @@
     "dev": "pnpm build && pnpm start",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "node .agents/skills/verify-nhs-sim/control-nhs-sim.mjs",
+    "verify:skills": "node scripts/validate-skills.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

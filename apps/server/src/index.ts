@@ -6,7 +6,12 @@ import { ZodError, z } from "zod";
 import { Store } from "./store.ts";
 import { sites, scenarios, type SiteId } from "../../../packages/contracts/src/index.ts";
 import { SimError } from "../../../packages/engine/src/index.ts";
-import { catalogue, bundle, MockOIDC } from "../../../packages/nhs-mocks/src/index.ts";
+import {
+  catalogue,
+  bundle,
+  matchAdapterPath,
+  MockOIDC,
+} from "../../../packages/nhs-mocks/src/index.ts";
 import { ModelAgent } from "../../../packages/agents/src/index.ts";
 
 const port = Number(process.env.PORT ?? 8080);
@@ -293,7 +298,7 @@ const server = createServer(async (req, res) => {
         events: store.engine.state.events[id] ?? [],
       });
     }
-    const apiMatch = path.match(/^\/api\/nhs\/([a-z-]+)(?:\/([^/]+))?$/);
+    const apiMatch = matchAdapterPath(path);
     if (apiMatch) {
       const id = authenticated(),
         api = catalogue.find((a) => a.id === apiMatch[1]);
