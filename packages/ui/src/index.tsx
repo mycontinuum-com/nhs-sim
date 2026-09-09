@@ -14,6 +14,42 @@ import {
 import "./style.css";
 
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+const navigation = [
+  { label: "Operate", ids: ["control", "icb", "hr", "roster"] },
+  { label: "Access", ids: ["nhsapp", "patient", "triage", "urgent", "gp", "referrals"] },
+  { label: "Acute", ids: ["ambulance", "hospital", "beds", "theatre", "diagnostics", "legacy"] },
+  { label: "Beyond hospital", ids: ["community", "social", "pharmacy", "wearables", "robotics"] },
+  { label: "Life course", ids: ["mental", "maternity", "dental", "genomics", "population", "research"] },
+] as const;
+const interfaceFamily: Partial<Record<SiteId, string>> = {
+  control: "command",
+  gp: "primary",
+  hospital: "acute-epr",
+  legacy: "legacy-epr",
+  diagnostics: "pacs",
+  ambulance: "dispatch",
+  urgent: "dispatch",
+  triage: "primary",
+  referrals: "primary",
+  pharmacy: "primary",
+  community: "community-epr",
+  social: "community-epr",
+  dental: "primary",
+  wearables: "research",
+  robotics: "flow",
+  population: "board",
+  nhsapp: "citizen",
+  patient: "citizen",
+  hr: "workforce",
+  roster: "workforce",
+  maternity: "specialist",
+  mental: "community-epr",
+  theatre: "theatre",
+  beds: "flow",
+  icb: "board",
+  research: "research",
+  genomics: "research",
+};
 export function mount(siteId: SiteId) {
   const site = sites.find((s) => s.id === siteId)!;
   document.title = site.name + " | NHS-SIM";
@@ -41,6 +77,39 @@ type View = {
   faults?: Record<string, boolean>;
   staffing: { doctors: number; nurses: number; staffedSpaces: number; waiting: number };
 };
+function ProductOverview({ siteId, view, rows }: { siteId: SiteId; view: View; rows: Resource[] }) {
+  const waiting = rows.filter((r) => ["waiting", "open", "rejected"].includes(r.status)).length;
+  const urgent = rows.filter((r) => r.priority === "urgent" && r.status !== "completed").length;
+  const available = rows.filter((r) => ["available", "approved"].includes(r.status)).length;
+  const summaries: Partial<Record<SiteId, { title: string; items: [string, string | number][] }>> = {
+    gp: { title: "Practice overview", items: [["Inbox", waiting], ["Results", rows.filter(r=>["test","report"].includes(r.kind)).length], ["Appointments", rows.filter(r=>r.kind==="appointment").length], ["Tasks due", rows.filter(r=>r.kind==="task"&&r.status!=="completed").length]] },
+    hospital: { title: "Patient flow", items: [["A&E waiting", view.staffing.waiting], ["Staffed spaces", view.staffing.staffedSpaces], ["Beds visible", rows.filter(r=>r.kind==="bed").length], ["Theatre issues", rows.filter(r=>r.kind==="surgery").length]] },
+    ambulance: { title: "Control room", items: [["Open handovers", rows.filter(r=>r.kind==="handover"&&r.status==="waiting").length], ["Longest category", "C2"], ["Vehicles clear", 7], ["Hospital delay", view.staffing.waiting]] },
+    diagnostics: { title: "Reporting cockpit", items: [["Unreported", waiting], ["Urgent", urgent], ["Available", available], ["Feed", view.faults?.["pathology-outage"] ? "DELAYED" : "LIVE"]] },
+    pharmacy: { title: "Dispensary", items: [["To check", rows.filter(r=>["draft","reviewed"].includes(r.status)).length], ["Ready", rows.filter(r=>r.status==="dispensed").length], ["Shortages", rows.filter(r=>Number(r.data.stock)===0).length], ["Robot jobs", rows.filter(r=>r.kind==="robot-job").length]] },
+    community: { title: "Neighbourhood caseload", items: [["Visits due", rows.filter(r=>r.kind==="visit"&&r.status!=="completed").length], ["Care plans", rows.filter(r=>r.kind==="care-plan").length], ["Urgent", urgent], ["Slots", rows.find(r=>r.id==="capacity-community")?.data.remaining as number ?? 0]] },
+    social: { title: "Adult social care", items: [["Assessments", waiting], ["Packages", rows.filter(r=>r.kind==="care-package").length], ["Discharge blocks", rows.filter(r=>r.kind==="care-package"&&r.status!=="completed").length], ["Due today", urgent]] },
+    wearables: { title: "Remote monitoring", items: [["New signals", available], ["Devices", rows.filter(r=>r.kind==="device").length], ["Disconnected", rows.filter(r=>r.data.quality==="missing").length], ["Escalations", urgent]] },
+    robotics: { title: "Fleet status", items: [["Available", rows.filter(r=>r.kind==="robot"&&r.status==="available").length], ["In progress", rows.filter(r=>r.status==="in-progress").length], ["Completed", rows.filter(r=>r.kind==="robot-job"&&r.status==="completed").length], ["Faults", view.faults?.["robot-failure"] ? 1 : 0]] },
+    hr: { title: "People dashboard", items: [["Available", rows.filter(r=>r.kind==="staff"&&r.status==="available").length], ["Absent", rows.filter(r=>r.kind==="staff"&&r.status==="absent").length], ["Doctors", view.staffing.doctors], ["Nurses", view.staffing.nurses]] },
+    roster: { title: "Safe staffing", items: [["Doctors", view.staffing.doctors], ["Nurses", view.staffing.nurses], ["A&E spaces", view.staffing.staffedSpaces], ["Waiting", view.staffing.waiting]] },
+    beds: { title: "Operational command", items: [["Available beds", rows.filter(r=>r.kind==="bed"&&r.status==="available").length], ["Occupied", rows.filter(r=>r.kind==="bed"&&r.status==="occupied").length], ["Flow alerts", rows.filter(r=>r.kind==="flow-alert").length], ["A&E waiting", view.staffing.waiting]] },
+    theatre: { title: "Today's list", items: [["Lists", rows.filter(r=>["theatre-slot","surgery"].includes(r.kind)).length], ["Waiting", waiting], ["Robotic cases", rows.filter(r=>Boolean(r.data.robotRequired)||Boolean(r.data.robot)).length], ["Recovery beds", 2]] },
+    mental: { title: "CMHT caseload", items: [["Open care plans", waiting], ["Crisis reviews", rows.filter(r=>r.kind==="mental-health-plan").length], ["Due today", urgent], ["Unallocated", rows.filter(r=>!r.data.coordinator).length]] },
+    maternity: { title: "Maternity dashboard", items: [["Active episodes", rows.filter(r=>r.kind==="maternity-episode").length], ["Screening due", waiting], ["Named midwife", "100%"], ["Escalations", urgent]] },
+    dental: { title: "Recall management", items: [["Recalls due", waiting], ["Appointments", rows.filter(r=>r.kind==="appointment").length], ["Access barriers", rows.filter(r=>Boolean(r.data.accessBarrier)).length], ["Children", 0]] },
+    genomics: { title: "Genomic medicine", items: [["Cases", rows.filter(r=>r.kind==="genomic-test").length], ["Uncertain", rows.filter(r=>r.data.result==="uncertain").length], ["Consent limits", rows.filter(r=>r.data.consent!=="research").length], ["Review due", waiting]] },
+    research: { title: "Cohort workspace", items: [["Potential matches", rows.filter(r=>r.kind==="trial-candidate").length], ["Consent to contact", rows.filter(r=>r.data.consentToContact===true).length], ["Needs review", waiting], ["Enrolled", 0]] },
+    icb: { title: "System performance", items: [["Providers", rows.filter(r=>r.kind==="provider-metric").length], ["Open risks", urgent], ["Actions completed", view.counters.completed], ["Review minutes", view.counters.reviewMinutes]] },
+    urgent: { title: "Urgent care queue", items: [["Dispositions", rows.filter(r=>r.kind==="disposition").length], ["Awaiting booking", waiting], ["Services found", rows.filter(r=>r.data.serviceFound===true).length], ["A&E waiting", view.staffing.waiting]] },
+    referrals: { title: "Referral management", items: [["Open", waiting], ["Rejected", rows.filter(r=>r.status==="rejected").length], ["Attachments", rows.filter(r=>r.kind==="report").length], ["Booked", rows.filter(r=>r.kind==="appointment").length]] },
+    population: { title: "Population health", items: [["Recalls due", waiting], ["Screening records", rows.filter(r=>r.kind==="screening").length], ["Genomic records", rows.filter(r=>r.kind==="genomics").length], ["Inequality flags", rows.filter(r=>Boolean(r.patientId)).length]] },
+    nhsapp: { title: "Your health", items: [["Appointments", rows.filter(r=>r.kind==="appointment").length], ["Messages", rows.filter(r=>r.kind==="message").length], ["Choices", rows.filter(r=>r.kind==="choice").length], ["To do", waiting]] },
+    patient: { title: "Your health", items: [["Appointments", rows.filter(r=>r.kind==="appointment").length], ["Messages", rows.filter(r=>r.kind==="message").length], ["Medicines", rows.filter(r=>r.kind==="prescription").length], ["To do", waiting]] },
+  };
+  const summary=summaries[siteId] ?? {title:"Service overview",items:[["Open",waiting],["Urgent",urgent],["Available",available],["Completed",view.counters.completed]]};
+  return <section className="product-overview"><div className="overview-title"><span className="product-glyph">{siteId.slice(0,2).toUpperCase()}</span><div><small>LIVE SYNTHETIC SERVICE</small><h2>{summary.title}</h2></div></div><div className="overview-metrics">{summary.items.map(([label,value])=><article key={label}><strong>{value}</strong><span>{label}</span></article>)}</div></section>;
+}
 function Workbench({ siteId }: { siteId: SiteId }) {
   const site = sites.find((s) => s.id === siteId)!;
   const [key, setKey] = useState(() => sessionStorage.getItem("sim-key") ?? "");
@@ -130,7 +199,7 @@ function Workbench({ siteId }: { siteId: SiteId }) {
   const current = patients.data?.items.find((p) => p.id === patient);
   return (
     <div
-      className={"app " + (siteId === "legacy" ? "legacy" : "")}
+      className={"app ui-" + (interfaceFamily[siteId] ?? "service") + (siteId === "legacy" ? " legacy" : "")}
       style={{ "--brand": site.color } as CSSProperties}
     >
       <aside>
@@ -139,15 +208,7 @@ function Workbench({ siteId }: { siteId: SiteId }) {
           <small>NEIGHBOURHOOD LAB</small>
         </a>
         <nav aria-label="Connected systems">
-          {sites.map((s) => (
-            <a
-              key={s.id}
-              href={"/" + s.id + "/" + (patient ? "?patient=" + patient : "")}
-              className={s.id === siteId ? "active" : ""}
-            >
-              {s.name}
-            </a>
-          ))}
+          {navigation.map(group=><div className="nav-group" key={group.label}><small>{group.label}</small>{group.ids.map(id=>{const s=sites.find(site=>site.id===id)!;return <a key={s.id} href={"/"+s.id+"/"+(patient?"?patient="+patient:"")} className={s.id===siteId?"active":""}>{s.name}</a>})}</div>)}
         </nav>
         <footer>
           Fictional organisations.
@@ -173,6 +234,7 @@ function Workbench({ siteId }: { siteId: SiteId }) {
             {key && <button onClick={() => saveKey("")}>Change key</button>}
           </div>
         </header>
+        {siteId === "control" && <section className="control-visual" aria-label="Synthetic healthcare neighbourhood"><img src="/control/neighbourhood-control.png" alt="Illustrated fictional healthcare neighbourhood connected by data pathways"/><div><small>LIVE WORLD MODEL</small><strong>One neighbourhood.<br/>Every service in motion.</strong><span>Pause it. Break it. Build something that closes the loop.</span></div></section>}
         {!key && (
           <section className="panel access">
             <h2>Enter the neighbourhood</h2>
@@ -330,7 +392,7 @@ function Workbench({ siteId }: { siteId: SiteId }) {
                     Step 1 hour
                   </button>
                 </section>
-                <section className="metrics">
+                {siteId === "control" && <section className="metrics">
                   <article>
                     <small>Population</small>
                     <strong>{view.data.population.toLocaleString()}</strong>
@@ -350,7 +412,8 @@ function Workbench({ siteId }: { siteId: SiteId }) {
                       {view.data.staffing.doctors} doctors / {view.data.staffing.nurses} nurses
                     </span>
                   </article>
-                </section>
+                </section>}
+                <ProductOverview siteId={siteId} view={view.data} rows={rows}/>
                 {siteId === "control" && (
                   <section className="panel">
                     <h2>World agents & incidents</h2>

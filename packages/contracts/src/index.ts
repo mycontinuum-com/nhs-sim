@@ -113,6 +113,83 @@ export const sites = [
     color: "#087653",
     kind: "clinical",
   },
+  {
+    id: "nhsapp",
+    name: "My Health Thing",
+    subtitle: "Citizen front door · choices, messages and records",
+    color: "#005eb8",
+    kind: "patient",
+  },
+  {
+    id: "urgent",
+    name: "Pathways-ish 111",
+    subtitle: "Urgent-care dispositions and service discovery",
+    color: "#007f3b",
+    kind: "clinical",
+  },
+  {
+    id: "mental",
+    name: "RiO Grande",
+    subtitle: "Community mental health and crisis pathways",
+    color: "#006b75",
+    kind: "clinical",
+  },
+  {
+    id: "maternity",
+    name: "Badger-ish Notes",
+    subtitle: "Maternity, neonatal and perinatal records",
+    color: "#9b286f",
+    kind: "clinical",
+  },
+  {
+    id: "dental",
+    name: "Dentally Challenged",
+    subtitle: "NHS dentistry, recalls and oral-health programmes",
+    color: "#0072ce",
+    kind: "clinical",
+  },
+  {
+    id: "social",
+    name: "Solid Logic",
+    subtitle: "Adult social care, carers and home support",
+    color: "#5a4b84",
+    kind: "clinical",
+  },
+  {
+    id: "genomics",
+    name: "Gene-ius",
+    subtitle: "Genomic testing, consent and family relationships",
+    color: "#5b3f96",
+    kind: "clinical",
+  },
+  {
+    id: "theatre",
+    name: "Orpheus",
+    subtitle: "Theatre lists, robots, beds and recovery capacity",
+    color: "#006a73",
+    kind: "operations",
+  },
+  {
+    id: "beds",
+    name: "Bedrock",
+    subtitle: "Bed state, discharge barriers and patient flow",
+    color: "#bd4f19",
+    kind: "operations",
+  },
+  {
+    id: "icb",
+    name: "Commission Impossible",
+    subtitle: "Population budgets, quality and provider performance",
+    color: "#243b64",
+    kind: "operations",
+  },
+  {
+    id: "research",
+    name: "Trial & Error",
+    subtitle: "Synthetic cohort discovery and trial recruitment",
+    color: "#59458b",
+    kind: "research",
+  },
 ] as const;
 export type SiteId = (typeof sites)[number]["id"];
 export type Patient = {
@@ -151,7 +228,16 @@ export type SimEvent = {
 };
 export type Scheduled = {
   at: number;
-  type: "result" | "delivery" | "visit" | "arrival" | "observation" | "acute";
+  type:
+    | "result"
+    | "delivery"
+    | "visit"
+    | "arrival"
+    | "observation"
+    | "acute"
+    | "bed-pressure"
+    | "screening"
+    | "service-demand";
   resourceId?: string;
   patientId?: string;
 };
@@ -223,5 +309,20 @@ export const scenarios = [
     id: "wearable-disconnect",
     title: "Home device disconnection",
     description: "Generate missing readings rather than normal observations.",
+  },
+  {
+    id: "winter-pressure",
+    title: "Winter pressure",
+    description: "Increase urgent arrivals and reduce available beds.",
+  },
+  {
+    id: "pharmacy-shortage",
+    title: "Medicine supply interruption",
+    description: "Reduce stock and generate dispensing exceptions.",
+  },
+  {
+    id: "cyber-readonly",
+    title: "Supplier read-only incident",
+    description: "Represent a safety-preserving degradation across legacy systems.",
   },
 ] as const;

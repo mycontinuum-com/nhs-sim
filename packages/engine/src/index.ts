@@ -44,6 +44,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
       { id: "laboratory", enabled: true },
       { id: "home-monitor", enabled: true },
       { id: "logistics", enabled: true },
+      { id: "service-demand", enabled: true },
     ],
     counters: { actions: 0, completed: 0, rejected: 0, reviewMinutes: 0 },
     faults: {},
@@ -193,18 +194,125 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
   add("document", "Legacy outpatient letter, awaiting GP handover", "legacy", "available", 1, {
     text: "Browser-only synthetic outpatient document.",
   });
+  add(
+    "disposition",
+    "Urgent-care disposition awaiting booked service",
+    "urgent",
+    "open",
+    2,
+    { acuity: "urgent", recommendation: "same-day assessment", serviceFound: false },
+    ["urgent", "patient"],
+  );
+  add(
+    "mental-health-plan",
+    "Crisis plan review due",
+    "mental",
+    "open",
+    2,
+    { coordinator: "Simulated CMHT", safetyPlanPresent: true, lastContactDays: 21 },
+    ["mental", "gp", "patient"],
+  );
+  add(
+    "maternity-episode",
+    "Antenatal appointment and screening choices",
+    "maternity",
+    "open",
+    4,
+    { gestationWeeks: 24, namedMidwife: "M. Example", preferencesRecorded: false },
+    ["maternity", "patient"],
+  );
+  add(
+    "dental-recall",
+    "NHS dental recall overdue",
+    "dental",
+    "open",
+    7,
+    { recallMonths: 18, childProgramme: false, accessBarrier: "appointment availability" },
+    ["dental", "patient", "population"],
+  );
+  add(
+    "care-package",
+    "Home care assessment awaiting allocation",
+    "social",
+    "waiting",
+    5,
+    { visitsPerDay: 2, keySafe: false, fundingDecision: "pending" },
+    ["social", "community", "beds", "patient"],
+  );
+  add(
+    "genomic-test",
+    "Rare-disease panel: consent and phenotype review",
+    "genomics",
+    "reviewed",
+    3,
+    { consent: "clinical-only", result: "uncertain", familyContactAllowed: false },
+    ["genomics", "hospital", "patient", "research"],
+  );
+  add(
+    "theatre-slot",
+    "Robotic theatre list: two cases exceed staffed capacity",
+    "theatre",
+    "waiting",
+    6,
+    { room: "OR-3", robot: "RX-1", plannedCases: 6, staffedCases: 4, recoveryBeds: 2 },
+    ["theatre", "hospital", "robotics", "beds"],
+  );
+  add(
+    "bed",
+    "Acute medical bed 12",
+    "beds",
+    "occupied",
+    0,
+    { ward: "AMU", barrier: "medicines and home monitoring", expectedDischarge: "today" },
+    ["beds", "hospital", "community", "pharmacy"],
+  );
+  add(
+    "provider-metric",
+    "Northbank urgent-care performance",
+    "icb",
+    "available",
+    2,
+    { waitHours: 5.2, patientExperience: 68, outcomeIndex: 0.91, budgetUsedPercent: 72 },
+    ["icb", "nhsapp"],
+  );
+  add(
+    "trial-candidate",
+    "Potential synthetic prevention-study match",
+    "research",
+    "reviewed",
+    7,
+    { consentToContact: false, eligibility: "possible", exclusionsChecked: false },
+    ["research", "population"],
+  );
+  add(
+    "choice",
+    "Choose preferred diagnostic provider",
+    "nhsapp",
+    "open",
+    2,
+    { options: ["Northbank CDC · 9 days", "Riverside Hub · 15 days"], accessibility: "evening slot" },
+    ["nhsapp", "patient", "referrals"],
+  );
   for (const [owner, count] of [
     ["gp", 6],
     ["hospital", 2],
     ["community", 4],
     ["diagnostics", 4],
+    ["urgent", 3],
+    ["mental", 3],
+    ["maternity", 4],
+    ["dental", 2],
+    ["social", 3],
+    ["genomics", 2],
+    ["theatre", 4],
+    ["beds", 2],
   ] as [SiteId, number][])
     w.resources.push({
       id: "capacity-" + owner,
       kind: "capacity",
       title: owner + " available slots",
       owner,
-      visibleTo: [owner, "referrals"],
+      visibleTo: [...new Set<SiteId>([owner, "referrals", owner === "beds" ? "hospital" : owner])],
       status: "available",
       priority: "routine",
       createdAt: START,
@@ -249,10 +357,14 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     requires: "doctor and nurse",
   });
   w.agents.push({ id: "acute-flow", enabled: true });
+  w.agents.push({ id: "bed-flow", enabled: true }, { id: "prevention-recall", enabled: true });
   w.scheduled.push(
     { at: START + 15 * minute, type: "arrival" },
     { at: START + 10 * minute, type: "observation", patientId: w.patients[5].id },
     { at: START + 20 * minute, type: "acute" },
+    { at: START + 60 * minute, type: "bed-pressure" },
+    { at: START + 30 * minute, type: "service-demand" },
+    { at: START + 24 * 60 * minute, type: "screening" },
   );
   return w;
 }
@@ -335,7 +447,7 @@ export class Engine {
           (!patientId || r.patientId === patientId || !r.patientId),
       ),
       agents: site === "control" ? w.agents : undefined,
-      faults: site === "control" ? w.faults : undefined,
+      faults: w.faults,
       events: this.events(id, site),
     };
   }
@@ -384,6 +496,11 @@ export class Engine {
       }
       if (a.patientId && !w.patients.some((p) => p.id === a.patientId))
         throw new SimError("Unknown patient", 404);
+      if (
+        w.faults["cyber-readonly"] &&
+        ["hospital", "legacy", "diagnostics", "referrals", "theatre", "beds"].includes(site)
+      )
+        throw new SimError("Service is in cyber incident read-only mode", 423);
       let r: Resource | undefined;
       if (a.resourceId) {
         r = w.resources.find((x) => x.id === a.resourceId);
@@ -579,6 +696,66 @@ export class Engine {
         }
         w.scheduled.push({ at: w.now + 20 * minute, type: "acute" });
       }
+      if (job.type === "bed-pressure") {
+        if (enabled("bed-flow")) {
+          const openBeds = w.resources.filter(
+            (x) => x.kind === "bed" && x.status === "available",
+          ).length;
+          const waiting = w.resources.filter(
+            (x) => x.kind === "encounter" && x.status === "waiting",
+          ).length;
+          if (waiting > openBeds) {
+            const item = this.add(
+              w,
+              "flow-alert",
+              "Demand exceeds staffed bed availability",
+              "beds",
+              undefined,
+              { waiting, openBeds, winterPressure: Boolean(w.faults["winter-pressure"]) },
+            );
+            item.priority = "urgent";
+            item.visibleTo = ["beds", "hospital", "icb"];
+            this.event(w, "flow.pressure", "bed-flow", item.title, item);
+          }
+        }
+        w.scheduled.push({ at: w.now + 60 * minute, type: "bed-pressure" });
+      }
+      if (job.type === "screening") {
+        if (enabled("prevention-recall")) {
+          w.rng = (Math.imul(1664525, w.rng) + 1013904223) >>> 0;
+          const patient = w.patients[w.rng % w.patients.length];
+          const item = this.add(
+            w,
+            "screening",
+            "Population recall due",
+            "population",
+            patient.id,
+            { channel: patient.needs.includes("Offline contact") ? "letter" : "app", completed: false },
+          );
+          item.visibleTo = ["population", "gp", "nhsapp", "patient"];
+          this.event(w, "prevention.recall", "prevention-recall", item.title, item);
+        }
+        w.scheduled.push({ at: w.now + 24 * 60 * minute, type: "screening" });
+      }
+      if (job.type === "service-demand") {
+        if (enabled("service-demand")) {
+          const services: [SiteId, string, string][] = [
+            ["mental", "mental-health-plan", "New community mental-health review"],
+            ["maternity", "maternity-episode", "New maternity contact awaiting triage"],
+            ["dental", "dental-recall", "New urgent dental access request"],
+            ["social", "care-package", "New home-support assessment"],
+            ["referrals", "referral", "New specialist referral"],
+            ["pharmacy", "prescription", "New prescription awaiting review"],
+          ];
+          w.rng = (Math.imul(1664525, w.rng) + 1013904223) >>> 0;
+          const [owner, kind, title] = services[w.rng % services.length];
+          const patient = w.patients[(w.rng >>> 4) % w.patients.length];
+          const item = this.add(w, kind, title, owner, patient.id, { generated: true });
+          item.visibleTo = [owner, "patient"];
+          this.event(w, "service.requested", "service-demand", item.title, item);
+        }
+        w.scheduled.push({ at: w.now + 30 * minute, type: "service-demand" });
+      }
       if (job.type === "arrival") {
         if (enabled("patient-demand")) {
           w.rng = (Math.imul(1664525, w.rng) + 1013904223) >>> 0;
@@ -669,6 +846,33 @@ export class Engine {
         const c = w.resources.find((x) => x.id === "capacity-community")!;
         c.data.remaining = enabled ? 0 : 4;
         c.data.total = enabled ? 0 : 4;
+      }
+      if (name === "winter-pressure") {
+        const beds = w.resources.find((x) => x.id === "capacity-beds");
+        if (beds) {
+          beds.data.remaining = enabled ? 0 : 2;
+          beds.data.total = enabled ? 1 : 2;
+          beds.version++;
+        }
+        if (enabled)
+          for (let i = 0; i < 8; i++) {
+            const item = this.add(
+              w,
+              "encounter",
+              "Winter-pressure A&E arrival",
+              "hospital",
+              w.patients[(i + 12) % w.patients.length].id,
+            );
+            item.status = "waiting";
+            item.visibleTo = ["hospital", "ambulance", "beds"];
+            this.event(w, "emergency.arrived", "scenario", item.title, item);
+          }
+      }
+      if (name === "pharmacy-shortage") {
+        for (const prescription of w.resources.filter((x) => x.kind === "prescription")) {
+          prescription.data.stock = enabled ? 0 : Math.max(3, Number(prescription.data.stock ?? 0));
+          prescription.version++;
+        }
       }
       if (name === "pathology-outage" && !enabled)
         for (const r of w.resources.filter((x) => x.kind === "test" && x.status === "available"))

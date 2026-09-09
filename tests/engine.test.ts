@@ -180,6 +180,37 @@ test("robot dispatch has causal completion and capacity", () => {
   e.clock("default", { advanceMinutes: 31 });
   assert.equal(e.require("default").resources.find((x) => x.id === r.id)?.status, "completed");
 });
+test("winter pressure changes bed capacity and creates an acute backlog", () => {
+  const e = new Engine();
+  const before = e.staffing(e.require("default")).waiting;
+  e.fault("default", "winter-pressure", true);
+  assert.equal(
+    e.require("default").resources.find((r) => r.id === "capacity-beds")?.data.remaining,
+    0,
+  );
+  assert.equal(e.staffing(e.require("default")).waiting, before + 8);
+});
+test("cyber incident makes affected services read-only until restored", () => {
+  const e = new Engine();
+  const encounter = e.require("default").resources.find((r) => r.kind === "encounter")!;
+  e.fault("default", "cyber-readonly", true);
+  assert.throws(
+    () => e.action("default", "hospital", { type: "complete", resourceId: encounter.id }, "team"),
+    /read-only/,
+  );
+  e.fault("default", "cyber-readonly", false);
+  assert.doesNotThrow(() =>
+    e.action("default", "hospital", { type: "complete", resourceId: encounter.id }, "team"),
+  );
+});
+test("background agents create cross-service demand and flow alerts", () => {
+  const e = new Engine();
+  e.fault("default", "winter-pressure", true);
+  e.clock("default", { advanceMinutes: 61 });
+  const generated = e.require("default").resources.filter((r) => r.data.generated === true);
+  assert.equal(generated.length, 2);
+  assert.ok(e.view("default", "beds").resources.some((r) => r.kind === "flow-alert"));
+});
 test("NHS mock bundles preserve synthetic labelling", () => {
   const b = bundle(new Engine(), "default", "pds", "SIM-000001")!;
   assert.equal(b.resourceType, "Bundle");

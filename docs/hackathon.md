@@ -12,6 +12,11 @@
 8. **Accessible care navigator.** SIM-000003 works shifts; SIM-000008 needs offline contact. Use patient needs and goals when creating communication and follow-up tasks.
 9. **Shared-record explorer.** Build a timeline from different API projections without assuming every record is visible everywhere.
 10. **NHS integration starter.** Implement OIDC PKCE against CIS-too and exercise local e-RS/EPS-like action adapters.
+11. **Winter command centre.** Inject winter pressure, combine Bedrock flow alerts with CAD-astrophe and Epi-ish queues, and propose safe discharge actions.
+12. **Mental-health continuity agent.** Track crisis plans, unanswered contacts and GP-visible context without treating message delivery as care completion.
+13. **Maternity navigator.** Coordinate preferences, screening choices, appointments and accessible communication across Badger-ish Notes and the citizen apps.
+14. **Consent-aware genomic trial matcher.** Match Gene-ius cases to Trial & Error while respecting clinical-only consent and consent-to-contact.
+15. **Cyber resilience copilot.** Detect the acute read-only incident, preserve an auditable queue of proposed actions and replay only reviewed work after restoration.
 
 ## Plan coverage: implemented vs extension
 
@@ -29,8 +34,8 @@ The [10-Year Health Plan](https://www.gov.uk/government/publications/10-year-hea
 | Workforce | Absence, allocation, A&E staffed-space constraint | Time-bounded shifts, leave approval, fatigue and supervision |
 | Quality | Event audit, completed-work and resource metrics | Outcome/experience measures, incident detection, case-mix adjustment |
 | Finance | Capacity and review-time counters | Costs, budgets, commissioning and incentive scenarios |
-| Mental health, maternity, dentistry | Extensible patient/resource/action primitives | Authored pathways and distinct interfaces; not yet implemented |
-| Research | Synthetic genomics/population workbench | Consent-aware trial matching and recruitment workflows |
+| Mental health, maternity, dentistry | Seeded episodes, live background demand, distinct worklists and API projections | Rich pathway rules, specialty terminology and outcome models |
+| Research | Consent-aware genomic cases, cohort candidates and separate workspaces | Protocol authoring, temporal eligibility and recruitment workflows |
 
 ## Evaluation
 

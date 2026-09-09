@@ -32,18 +32,18 @@ Prescription flow: draft → reviewed → approved → dispensed → collected. 
 
 Staff absence and roster allocation determine a simplified A&E staffing capacity from doctor/nurse counts. If no staffed space exists, emergency encounter/handover completion is rejected. This is an operational scaffold, not a validated staffing model.
 
-The acute-flow agent adds three synthetic arrivals every twenty simulation minutes and processes older work at a rate derived from staffed spaces. Removing staff therefore increases waiting work over time. These rates are explicit game parameters, not clinical evidence.
+The acute-flow agent adds three synthetic arrivals every twenty simulation minutes and processes older work at a rate derived from staffed spaces. A separate service-demand agent adds mental-health, maternity, dental, social-care, referral and pharmacy work every thirty minutes. Bed-flow and prevention agents add operational alerts and recalls. Removing staff therefore increases waiting work over time. These rates are explicit game parameters, not clinical evidence.
 
 ## Boundaries still to deepen
 
-- Independent frontends currently share a workbench implementation; custom vendor screens belong in their respective app packages.
+- Independent frontends share accessible workbench primitives and use distinct interface families. They evoke system categories, but are not pixel replicas of proprietary vendor screens.
 - Legacy access is an HTML-only workflow without a published JSON endpoint, not a cryptographic guarantee against scraping its HTTP traffic.
 - Patient portal is a team simulation view, not patient-authenticated access.
 - No real DICOM server, physiological model, pharmacological dosing, robotic physics or device connectivity.
 - No autonomous diagnosis/treatment. Model adapter only proposes administrative tasks.
 - No full NHS/FHIR conformance, production authentication, network assurance or real prescription signing.
 - No automatic cross-organisation data synchronisation beyond the explicit actions/event rules implemented.
-- Population health and genomics are seeded records and extensible actions, not validated long-horizon outcome models.
+- Population health, genomics, maternity, mental health, dentistry and social care have seeded records and live work queues, but not validated clinical or long-horizon outcome models.
 - No attachment upload, real telephone/SMS delivery, HL7v2 listener or outbound webhook infrastructure yet.
 - Team key revocation/expiry, quotas per team and robust public abuse controls are future hardening.
 

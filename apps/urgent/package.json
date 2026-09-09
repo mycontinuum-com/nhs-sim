@@ -1,0 +1,10 @@
+{
+  "name": "@nhs-sim/urgent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build"
+  }
+}
+

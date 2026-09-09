@@ -98,6 +98,20 @@ nav {
   flex-direction: column;
   gap: 3px;
 }
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 12px;
+}
+.nav-group > small {
+  padding: 0 10px 4px;
+  color: #7fa2b8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
 nav a {
   padding: 9px 10px;
   text-decoration: none;
@@ -368,6 +382,234 @@ iframe {
   border: 1px solid #aaa;
   margin-top: 20px;
 }
+.control-visual {
+  position: relative;
+  min-height: 260px;
+  margin: 0 0 20px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #081f33;
+  color: white;
+}
+.control-visual::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: linear-gradient(90deg, rgba(4, 22, 38, 0.92) 0%, rgba(4, 22, 38, 0.5) 44%, transparent 72%);
+}
+.control-visual img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.control-visual div {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: min(480px, 70%);
+  min-height: 260px;
+  padding: 34px;
+  flex-direction: column;
+  justify-content: center;
+}
+.control-visual small {
+  color: #69e5df;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+.control-visual strong {
+  margin: 8px 0;
+  font-size: clamp(25px, 3.2vw, 43px);
+  line-height: 1.03;
+  letter-spacing: -1.5px;
+}
+.control-visual span {
+  color: #cde1ea;
+}
+.product-overview {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 3fr;
+  gap: 20px;
+  padding: 20px 22px;
+  margin: 0 0 20px;
+  border: 1px solid #cbd9e3;
+  border-left: 5px solid var(--brand);
+  background: #fff;
+}
+.overview-title {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+}
+.overview-title h2 {
+  margin: 2px 0 0;
+}
+.overview-title small {
+  color: #657c8c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+.product-glyph {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--brand);
+  color: white;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 1px;
+}
+.overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr));
+  border-left: 1px solid #d8e2e9;
+}
+.overview-metrics article {
+  display: flex;
+  min-width: 0;
+  padding: 4px 16px;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid #d8e2e9;
+}
+.overview-metrics strong {
+  color: var(--brand);
+  font-size: 28px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.overview-metrics span {
+  color: #5d7282;
+  font-size: 13px;
+}
+
+/* Fictional interface families: category cues, never pixel copies of real products. */
+.ui-acute-epr main,
+.ui-theatre main {
+  background: #e5e8eb;
+}
+.ui-acute-epr header,
+.ui-theatre header {
+  margin: 0 -32px 18px;
+  padding: 18px 32px;
+  background: #3d2452;
+  color: white;
+}
+.ui-acute-epr .eyebrow,
+.ui-theatre .eyebrow {
+  color: #e9c6ff;
+}
+.ui-acute-epr .panel,
+.ui-theatre .panel {
+  border-top-width: 1px;
+  border-radius: 2px;
+}
+.ui-primary main,
+.ui-community-epr main {
+  background: #f5f8fb;
+}
+.ui-primary .product-overview,
+.ui-community-epr .product-overview {
+  box-shadow: 0 3px 12px rgba(29, 64, 91, 0.08);
+}
+.ui-primary th,
+.ui-community-epr th {
+  background: #dbeaf6;
+  color: #173e63;
+}
+.ui-pacs {
+  color: #e8eef3;
+}
+.ui-pacs main {
+  background: #111a22;
+}
+.ui-pacs header,
+.ui-pacs .panel,
+.ui-pacs .product-overview {
+  border-color: #384957;
+  background: #1c2832;
+  color: #e8eef3;
+}
+.ui-pacs th,
+.ui-pacs pre,
+.ui-pacs .patient {
+  background: #273641;
+  color: #e8eef3;
+}
+.ui-pacs td {
+  border-color: #354753;
+}
+.ui-dispatch main {
+  background: #071d1b;
+  color: #e3faf5;
+}
+.ui-dispatch header,
+.ui-dispatch .panel,
+.ui-dispatch .product-overview {
+  border-color: #245249;
+  background: #102d29;
+  color: #e3faf5;
+}
+.ui-dispatch th {
+  background: #173c36;
+  color: #a5ded2;
+}
+.ui-dispatch td {
+  border-color: #245249;
+}
+.ui-citizen aside {
+  background: #005eb8;
+}
+.ui-citizen main {
+  background: #f2f7fc;
+}
+.ui-citizen .product-overview,
+.ui-citizen .panel {
+  border-radius: 12px;
+}
+.ui-citizen .product-glyph {
+  border-radius: 50%;
+}
+.ui-workforce main {
+  background: #f5f2f7;
+}
+.ui-workforce .product-overview {
+  border-left-width: 12px;
+}
+.ui-specialist main {
+  background: #fff6fa;
+}
+.ui-specialist .panel,
+.ui-specialist .product-overview {
+  border-radius: 10px;
+  border-color: #ead3df;
+}
+.ui-flow main {
+  background: #f6f2ed;
+}
+.ui-flow .overview-metrics strong {
+  font-size: 34px;
+}
+.ui-board main,
+.ui-research main {
+  background: #eef1f6;
+}
+.ui-board .product-overview,
+.ui-research .product-overview {
+  border-left: 0;
+  border-top: 6px solid var(--brand);
+}
+.ui-research code,
+.ui-research pre {
+  color: #4f2780;
+}
 @media (max-width: 1000px) {
   .app {
     grid-template-columns: 190px 1fr;
@@ -385,6 +627,21 @@ iframe {
     align-items: start;
     flex-direction: column;
   }
+  .ui-acute-epr header,
+  .ui-theatre header {
+    margin-right: -18px;
+    margin-left: -18px;
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+  .product-overview {
+    grid-template-columns: 1fr;
+  }
+  .overview-metrics {
+    border-top: 1px solid #d8e2e9;
+    border-left: 0;
+    padding-top: 12px;
+  }
 }
 @media (max-width: 650px) {
   .app {
@@ -396,6 +653,13 @@ iframe {
   nav {
     flex-direction: row;
     overflow: auto;
+  }
+  .nav-group {
+    flex-direction: row;
+    margin: 0;
+  }
+  .nav-group > small {
+    display: none;
   }
   nav a {
     white-space: nowrap;
@@ -415,5 +679,22 @@ iframe {
   }
   .panel {
     padding: 16px;
+  }
+  .overview-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .overview-metrics article {
+    padding: 10px;
+  }
+  .control-visual {
+    min-height: 300px;
+  }
+  .control-visual::after {
+    background: rgba(4, 22, 38, 0.72);
+  }
+  .control-visual div {
+    width: 100%;
+    min-height: 300px;
+    padding: 24px;
   }
 }

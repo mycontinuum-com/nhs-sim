@@ -74,6 +74,23 @@ GET /api/nhs/{adapter} returns a FHIR-shaped Bundle. Patient filtering for non-P
 | pathology | diagnostics | Delayed test results | No HL7v2 or laboratory device feed |
 | radiology | diagnostics | Report metadata | No DICOM/PACS image server |
 | appointments | gp | Capacity-backed bookings | Local slot abstraction |
+| nhs-login | nhsapp | Synthetic patient identity | Fixture only; no real NHS login or assurance |
+| nrl | nhsapp | Visible record pointers | Local references, not National Record Locator semantics |
+| personal-demographics | nhsapp | Citizen demographic projection | Read-only synthetic identities |
+| 111 | urgent | Urgent-care dispositions | No clinical decision support or Pathways content |
+| uec-booking | urgent | Urgent appointment projection | Local capacity abstraction |
+| mental-health | mental | Crisis and care plans | Simplified local CarePlan resources |
+| maternity | maternity | Maternity episodes | No national maternity record profile |
+| dental | dental | Recall and access requests | No FP17 or payments workflow |
+| social-care | social | Care packages and allocation | No local-authority integration |
+| genomics | genomics | Consent-aware test records | No GMS test directory or genomic file formats |
+| beds | beds | Bed state and discharge barriers | Operational game model only |
+| theatres | theatre | Theatre lists and constraints | No device control or clinical scheduling engine |
+| workforce | hr | Staff status | No ESR interface or real staff data |
+| rostering | roster | Allocation and skill mix | Simplified schedule projection |
+| ambulance | ambulance | Handover queue | No real CAD messages or dispatch control |
+| provider-metrics | icb | Provider measures | Synthetic performance signals |
+| research | research | Trial candidates | No recruitment, contact or consent writeback |
 
 POST /api/nhs/{adapter}/actions uses the same simulator action schema and service scope as its owning site. It is a convenience adapter, **not** the corresponding NHS endpoint syntax. Read-only-looking adapters should be used for GET; production-parity method restrictions are not represented.
 

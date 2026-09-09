@@ -57,11 +57,17 @@ importers:
 
   apps/ambulance: {}
 
+  apps/beds: {}
+
   apps/community: {}
 
   apps/control: {}
 
+  apps/dental: {}
+
   apps/diagnostics: {}
+
+  apps/genomics: {}
 
   apps/gp: {}
 
@@ -69,7 +75,15 @@ importers:
 
   apps/hr: {}
 
+  apps/icb: {}
+
   apps/legacy: {}
+
+  apps/maternity: {}
+
+  apps/mental: {}
+
+  apps/nhsapp: {}
 
   apps/patient: {}
 
@@ -79,13 +93,21 @@ importers:
 
   apps/referrals: {}
 
+  apps/research: {}
+
   apps/robotics: {}
 
   apps/roster: {}
 
   apps/server: {}
 
+  apps/social: {}
+
+  apps/theatre: {}
+
   apps/triage: {}
+
+  apps/urgent: {}
 
   apps/wearables: {}
 

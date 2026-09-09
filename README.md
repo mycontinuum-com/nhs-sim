@@ -38,7 +38,7 @@ Only the application joins the Traefik network. PostgreSQL remains on the intern
 
 ## Websites
 
-Each has its own pnpm workspace package, entry point, Vite+ configuration, base path and static build. Shared TanStack Router/Query components provide a consistent working foundation; these are not sixteen finished vendor clones.
+Each of the 27 portals has its own pnpm workspace package, entry point, Vite+ configuration, base path and static build. Shared TanStack Router/Query components provide the workflow primitives, while interface families evoke acute EPRs, PACS, dispatch, citizen apps, workforce suites and older browser systems. They are deliberately fictional category parodies—not deceptive copies or certified replicas of proprietary products.
 
 | Path | System |
 |---|---|
@@ -58,6 +58,17 @@ Each has its own pnpm workspace package, entry point, Vite+ configuration, base 
 | `/hr/` | ES-Arrr: staff absence and return |
 | `/roster/` | Allocate-ish: staff allocation and skill mix |
 | `/ambulance/` | CAD-astrophe: handover worklist |
+| `/nhsapp/` | My Health Thing: citizen choices, messages and records |
+| `/urgent/` | Pathways-ish 111: dispositions and urgent-care booking |
+| `/mental/` | RiO Grande: community mental health and crisis plans |
+| `/maternity/` | Badger-ish Notes: antenatal and perinatal pathways |
+| `/dental/` | Dentally Challenged: recalls and access requests |
+| `/social/` | Solid Logic: care packages and discharge support |
+| `/genomics/` | Gene-ius: genomic tests, consent and family context |
+| `/theatre/` | Orpheus: operating lists, robots and recovery capacity |
+| `/beds/` | Bedrock: beds, discharge barriers and flow alerts |
+| `/icb/` | Commission Impossible: provider and population performance |
+| `/research/` | Trial & Error: consent-aware cohort discovery |
 
 ## APIs and self-service keys
 
@@ -120,7 +131,7 @@ Use Docker Compose for the complete local ecosystem. For frontend HMR, run `pnpm
 
 ## Agents and hackathon depth
 
-Rule agents run without internet or credentials: demand arrivals, delayed lab work, home observations, logistics completion and staffing-dependent A&E flow. Their actions use simulation time, so pausing pauses their effects. Optional LLM proposals require `OPENAI_API_KEY` and `OPENAI_MODEL`, and an explicit operator request. They are not automatically executed and may only propose tasks.
+Rule agents run without internet or credentials: front-door and cross-service demand, delayed lab work, home observations, logistics completion, prevention recalls, bed-pressure alerts and staffing-dependent A&E flow. Their actions use simulation time, so pausing pauses their effects. Optional LLM proposals require `OPENAI_API_KEY` and `OPENAI_MODEL`, and an explicit operator request. They are not automatically executed and may only propose tasks.
 
 Read [hackathon projects and coverage](docs/hackathon.md), [API contracts](docs/api-contracts.md), and [security](SECURITY.md).
 

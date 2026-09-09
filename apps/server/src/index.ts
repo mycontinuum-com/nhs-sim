@@ -389,6 +389,7 @@ const server = createServer(async (req, res) => {
       ".js": "text/javascript",
       ".css": "text/css",
       ".svg": "image/svg+xml",
+      ".png": "image/png",
       ".json": "application/json",
     };
     res.writeHead(200, {
