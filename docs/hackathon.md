@@ -7,12 +7,12 @@
 3. **Pharmacy assistant.** Draft a prescription, request review/approval and progress dispensing/collection. Dispatch a robot and verify completion rather than assuming the request succeeded.
 4. **Home-monitoring coordinator.** SIM-000006 has an activity trend and unresolved support plan. Inspect observations, distinguish disconnected-device data, and allocate a home visit within finite capacity.
 5. **Legacy integration agent.** Use browser automation to transfer a document. API requests deliberately fail with the fictional supplier's integration policy.
-6. **A&E staffing assistant.** Report doctor/nurse absences in ES-Arrr, alter allocation in Allocate-ish, and observe staffed capacity and blocked emergency completion in Epi-ish/CAD-astrophe.
+6. **A&E staffing assistant.** Report doctor/nurse absences in ES-Arrr, alter allocation in Allocate-ish, and observe staffed capacity and blocked emergency completion in SystemTwo/CAD-astrophe.
 7. **Resource-aware robot dispatcher.** Queue jobs, handle busy robots and maintenance incidents, and verify eventual completion.
 8. **Accessible care navigator.** SIM-000003 works shifts; SIM-000008 needs offline contact. Use patient needs and goals when creating communication and follow-up tasks.
 9. **Shared-record explorer.** Build a timeline from different API projections without assuming every record is visible everywhere.
 10. **NHS integration starter.** Implement OIDC PKCE against CIS-too and exercise local e-RS/EPS-like action adapters.
-11. **Winter command centre.** Inject winter pressure, combine Bedrock flow alerts with CAD-astrophe and Epi-ish queues, and propose safe discharge actions.
+11. **Winter command centre.** Inject winter pressure, combine Bedrock flow alerts with CAD-astrophe and SystemTwo queues, and propose safe discharge actions.
 12. **Mental-health continuity agent.** Track crisis plans, unanswered contacts and GP-visible context without treating message delivery as care completion.
 13. **Maternity navigator.** Coordinate preferences, screening choices, appointments and accessible communication across Badger-ish Notes and the citizen apps.
 14. **Consent-aware genomic trial matcher.** Match Gene-ius cases to Trial & Error while respecting clinical-only consent and consent-to-contact.

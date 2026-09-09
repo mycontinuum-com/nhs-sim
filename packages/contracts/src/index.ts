@@ -17,9 +17,16 @@ export const sites = [
   },
   {
     id: "hospital",
-    name: "Epi-ish · Northbank",
-    subtitle: "Acute care · admissions and theatres",
-    color: "#642f88",
+    name: "SystemTwo EPR",
+    subtitle: "Northbank acute care · inpatient record",
+    color: "#164f87",
+    kind: "clinical",
+  },
+  {
+    id: "messaging",
+    name: "Pingr",
+    subtitle: "Secure-ish care-team messaging · patient context",
+    color: "#087f7d",
     kind: "clinical",
   },
   {

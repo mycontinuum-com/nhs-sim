@@ -134,8 +134,36 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
   add("request", "Fourth contact: what happened to my referral?", "triage", "open", 1, {}, [
     "triage",
     "gp",
+    "messaging",
     "patient",
   ]);
+  add(
+    "message",
+    "Respiratory: review worsening oxygen requirement",
+    "messaging",
+    "open",
+    0,
+    { channel: "respiratory", participants: 21, linkedRecord: true },
+    ["messaging", "hospital", "gp"],
+  );
+  add(
+    "message",
+    "Discharge & flow: confirm medication handover",
+    "messaging",
+    "open",
+    0,
+    { channel: "discharge-and-flow", participants: 14, linkedRecord: true },
+    ["messaging", "hospital", "pharmacy", "community"],
+  );
+  add(
+    "message",
+    "Referral Exchange: imaging attachment located",
+    "messaging",
+    "reviewed",
+    1,
+    { channel: "radiology", participants: 9, linkedRecord: true },
+    ["messaging", "diagnostics", "referrals", "gp"],
+  );
   add("report", "Imaging report available in document silo", "diagnostics", "available", 1, {
     text: "Synthetic imaging report: attach to referral for review.",
   });
@@ -290,7 +318,10 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     "nhsapp",
     "open",
     2,
-    { options: ["Northbank CDC · 9 days", "Riverside Hub · 15 days"], accessibility: "evening slot" },
+    {
+      options: ["Northbank CDC · 9 days", "Riverside Hub · 15 days"],
+      accessibility: "evening slot",
+    },
     ["nhsapp", "patient", "referrals"],
   );
   for (const [owner, count] of [
@@ -724,14 +755,10 @@ export class Engine {
         if (enabled("prevention-recall")) {
           w.rng = (Math.imul(1664525, w.rng) + 1013904223) >>> 0;
           const patient = w.patients[w.rng % w.patients.length];
-          const item = this.add(
-            w,
-            "screening",
-            "Population recall due",
-            "population",
-            patient.id,
-            { channel: patient.needs.includes("Offline contact") ? "letter" : "app", completed: false },
-          );
+          const item = this.add(w, "screening", "Population recall due", "population", patient.id, {
+            channel: patient.needs.includes("Offline contact") ? "letter" : "app",
+            completed: false,
+          });
           item.visibleTo = ["population", "gp", "nhsapp", "patient"];
           this.event(w, "prevention.recall", "prevention-recall", item.title, item);
         }

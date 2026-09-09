@@ -38,37 +38,38 @@ Only the application joins the Traefik network. PostgreSQL remains on the intern
 
 ## Websites
 
-Each of the 27 portals has its own pnpm workspace package, entry point, Vite+ configuration, base path and static build. Shared TanStack Router/Query components provide the workflow primitives, while interface families evoke acute EPRs, PACS, dispatch, citizen apps, workforce suites and older browser systems. They are deliberately fictional category parodies—not deceptive copies or certified replicas of proprietary products.
+Each of the 28 portals has its own pnpm workspace package, entry point, Vite+ configuration, base path and static build. The portals share TanStack Router/Query and the simulation contracts, but expose purpose-built product interfaces: an inpatient EPR, care-team messenger, primary-care inbox, ED command board, rostering grid, dispensing workflow, dark reporting cockpit, citizen views and domain-specific operational boards. They are deliberately fictional category parodies—not deceptive copies or certified replicas of proprietary products.
 
-| Path | System |
-|---|---|
-| `/control/` | Clock, world selector, incidents and agent switches |
-| `/gp/` | Primary-care EPR and follow-up tasks |
-| `/hospital/` | Epi-ish: acute worklists and A&E capacity |
-| `/legacy/` | Cerner? I Hardly Know Her: browser-only correspondence |
-| `/triage/` | Patient requests and front-door navigation |
-| `/diagnostics/` | Pathology and radiology silos |
-| `/referrals/` | Referral Exchange |
-| `/pharmacy/` | Medicines, dispensing and supply |
-| `/community/` | Home visits, care plans and virtual-ward foundation |
-| `/wearables/` | Home Signals: device and observation streams |
-| `/robotics/` | Fleet Operations: jobs, availability and completion |
-| `/patient/` | Patient/carer simulation workbench |
-| `/population/` | Screening, genomics and prevention records |
-| `/hr/` | ES-Arrr: staff absence and return |
-| `/roster/` | Allocate-ish: staff allocation and skill mix |
-| `/ambulance/` | CAD-astrophe: handover worklist |
-| `/nhsapp/` | My Health Thing: citizen choices, messages and records |
-| `/urgent/` | Pathways-ish 111: dispositions and urgent-care booking |
-| `/mental/` | RiO Grande: community mental health and crisis plans |
-| `/maternity/` | Badger-ish Notes: antenatal and perinatal pathways |
-| `/dental/` | Dentally Challenged: recalls and access requests |
-| `/social/` | Solid Logic: care packages and discharge support |
-| `/genomics/` | Gene-ius: genomic tests, consent and family context |
-| `/theatre/` | Orpheus: operating lists, robots and recovery capacity |
-| `/beds/` | Bedrock: beds, discharge barriers and flow alerts |
-| `/icb/` | Commission Impossible: provider and population performance |
-| `/research/` | Trial & Error: consent-aware cohort discovery |
+| Path            | System                                                                  |
+| --------------- | ----------------------------------------------------------------------- |
+| `/control/`     | Clock, world selector, incidents and agent switches                     |
+| `/gp/`          | Primary-care EPR and follow-up tasks                                    |
+| `/hospital/`    | SystemTwo EPR: inpatient record, observations, notes and acute workflow |
+| `/messaging/`   | Pingr: secure-ish care-team channels, patient context and shared tasks  |
+| `/legacy/`      | Cerner? I Hardly Know Her: browser-only correspondence                  |
+| `/triage/`      | Patient requests and front-door navigation                              |
+| `/diagnostics/` | Pathology and radiology silos                                           |
+| `/referrals/`   | Referral Exchange                                                       |
+| `/pharmacy/`    | Medicines, dispensing and supply                                        |
+| `/community/`   | Home visits, care plans and virtual-ward foundation                     |
+| `/wearables/`   | Home Signals: device and observation streams                            |
+| `/robotics/`    | Fleet Operations: jobs, availability and completion                     |
+| `/patient/`     | Patient/carer simulation workbench                                      |
+| `/population/`  | Screening, genomics and prevention records                              |
+| `/hr/`          | ES-Arrr: staff absence and return                                       |
+| `/roster/`      | Allocate-ish: staff allocation and skill mix                            |
+| `/ambulance/`   | CAD-astrophe: handover worklist                                         |
+| `/nhsapp/`      | My Health Thing: citizen choices, messages and records                  |
+| `/urgent/`      | Pathways-ish 111: dispositions and urgent-care booking                  |
+| `/mental/`      | RiO Grande: community mental health and crisis plans                    |
+| `/maternity/`   | Badger-ish Notes: antenatal and perinatal pathways                      |
+| `/dental/`      | Dentally Challenged: recalls and access requests                        |
+| `/social/`      | Solid Logic: care packages and discharge support                        |
+| `/genomics/`    | Gene-ius: genomic tests, consent and family context                     |
+| `/theatre/`     | Orpheus: operating lists, robots and recovery capacity                  |
+| `/beds/`        | Bedrock: beds, discharge barriers and flow alerts                       |
+| `/icb/`         | Commission Impossible: provider and population performance              |
+| `/research/`    | Trial & Error: consent-aware cohort discovery                           |
 
 ## APIs and self-service keys
 

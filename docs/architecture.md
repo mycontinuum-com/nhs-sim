@@ -36,7 +36,8 @@ The acute-flow agent adds three synthetic arrivals every twenty simulation minut
 
 ## Boundaries still to deepen
 
-- Independent frontends share accessible workbench primitives and use distinct interface families. They evoke system categories, but are not pixel replicas of proprietary vendor screens.
+- Independent frontends share accessible data primitives while rendering purpose-built workflows for each product: SystemTwo EPR, Pingr messaging, Riverside triage, CAD-astrophe emergency command, Allocate-ish rostering, pharmacy dispensing and service-specific operational boards. They evoke system categories, but are not pixel replicas of proprietary vendor screens.
+- The visual exploration that informed the first six interface families is retained at `docs/design/system-interface-concepts.jpg`; the deployed UI is native React/CSS rather than a screenshot.
 - Legacy access is an HTML-only workflow without a published JSON endpoint, not a cryptographic guarantee against scraping its HTTP traffic.
 - Patient portal is a team simulation view, not patient-authenticated access.
 - No real DICOM server, physiological model, pharmacological dosing, robotic physics or device connectivity.
