@@ -1,3 +1,5 @@
+import { seedAppointmentSessions } from "./appointment-sessions.ts";
+import { appointmentSessionSchema, occupiesAppointmentSlot } from "../../contracts/src/appointments.ts";
 import { seedDocuments } from "./document-seed.ts";
 import { dischargeDocumentSchema } from "../../contracts/src/documents.ts";
 import { seedPharmacy } from "./pharmacy-seed.ts";
@@ -469,6 +471,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
   seedHospitalAttendances(w);
   seedPharmacy(w);
   seedDocuments(w);
+  seedAppointmentSessions(w);
   populateHistories(w);
   for (const record of w.resources) {
     const created: RecordChange = {
@@ -666,7 +669,34 @@ export class Engine {
         schedule_visit: ["visit", "community"],
         dispatch_robot: ["robot-job", "robotics"],
       };
-      if (a.type === "save_discharge_summary" || a.type === "process_document") {
+      if (a.type === "create_appointment_session" || a.type === "set_appointment_slot") {
+        if (site !== "gp") throw new SimError("Only GP can manage appointment sessions", 403);
+        const resources = original(w)?.resources ?? w.resources;
+        if (a.type === "create_appointment_session") {
+          const parsed = appointmentSessionSchema.safeParse({ ...a, blockedSlots: [] });
+          if (!parsed.success || !a.title || a.resourceId) throw new SimError("A title and valid session properties are required");
+          const session = parsed.data;
+          if (session.startsAt < w.now) throw new SimError("Session cannot start before simulation time", 409);
+          if (resources.some(item => item.kind === "appointment-session" && item.owner === "gp" && String(item.data.clinician).toLowerCase() === session.clinician.toLowerCase() && Number(item.data.startsAt) < session.endsAt && Number(item.data.endsAt) > session.startsAt)) throw new SimError("Clinician already has an overlapping session", 409);
+          r = this.add(w, "appointment-session", a.title, "gp");
+          r.data = session;
+          r.visibleTo = ["gp"];
+        } else {
+          if (!r || r.kind !== "appointment-session" || r.owner !== "gp" || a.expectedVersion === undefined || a.startsAt === undefined || !a.slotCommand) throw new SimError("A versioned session and slot are required");
+          const session = appointmentSessionSchema.parse(r.data);
+          const slotStartsAt = a.startsAt;
+          if (a.startsAt < session.startsAt || a.startsAt >= session.endsAt || (a.startsAt - session.startsAt) % (session.slotMinutes * minute)) throw new SimError("Choose a slot in this session", 409);
+          if (a.startsAt < w.now) throw new SimError("Past slots cannot be changed", 409);
+          if (a.slotCommand === "block") {
+            if (!a.text || a.text.length > 500) throw new SimError("A block reason of at most 500 characters is required");
+            if (resources.some(item => item.kind === "appointment" && item.owner === "gp" && occupiesAppointmentSlot(item.status) && String(item.data.clinician).toLowerCase() === session.clinician.toLowerCase() && Number(item.data.startsAt) < slotStartsAt + session.slotMinutes * minute && Number(item.data.startsAt) + Number(item.data.durationMinutes) * minute > slotStartsAt)) throw new SimError("A booked slot cannot be blocked", 409);
+          }
+          session.blockedSlots = session.blockedSlots.filter(slot => slot.startsAt !== a.startsAt);
+          if (a.slotCommand === "block" && a.text) session.blockedSlots.push({ startsAt: slotStartsAt, reason: a.text });
+          r.data = session;
+          r.version++;
+        }
+      } else if (a.type === "save_discharge_summary" || a.type === "process_document") {
         if (a.type === "save_discharge_summary") {
           if (site !== "hospital") throw new SimError("Hospital authors discharge summaries", 403);
           if (!a.dischargeSections || !a.title) throw new SimError("Title and discharge sections required");
@@ -901,12 +931,19 @@ export class Engine {
               durationMinutes: number;
               clinician: string;
               mode: string;
-              capacityReserved: true;
+              capacityReserved: boolean;
+              sessionId?: string;
             }
           | undefined;
         if (a.type === "book_appointment") {
-          const durationMinutes = a.durationMinutes ?? 15;
-          const clinician = a.clinician ?? (owner === "gp" ? "Duty GP" : "Duty clinician");
+          const resources = original(w)?.resources ?? w.resources;
+          const sessionResource = a.sessionId ? resources.find(item => item.id === a.sessionId) : undefined;
+          if (a.sessionId && (!sessionResource || sessionResource.kind !== "appointment-session" || sessionResource.owner !== owner || !sessionResource.visibleTo.includes(site))) throw new SimError("Appointment session unavailable", 403);
+          const session = sessionResource ? appointmentSessionSchema.parse(sessionResource.data) : undefined;
+          if (sessionResource && a.sessionVersion !== undefined && sessionResource.version !== a.sessionVersion) throw new SimError("Stale session version", 409);
+          if (session && a.startsAt === undefined) throw new SimError("Choose a session slot");
+          const durationMinutes = session?.slotMinutes ?? a.durationMinutes ?? 15;
+          const clinician = session?.clinician ?? a.clinician ?? (owner === "gp" ? "Duty GP" : "Duty clinician");
           const duration = durationMinutes * minute;
           let startsAt = a.startsAt ?? Math.ceil(w.now / (15 * minute)) * 15 * minute;
           if (startsAt < w.now)
@@ -915,7 +952,7 @@ export class Engine {
             (item) =>
               item.kind === "appointment" &&
               item.owner === owner &&
-              !["completed", "cancelled", "rejected"].includes(item.status) &&
+              occupiesAppointmentSlot(item.status) &&
               typeof item.data.clinician === "string" &&
               item.data.clinician.trim().toLowerCase() === clinician.toLowerCase() &&
               typeof item.data.startsAt === "number" &&
@@ -933,15 +970,23 @@ export class Engine {
             startsAt =
               Number(overlap.data.startsAt) + Number(overlap.data.durationMinutes) * minute;
           }
+          const matchingSessions = resources.filter(item => item.kind === "appointment-session" && item.owner === owner && String(item.data.clinician).toLowerCase() === clinician.toLowerCase() && Number(item.data.startsAt) < startsAt + duration && Number(item.data.endsAt) > startsAt);
+          for (const item of matchingSessions) {
+            const diary = appointmentSessionSchema.parse(item.data);
+            if (startsAt < diary.startsAt || startsAt + duration > diary.endsAt || (startsAt - diary.startsAt) % (diary.slotMinutes * minute) || durationMinutes !== diary.slotMinutes) throw new SimError("Choose an exact slot within the session", 409);
+            if (diary.blockedSlots.some(slot => slot.startsAt >= startsAt && slot.startsAt < startsAt + duration)) throw new SimError("This slot is blocked", 409);
+          }
+          if (session && (startsAt < session.startsAt || startsAt + duration > session.endsAt || (startsAt - session.startsAt) % duration)) throw new SimError("Choose a slot in this session", 409);
           appointment = {
             startsAt,
             durationMinutes,
             clinician,
-            mode: a.mode ?? "in-person",
-            capacityReserved: true,
+            mode: session?.mode ?? a.mode ?? "in-person",
+            capacityReserved: !session,
+            ...(sessionResource ? { sessionId: sessionResource.id } : {}),
           };
         }
-        if (["order_test", "book_appointment", "schedule_visit"].includes(a.type)) {
+        if (["order_test", "book_appointment", "schedule_visit"].includes(a.type) && appointment?.capacityReserved !== false) {
           const cap = w.resources.find((x) => x.id === "capacity-" + owner);
           if (!cap || Number(cap.data.remaining) <= 0)
             throw new SimError("No service capacity", 409);
@@ -978,7 +1023,7 @@ export class Engine {
       } else {
         if (!r) throw new SimError("resourceId required");
         if (r.kind === "discharge-summary") throw new SimError("Use the document workflow to process this letter", 409);
-        if (["problem", "allergy", "hospital-attendance", "pharmacy-product", "pharmacy-referral", "pharmacy-movement", "pharmacy-order", "pharmacy-quote"].includes(r.kind) && a.type !== "share_record")
+        if (["appointment-session", "problem", "allergy", "hospital-attendance", "pharmacy-product", "pharmacy-referral", "pharmacy-movement", "pharmacy-order", "pharmacy-quote"].includes(r.kind) && a.type !== "share_record")
           throw new SimError(`Use the ${r.kind} editor to change this record`, 409);
         if (a.type === "share_record") {
           if (r.data.planLab === "digital")

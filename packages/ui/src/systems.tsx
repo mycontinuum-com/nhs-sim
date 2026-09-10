@@ -934,6 +934,7 @@ function PracticeWorkspace(props: Props) {
               </div>
             ) : tab === "Appointment book" ? (
               <AppointmentBook
+                worldId={props.view.id}
                 now={props.view.now}
                 api={props.api}
                 patient={patient}

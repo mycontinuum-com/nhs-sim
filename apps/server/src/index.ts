@@ -470,7 +470,8 @@ const server = createServer(async (req, res) => {
         const patients = world.patients
           .filter((p) => appointments.some((r) => r.patientId === p.id))
           .map(({ id, name }) => ({ id, name }));
-        return send(res, 200, { appointments, patients });
+        const sessions = world.resources.filter(r => r.kind === "appointment-session" && r.owner === site && r.visibleTo.includes(site) && Number(r.data.startsAt) < start + 86400000 && Number(r.data.endsAt) > start);
+        return send(res, 200, { appointments, patients, sessions });
       }
       if (match[2] === "view") {
         const limit = url.searchParams.has("limit")

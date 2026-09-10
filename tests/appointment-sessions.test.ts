@@ -1,0 +1,72 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { Engine, SimError } from "../packages/engine/src/index.ts";
+import { appointmentSessionSchema } from "../packages/contracts/src/appointments.ts";
+import { upgradeAppointmentWorld } from "../packages/engine/src/appointment-sessions.ts";
+const actor = { kind: "team", name: "Diary team" } as const;
+const conflict = (error: unknown) => error instanceof SimError && error.status === 409;
+function fixture() {
+  const engine = new Engine();
+  const session = engine.require("default").resources.find(r => r.kind === "appointment-session" && Number(r.data.startsAt) > engine.require("default").now)!;
+  const data = appointmentSessionSchema.parse(session.data);
+  const book = { type: "book_appointment", patientId: "SIM-000020", title: "Fictional review", sessionId: session.id, startsAt: data.startsAt };
+  return { engine, session, data, book };
+}
+test("session slots book without aggregate capacity and cancellation frees a persisted slot", () => {
+  const { engine, session, data, book } = fixture();
+  const capacity = engine.require("default").resources.find(r => r.id === "capacity-gp")!;
+  capacity.data.remaining = 0;
+  const booking = engine.action("default", "gp", book, actor, "slot-booking");
+  assert.equal(booking.data.clinician, data.clinician);
+  assert.equal(booking.data.durationMinutes, 15);
+  assert.equal(booking.data.sessionId, session.id);
+  assert.equal(booking.data.capacityReserved, false);
+  assert.equal(engine.action("default", "gp", book, actor, "slot-booking").id, booking.id);
+  assert.throws(() => engine.action("default", "gp", book, actor), conflict);
+  assert.throws(() => engine.action("default", "gp", { type: "set_appointment_slot", resourceId: session.id, expectedVersion: 1, startsAt: data.startsAt, slotCommand: "block", text: "Meeting" }, actor), conflict);
+  const arrived = engine.action("default", "gp", { type: "arrive_appointment", resourceId: booking.id, expectedVersion: booking.version }, actor);
+  assert.equal(arrived.status, "arrived");
+  engine.action("default", "gp", { type: "cancel_appointment", resourceId: booking.id, expectedVersion: arrived.version }, actor);
+  const replacement = engine.action("default", "gp", book, actor);
+  assert.notEqual(replacement.id, booking.id);
+  engine.create("other-team");
+  assert.equal(engine.action("other-team", "gp", book, actor).status, "booked");
+  assert.equal(engine.require("default").resources.filter(r => r.kind === "appointment" && r.data.sessionId === session.id && r.status === "booked").length, 1);
+  const restored = new Engine(); restored.state = JSON.parse(JSON.stringify(engine.state));
+  assert.throws(() => restored.action("default", "gp", book, actor), conflict);
+  assert.equal(restored.require("default").resources.find(r => r.id === replacement.id)?.provenance?.created?.actor.name, "Diary team");
+});
+test("blocked slots reject both session bookings and legacy booking bypasses until unblocked", () => {
+  const { engine, session, data, book } = fixture();
+  const startsAt = data.blockedSlots[0]!.startsAt;
+  assert.throws(() => engine.action("default", "gp", { ...book, startsAt }, actor), conflict);
+  assert.throws(() => engine.action("default", "gp", { type: "book_appointment", patientId: book.patientId, startsAt, clinician: data.clinician }, actor), conflict);
+  const unblocked = engine.action("default", "gp", { type: "set_appointment_slot", resourceId: session.id, expectedVersion: 1, startsAt, slotCommand: "unblock" }, actor);
+  assert.throws(() => engine.action("default", "gp", { ...book, startsAt, sessionVersion: 1 }, actor), conflict);
+  assert.equal(engine.action("default", "gp", { ...book, startsAt, sessionVersion: unblocked.version }, actor).status, "booked");
+  assert.throws(() => engine.action("default", "gp", { ...book, startsAt: data.endsAt }, actor), conflict);
+  assert.throws(() => engine.action("default", "gp", { ...book, startsAt: data.startsAt + 60000 }, actor), conflict);
+  assert.throws(() => engine.action("default", "hospital", book, actor), error => error instanceof SimError && error.status === 403);
+});
+test("new sessions validate boundaries and clinician conflicts with retained metadata", () => {
+  const { engine, data } = fixture();
+  const create = { type: "create_appointment_session", title: "Extended access", clinician: "Dr Rowan Page", location: "Room 4", startsAt: data.startsAt, endsAt: data.endsAt, slotMinutes: 20, mode: "video" };
+  const session = engine.action("default", "gp", create, actor);
+  assert.equal(appointmentSessionSchema.parse(session.data).slotMinutes, 20);
+  assert.throws(() => engine.action("default", "gp", create, actor), conflict);
+  assert.throws(() => engine.action("default", "gp", { ...create, clinician: "Dr Another", endsAt: create.startsAt + 1 }, actor));
+  const blocked = engine.action("default", "gp", { type: "set_appointment_slot", resourceId: session.id, expectedVersion: 1, startsAt: create.startsAt, slotCommand: "block", text: "Training" }, actor);
+  assert.deepEqual(appointmentSessionSchema.parse(blocked.data).blockedSlots, [{ startsAt: create.startsAt, reason: "Training" }]);
+});
+test("session migration is additive, immutable and idempotent for old worlds", () => {
+  const { engine } = fixture();
+  const initial = engine.require("default");
+  const old = { ...initial, counters: { ...initial.counters, appointmentSessionVersion: 0 }, resources: initial.resources.filter(r => r.kind !== "appointment-session") };
+  const before = old.resources.length;
+  const upgraded = upgradeAppointmentWorld(old);
+  assert.equal(old.resources.length, before);
+  assert.equal(upgraded.resources.length, before + 42);
+  assert.equal(upgraded.resources[0], old.resources[0]);
+  assert.equal(upgradeAppointmentWorld(upgraded), upgraded);
+  assert.equal(upgradeAppointmentWorld({ ...upgraded, counters: { ...upgraded.counters, appointmentSessionVersion: 0 } }).resources.length, upgraded.resources.length);
+});

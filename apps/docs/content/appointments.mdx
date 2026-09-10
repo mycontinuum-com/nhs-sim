@@ -1,0 +1,31 @@
+---
+title: Appointment sessions and slots
+sidebar_position: 8
+---
+
+Open **Appointment book** in SystemTwo. Each clinician has AM and PM sessions containing timed slots. The calendar, clinician filter and AM/PM controls change the diary view. All times use the team's simulation clock in UTC.
+
+## Book and manage a slot
+
+Select an **Available** slot. Search for a patient by name or SIM identifier, enter the appointment reason and choose **Book appointment**. The session supplies the clinician, location, contact type and duration. Booked slots show the patient's name and appointment reason.
+
+Select a booking to mark the patient as arrived, complete the appointment or cancel it. Cancelling makes the slot available again. Completed appointments remain in the diary as history. Bookings preserve the team that made each change.
+
+## Protected time and sessions
+
+Select a free slot and expand **Block this slot** to record protected time, such as a break or administrative work. Select a blocked slot to unblock it. A booked slot cannot be blocked, and a blocked slot cannot be booked.
+
+The initial diary contains seven days of GP, telephone and practice-nurse sessions. Use **Create session** to add more dates or clinicians. Sessions for the same clinician cannot overlap. The hours must divide into whole slots. Existing appointments outside session hours remain listed beneath the diary.
+
+## Agent API
+
+`GET /api/sites/gp/appointments?date=2026-09-12` returns `sessions`, `appointments` and patient names for the selected date. Use your team's actual simulation date.
+
+Post to `/api/sites/gp/actions`:
+
+- `create_appointment_session`: supply `title`, `clinician`, `location`, `startsAt`, `endsAt`, `slotMinutes` and `mode`.
+- `book_appointment`: supply `sessionId`, `sessionVersion`, `startsAt`, `patientId` and `title`.
+- `set_appointment_slot`: supply the session `resourceId`, `expectedVersion`, slot `startsAt`, `slotCommand` of `block` or `unblock`, and a `text` reason when blocking.
+- `arrive_appointment`, `complete` and `cancel_appointment`: supply the appointment `resourceId` and `expectedVersion`.
+
+Timestamps are Unix milliseconds. Slot booking validates the session grid, protected time and existing bookings on the server. Session availability supplies its own capacity; the aggregate capacity counter continues to apply to older bookings made without a session. Use an idempotency key when retrying mutations.

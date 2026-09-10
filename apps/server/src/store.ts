@@ -1,3 +1,4 @@
+import { upgradeAppointmentWorld } from "../../../packages/engine/src/appointment-sessions.ts";
 import { upgradeDocumentWorld } from "../../../packages/engine/src/document-seed.ts";
 import { upgradePharmacyWorld } from "../../../packages/engine/src/pharmacy-seed.ts";
 import { migrateRecordAttribution } from "./attribution-migration.ts";
@@ -52,7 +53,7 @@ export class Store {
       await migrateRecordAttribution(client);
       const loaded = await this.persistence.load(client);
       if (!loaded) throw new Error("Row storage did not initialize");
-      this.engine.state = { ...loaded, worlds: Object.fromEntries(Object.entries(loaded.worlds).map(([id, world]) => [id, upgradeDocumentWorld(upgradePharmacyWorld(upgradeHospitalWorld(world)))])) };
+      this.engine.state = { ...loaded, worlds: Object.fromEntries(Object.entries(loaded.worlds).map(([id, world]) => [id, upgradeAppointmentWorld(upgradeDocumentWorld(upgradePharmacyWorld(upgradeHospitalWorld(world))))])) };
       const upgraded = await this.persistence.write(client, loaded, this.engine.state);
       this.keys = (await client.query("SELECT hash,team,world,scopes FROM team_keys")).rows;
       await client.query("COMMIT");
@@ -149,13 +150,13 @@ export class Store {
           this.engine.create(world);
           const baseline = this.persistence.baseline("default");
           const target = this.engine.require(world);
-          this.engine.save(upgradeDocumentWorld(upgradePharmacyWorld(upgradeHospitalWorld({
+          this.engine.save(upgradeAppointmentWorld(upgradeDocumentWorld(upgradePharmacyWorld(upgradeHospitalWorld({
             ...target,
             patients: baseline.patients,
             resources: baseline.resources,
-            counters: { ...target.counters, hospitalAttendanceVersion: 0, pharmacyVersion: 0, documentVersion: 0, documentAuthorVersion: 0 },
+            counters: { ...target.counters, hospitalAttendanceVersion: 0, pharmacyVersion: 0, documentVersion: 0, documentAuthorVersion: 0, appointmentSessionVersion: 0 },
             nextId: Math.max(target.nextId, this.engine.require("default").nextId),
-          }))));
+          })))));
           this.persistence.attachPopulation(world, "default");
         },
         world,
