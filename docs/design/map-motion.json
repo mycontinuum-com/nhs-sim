@@ -1,0 +1,90 @@
+{
+  "model": "veo-3.1-generate-preview",
+  "prompt": "Preserve the exact illustrated English healthcare neighbourhood, every building, road, river, colour and architectural detail. No text, titles, logos, new buildings or scene cuts. The cream vertical side borders remain flat and unchanged. Silent scene. A calm living illustration. Locked camera. All vehicles are PARKED and remain completely stationary for the entire shot. Preserve every original car, van, bus and ambulance exactly where it is, with identical colour, shape and size in every frame. All roads and vehicles are a still image. Animate ONLY subtle ripples on the river, gentle movement of leaves in a few trees, and a few tiny pedestrians walking very slowly on pavements. No traffic movement. No new vehicles. No transformations. All buildings, roads, lane markings, vehicles and landmarks are rigid and unchanged. Preserve the hand-painted miniature town style. No camera movement, zoom, cuts, transitions, fades or perspective change. Return the subtle water and foliage motion naturally to the starting appearance for an eight-second loop.",
+  "reference": "apps/control/public/world/neighbourhood-v2.5f600ac647e4.webp",
+  "generationScript": "scripts/generate-map-video.py",
+  "renderCommand": "python3 scripts/render-map-video.py neighbourhood-calm-loop",
+  "treatment": "Half-second loop seam blend. Quintic easing starts and finishes with zero velocity and acceleration. Arrival frames hold the close-up behind the launcher. Precise eased camera moves over generated footage; reverse clips retrace the same frames. Direct Veo zoom attempts rejected after visual review because some changed landmarks or dissolved between views.",
+  "assets": [
+    {
+      "path": "apps/control/public/world/neighbourhood-loop.mp4",
+      "bytes": 3568031,
+      "sha256": "4202322ca4788fde16e780783f1d81fdd0ea8ebe3d1b9aeb16ab30ef5acf223e"
+    },
+    {
+      "path": "apps/control/public/world/zoom-practice.mp4",
+      "bytes": 2760463,
+      "sha256": "c96e5c3ea322a862fb97d4116e5e138d58dc8cc4ae56e1c76d4383568f18ada7"
+    },
+    {
+      "path": "apps/control/public/world/return-practice.mp4",
+      "bytes": 2720408,
+      "sha256": "943af74c40d033897f9f82ac72e9475b704674619db4a747356459256e23f0e4"
+    },
+    {
+      "path": "apps/control/public/world/zoom-hospital.mp4",
+      "bytes": 2633772,
+      "sha256": "9b48b853fad45940725e304ffd3b9f363186ca7c84a0812279fd19fa68bb79de"
+    },
+    {
+      "path": "apps/control/public/world/return-hospital.mp4",
+      "bytes": 2607031,
+      "sha256": "32336fda79ebdede4db12c18187b1ce6b3c8bb5b0f2fab74e61d3fb5fa43cf8c"
+    },
+    {
+      "path": "apps/control/public/world/zoom-community.mp4",
+      "bytes": 2704523,
+      "sha256": "d24384fff060d6ae8e87d8bf85ef67ae86476c088eca4413828c35c030e45ac5"
+    },
+    {
+      "path": "apps/control/public/world/return-community.mp4",
+      "bytes": 2625943,
+      "sha256": "cf357cffc767700f2c7f31343787fa880b45f6da8c1d3dcc8605d94aeecface5"
+    },
+    {
+      "path": "apps/control/public/world/zoom-pharmacy.mp4",
+      "bytes": 2749377,
+      "sha256": "97d49f7d7c1f05ca924be372b96d76ef2db66acb214ea9eaf67134a531b8f003"
+    },
+    {
+      "path": "apps/control/public/world/return-pharmacy.mp4",
+      "bytes": 2671437,
+      "sha256": "958ab59d3d8e1890154caa0e608dfbd64e74a5f535618b85f4b0f48999974c08"
+    },
+    {
+      "path": "apps/control/public/world/zoom-home.mp4",
+      "bytes": 2711647,
+      "sha256": "4f65d8dfeefc4384fc2d3729ddfc0e62fc9c5dddd88fd1092bff4fd2825c217e"
+    },
+    {
+      "path": "apps/control/public/world/return-home.mp4",
+      "bytes": 2725817,
+      "sha256": "c1f31d8e50f033e5145dc4df5c44b2f7af86c870b1b67ff6389df96ff98fa8df"
+    },
+    {
+      "path": "apps/control/public/world/arrived-practice.jpg",
+      "bytes": 342735,
+      "sha256": "a3542a67bc3afb2170206a137113ab51885b55a2b8380a85ca4f91662203ac44"
+    },
+    {
+      "path": "apps/control/public/world/arrived-hospital.jpg",
+      "bytes": 332448,
+      "sha256": "c1650691a032c1767224ca590089405f75e7d7fee98195ad8e61c64cac764c19"
+    },
+    {
+      "path": "apps/control/public/world/arrived-community.jpg",
+      "bytes": 342147,
+      "sha256": "61902a80b09eb413201832037dc0dfc15cd560f884c22be5596574388166f4cc"
+    },
+    {
+      "path": "apps/control/public/world/arrived-pharmacy.jpg",
+      "bytes": 336437,
+      "sha256": "f02ac3edef825839ed0dd4df0ec63baa7fdd6e61a4300629aed481b88940c0ed"
+    },
+    {
+      "path": "apps/control/public/world/arrived-home.jpg",
+      "bytes": 338818,
+      "sha256": "9d8abd51dc564c57bdd09949cff4bd1b03fa9ad0faa8d9559847ca83e19fbde8"
+    }
+  ]
+}

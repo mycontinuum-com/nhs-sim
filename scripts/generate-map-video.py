@@ -1,0 +1,68 @@
+"""Generate resumable Veo map assets. Install google-genai; credentials stay in memory."""
+import argparse
+import concurrent.futures
+import json
+from pathlib import Path
+import subprocess
+from google import genai
+from google.genai import types
+
+ROOT = Path(__file__).resolve().parents[1]
+WORK = ROOT / '.verification/veo'
+SOURCE = ROOT / 'apps/control/public/world/neighbourhood-v2.5f600ac647e4.webp'
+PLACES = {'practice': (23, 44), 'hospital': (75, 39), 'community': (49, 64), 'pharmacy': (37, 79), 'home': (17, 73)}
+BASE = 'Preserve the exact illustrated English healthcare neighbourhood, every building, road, river, colour and architectural detail. No text, titles, logos, new buildings or scene cuts. The cream vertical side borders remain flat and unchanged. Silent scene. '
+LOOP = BASE + 'A calm living illustration. Locked camera. All vehicles are PARKED and remain completely stationary for the entire shot. Preserve every original car, van, bus and ambulance exactly where it is, with identical colour, shape and size in every frame. All roads and vehicles are a still image. Animate ONLY subtle ripples on the river, gentle movement of leaves in a few trees, and a few tiny pedestrians walking very slowly on pavements. No traffic movement. No new vehicles. No transformations. All buildings, roads, lane markings, vehicles and landmarks are rigid and unchanged. Preserve the hand-painted miniature town style. No camera movement, zoom, cuts, transitions, fades or perspective change. Return the subtle water and foliage motion naturally to the starting appearance for an eight-second loop.'
+
+
+def ffmpeg(*args):
+    subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', *map(str,args)],check=True)
+
+def prepare():
+    WORK.mkdir(parents=True,exist_ok=True)
+    ffmpeg('-i', SOURCE, '-vf', 'scale=1620:1080,pad=1920:1080:150:0:color=0xEEE6D4', '-frames:v', '1', WORK/'map-frame.png')
+    for place,(x,y) in PLACES.items():
+        width,height=668,446
+        left=max(0,min(1536-width,round(1536*x/100-width/2)))
+        top=max(0,min(1024-height,round(1024*y/100-height/2)))
+        ffmpeg('-i',SOURCE,'-vf',f'crop={width}:{height}:{left}:{top},scale=1620:1080,pad=1920:1080:150:0:color=0xEEE6D4','-frames:v','1',WORK/f'{place}-frame.png')
+
+def prompt_for(name):
+    if name.startswith('neighbourhood-'): return LOOP
+    place=name.removeprefix('zoom-')
+    return BASE + f'A smooth, gentle camera push-in from the provided wide aerial map to the exact provided close-up of the {place} location. Follow a direct gradual optical zoom and translation, no camera rotation and no changing viewing angle. Keep the hand-drawn map texture and all landmarks rigidly consistent. Begin at the exact first frame, ease smoothly toward the exact last frame, and settle completely for the final second. No morphing, melting, dissolves, fades or added content. The only movement is the camera and very subtle river and foliage motion.'
+
+def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument('command',choices=['prepare','submit','poll'])
+    parser.add_argument('names',nargs='*')
+    args=parser.parse_args()
+    if args.command=='prepare': prepare(); return
+    raw=subprocess.check_output(['aws','ssm','get-parameter','--profile','default','--region','eu-west-2','--name','PROD_GEMINI_API_KEY','--with-decryption','--output','json'])
+    key=json.loads(raw)['Parameter']['Value']
+    client=genai.Client(api_key=key)
+    names=args.names or ['neighbourhood-active-loop']
+    def run(name):
+        record=WORK/f'{name}.json'
+        if args.command=='submit':
+            if record.exists(): return {'name':name,'status':'already submitted'}
+            model='veo-3.1-generate-preview' if name.startswith('neighbourhood-') else 'veo-3.1-fast-generate-preview'
+            last='map' if name.startswith('neighbourhood-') else name.removeprefix('zoom-')
+            operation=client.models.generate_videos(model=model,source=types.GenerateVideosSource(prompt=prompt_for(name),image=types.Image.from_file(location=str(WORK/'map-frame.png'))),config=types.GenerateVideosConfig(number_of_videos=1,duration_seconds=8,aspect_ratio='16:9',resolution='1080p',last_frame=types.Image.from_file(location=str(WORK/f'{last}-frame.png'))))
+            record.write_text(json.dumps({'name':name,'operation':operation.name,'model':model,'prompt':prompt_for(name)},indent=2))
+            return {'name':name,'status':'submitted'}
+        if not record.exists(): return {'name':name,'status':'not submitted'}
+        if (WORK/f'{name}-raw.mp4').exists(): return {'name':name,'status':'downloaded'}
+        saved=json.loads(record.read_text())
+        operation=client.operations.get(types.GenerateVideosOperation(name=saved['operation']))
+        if not operation.done: return {'name':name,'status':'generating'}
+        if operation.error: return {'name':name,'status':'failed','error':operation.error}
+        if not operation.response or not operation.response.generated_videos: return {'name':name,'status':'no video returned'}
+        video=operation.response.generated_videos[0].video
+        client.files.download(file=video)
+        video.save(str(WORK/f'{name}-raw.mp4'))
+        return {'name':name,'status':'downloaded'}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+        for result in pool.map(run,names): print(json.dumps(result),flush=True)
+
+if __name__=='__main__': main()
