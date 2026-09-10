@@ -70,3 +70,19 @@ test("care teams see allergy updates and historical deactivation without gaining
     assert.equal(visible[0]?.status, "inactive");
   }
 });
+
+test("migrated allergy keys preserve reactions and clinician overrides after reordering", () => {
+  const engine = new Engine();
+  let sourceKey = "";
+  engine.transaction("default", (world) => {
+    const record = world.resources.find((row) => row.kind === "ehr-record" && row.patientId === patientId)!;
+    sourceKey = `${record.id}:7`;
+    record.data.allergies = [{ key: sourceKey, term: "Latex", reaction: "Contact rash", status: "active" }];
+  });
+  const before = patientAllergies(engine.require("default").resources, patientId);
+  assert.equal(before.find((row) => row.key === sourceKey)?.reaction, "Contact rash");
+  engine.action("default", "gp", { ...action, title: "Latex", sourceAllergyKey: sourceKey, allergyStatus: "inactive", reaction: "History reviewed" }, "Orchard");
+  const after = patientAllergies(engine.require("default").resources, patientId).filter((row) => row.term === "Latex");
+  assert.equal(after.length, 1);
+  assert.equal(after[0].status, "inactive");
+});

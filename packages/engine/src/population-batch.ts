@@ -1,3 +1,4 @@
+import { generateMedicationHistory, generateAllergyHistory } from "./medication-history.ts";
 import type { Patient, Resource } from "../../contracts/src/index.ts";
 import profile from "./ehr-profile.json" with { type: "json" };
 import publicProfile from "./public-data-profile.json" with { type: "json" };
@@ -342,7 +343,7 @@ export function generatePopulationBatch(input: BatchInput): {
           : [
               "Hypertension",
               "Osteoarthritis",
-              "Diabetes",
+              "Type 2 diabetes",
               "Asthma",
               "Hearing loss",
               "No active long-term condition recorded",
@@ -419,6 +420,9 @@ export function generatePopulationBatch(input: BatchInput): {
         }),
       ),
     ];
+    // Preserve the cohort random stream when replacing clinical content.
+    collectionSize(profile.collections.medications, 10);
+    collectionSize(profile.collections.allergies, 4);
     resources.push({
       ...base,
       visibleTo: [...base.visibleTo],
@@ -437,18 +441,9 @@ export function generatePopulationBatch(input: BatchInput): {
         contactPreference: actualContact,
         goals: [...patient.goals],
         problems,
-        medications: Array.from(
-          { length: collectionSize(profile.collections.medications, 10) },
-          (_, index) => ({
-            term: `SYNTHETIC-MED-${index + 1}`,
-            isCurrent: false,
-            issueDate: conditionDate,
-          }),
-        ),
-        allergies: Array.from(
-          { length: collectionSize(profile.collections.allergies, 4) },
-          (_, index) => ({ term: `SYNTHETIC-ALLERGEN-${index + 1}` }),
-        ),
+        medications: generateMedicationHistory(patient, input.now),
+        allergies: generateAllergyHistory(patient, input.now),
+        medicationProfile: "condition-linked-v1",
         miscCodes: Array.from(
           { length: collectionSize(profile.collections.miscCodes, 6) },
           (_, index) => ({

@@ -1,3 +1,4 @@
+import { generateMedicationHistory, generateAllergyHistory } from "./medication-history.ts";
 import type { Patient, World } from "../../contracts/src/index.ts";
 import profile from "./ehr-profile.json" with { type: "json" };
 
@@ -121,14 +122,10 @@ export function populateHistories(world: World) {
         status: item % 3 === 0 ? "resolved" : "active",
       }),
     );
-    const medications = Array.from(
-      { length: collectionSize(profile.collections.medications) },
-      (_, item) => ({
-        term: `SYNTHETIC-MED-${item + 1}`,
-        isCurrent: item < 3,
-        issueDate: new Date(historyTime(7 + item * 30)).toISOString().slice(0, 10),
-      }),
-    );
+    // Preserve the cohort random stream when replacing clinical content.
+    collectionSize(profile.collections.medications);
+    const medications = generateMedicationHistory(patient, world.now);
+    collectionSize(profile.collections.allergies);
     world.resources.push({
       id: "r-" + world.nextId++,
       patientId: patient.id,
@@ -146,10 +143,8 @@ export function populateHistories(world: World) {
         calibration: "Collection sizes only; fictional values and dates",
         problems,
         medications,
-        allergies: Array.from(
-          { length: collectionSize(profile.collections.allergies) },
-          (_, item) => ({ term: `SYNTHETIC-ALLERGEN-${item + 1}` }),
-        ),
+        allergies: generateAllergyHistory(patient, world.now),
+        medicationProfile: "condition-linked-v1",
         miscCodes: Array.from(
           { length: collectionSize(profile.collections.miscCodes) },
           (_, item) => ({

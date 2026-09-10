@@ -146,7 +146,7 @@ test("CIS2 rejects changed clients, redirects and wrong PKCE", async () => {
   await assert.rejects(() => oidc.token(changed), /Invalid/);
 });
 
-test("CIS2 HTTP workbench requires operator auth and browser consent, then supplies staff context", async () => {
+test("CIS2 staff pages preserve operator auth, browser consent and staff context", async () => {
   const { createServer } = await import("node:http");
   const { handleCis2 } = await import("../apps/server/src/cis2.ts");
   const oidc = new MockOIDC(origin);
@@ -170,6 +170,37 @@ test("CIS2 HTTP workbench requires operator auth and browser consent, then suppl
   assert.ok(address && typeof address !== "string");
   const base = `http://127.0.0.1:${address.port}`;
   try {
+    const landingResponse = await fetch(base + "/cis2/");
+    const landing = await landingResponse.text();
+    assert.equal(landingResponse.status, 200);
+    assert.match(landing, /<h1>Sign in with your Care Identity<\/h1>/);
+    assert.match(landing, /name="signin_method" value="smartcard" checked/);
+    assert.match(landing, /name="signin_method" value="security-key"/);
+    assert.match(
+      landing,
+      /<details class="technical"><summary>Developer and operator tools<\/summary>/,
+    );
+    assert.match(landing, /This is not NHS authentication/);
+    assert.match(landing, /No reader or PIN needed/);
+    assert.match(landing, /Skip to main content/);
+    assert.match(landing, /:focus-visible/);
+    const { Script } = await import("node:vm");
+    for (const script of landing.matchAll(/<script>([\s\S]*?)<\/script>/g))
+      new Script(script[1] ?? "");
+    const badBrowserRequest = await fetch(base + "/cis2/authorize", {
+      headers: { Accept: "text/html" },
+    });
+    assert.equal(badBrowserRequest.status, 400);
+    assert.match(badBrowserRequest.headers.get("content-type") ?? "", /text\/html/);
+    assert.match(await badBrowserRequest.text(), /Start a new sign-in/);
+    const badToken = await fetch(base + "/cis2/token", {
+      method: "POST",
+      headers: { Accept: "text/html" },
+      body: new URLSearchParams(),
+    });
+    assert.equal(badToken.status, 400);
+    assert.match(badToken.headers.get("content-type") ?? "", /application\/json/);
+    assert.equal((await badToken.json()).error, "invalid_grant");
     assert.equal((await fetch(base + "/api/operator/cis2")).status, 401);
     const configuration = await fetch(base + "/api/operator/cis2", {
       headers: { Authorization: "Bearer operator-test-token" },
@@ -178,7 +209,14 @@ test("CIS2 HTTP workbench requires operator auth and browser consent, then suppl
     const start = await fetch(base + "/cis2/authorize?" + request());
     const html = await start.text();
     assert.equal(start.status, 200);
-    assert.match(html, /Who are you working as/);
+    for (const script of html.matchAll(/<script>([\s\S]*?)<\/script>/g))
+      new Script(script[1] ?? "");
+    assert.match(html, /<h1>Choose your role<\/h1>/);
+    assert.match(html, /Fictional staff identity/);
+    assert.match(html, /Dr Maya Bennett/);
+    assert.doesNotMatch(html, /Dr Maya Shah/);
+    assert.match(html, /No hardware has been checked/);
+    assert.match(html, /name="assignment" value="acute"/);
     const csrf = html.match(/name="csrf" value="([^"]+)"/)?.[1],
       interaction = html.match(/name="interaction" value="([^"]+)"/)?.[1];
     assert.ok(csrf && interaction);
@@ -204,6 +242,16 @@ test("CIS2 HTTP workbench requires operator auth and browser consent, then suppl
     assert.equal(consent.status, 303);
     const location = consent.headers.get("location");
     assert.ok(location);
+    const callbackResponse = await fetch(base + "/cis2/callback");
+    const callbackHtml = await callbackResponse.text();
+    assert.match(callbackHtml, /id="identity-organisation"/);
+    assert.match(callbackHtml, /id="identity-role"/);
+    assert.match(
+      callbackHtml,
+      /<details class="technical"><summary>Technical session details<\/summary>/,
+    );
+    for (const script of callbackHtml.matchAll(/<script>([\s\S]*?)<\/script>/g))
+      new Script(script[1] ?? "");
     const response = await fetch(base + "/cis2/token", {
       method: "POST",
       body: exchange(new URL(location)),

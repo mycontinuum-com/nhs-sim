@@ -122,6 +122,29 @@ assert.equal((await call("/api/sites/legacy/view", { headers })).status, 501);
 assert.equal((await call("/api/sites/gp/view")).status, 401);
 for (const api of catalogue.apis)
   assert.equal((await call("/api/nhs/" + api.id, { headers })).status, 200, api.id);
+const anonymousPds = await call("/api/nhs/pds/Patient/SIM-000001");
+assert.equal(anonymousPds.status, 401);
+assert.equal(anonymousPds.data.resourceType, "OperationOutcome");
+const demographics = await fetch(base + "/api/nhs/pds/Patient/SIM-000001", { headers });
+assert.equal(demographics.status, 200);
+assert.ok(demographics.headers.get("content-type").includes("application/fhir+json"));
+const demographicPatient = await demographics.json();
+assert.equal(demographicPatient.resourceType, "Patient");
+assert.equal(demographicPatient.id, "SIM-000001");
+const patientPage = await call("/api/nhs/pds/Patient?_count=2", { headers });
+assert.equal(patientPage.status, 200);
+assert.equal(patientPage.data.entry.length, 2);
+assert.ok(patientPage.data.link.some((link) => link.relation === "next"));
+const missingPatient = await call("/api/nhs/pds/Patient/SIM-999999", { headers });
+assert.equal(missingPatient.status, 404);
+assert.equal(missingPatient.data.resourceType, "OperationOutcome");
+assert.equal((await call("/api/nhs/pds/Patient?birthdate=2025-02-30", { headers })).status, 400);
+assert.equal((await call("/api/nhs/pds/Patient", { method: "POST", headers, body: "{}" })).status, 405);
+const organisation = await call("/api/nhs/ods/Organization/SIM-RIVERSIDE", { headers });
+assert.equal(organisation.status, 200);
+assert.equal(organisation.data.resourceType, "Organization");
+assert.equal(organisation.data.name, "Riverside Practice");
+assert.equal((await call("/api/nhs/ods/metadata", { headers })).data.resourceType, "CapabilityStatement");
 const order = await call("/api/sites/gp/actions", {
   method: "POST",
   headers,
@@ -155,11 +178,14 @@ assert.ok(step.data.events.some((event) => event.actor === "Smoke test" && event
 await setTimeout(2100);
 const otherTeam = await call("/api/keys", {
   method: "POST", headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ teamName: "Clock isolation" }),
+  body: JSON.stringify({ teamName: "Clock isolation", site: "gp" }),
 });
 assert.equal(otherTeam.status, 201, "create the second team before checking clock isolation");
 const otherClock = await call("/api/clock", { headers: { Authorization: "Bearer " + otherTeam.data.apiKey } });
 assert.equal(otherClock.status, 200);
+const scopedDirectory = await call("/api/nhs/ods/Organization", { headers: { Authorization: "Bearer " + otherTeam.data.apiKey } });
+assert.equal(scopedDirectory.status, 403);
+assert.equal(scopedDirectory.data.resourceType, "OperationOutcome");
 assert.ok(!otherClock.data.events.some((event) => event.resourceId === order.data.id || event.actor === "Smoke test"),
   "the activity trail stays inside its team world");
 const view = await call("/api/sites/diagnostics/view", { headers });

@@ -61,6 +61,8 @@ Pass expectedVersion for optimistic concurrency and Idempotency-Key for safe ret
 
 ## NHS-shaped adapters
 
+PDS and ODS also provide [typed patient and organisation endpoints](./fhir.mdx), including read, search, pagination and FHIR errors. Use `/api/nhs/pds/Patient` and `/api/nhs/ods/Organization` for those workflows.
+
 GET /api/nhs/{adapter} returns a FHIR-shaped Bundle. Patient filtering for non-PDS adapters: ?patient=SIM-000001. PDS search: ?q=....
 
 | Adapter | Scope | Implemented data | Important deviation |
@@ -82,7 +84,7 @@ POST /api/nhs/{adapter}/actions uses the same simulator action schema and servic
 
 ## CIS2 staff identity emulator
 
-Open `/cis2/` for the emulator. Sign-in offers fictional GP, hospital, community nurse and pharmacy identities. Each identity has organisation and role assignments; the hospital identity has two assignments to exercise role selection.
+Open `/cis2/` for the emulator. The staff flow offers simulated smartcard and security-key choices, followed by fictional GP, hospital, community nurse and pharmacy identities. Developer and operator controls are in expandable sections. Each identity has organisation and role assignments; the hospital identity has two assignments to exercise role selection.
 
 | Endpoint | Purpose |
 | --- | --- |

@@ -130,7 +130,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     "pharmacy",
     "approved",
     0,
-    { stock: 3, drug: "SYNTHETIC-MED-A", note: "Simulation only; no dosing guidance." },
+    { stock: 3, drug: "Furosemide tablets", note: "Simulation only; no dosing guidance." },
     ["pharmacy", "hospital", "patient"],
   );
   add(

@@ -23,6 +23,7 @@ import {
   MockOIDC,
 } from "../../../packages/nhs-mocks/src/index.ts";
 import { handleCis2 } from "./cis2.ts";
+import { handleFhir, operationOutcome } from "../../../packages/nhs-mocks/src/fhir.ts";
 import { ModelAgent } from "../../../packages/agents/src/index.ts";
 
 const port = Number(process.env.PORT ?? 8080);
@@ -57,7 +58,7 @@ function send(res: ServerResponse, status: number, value: unknown, type = "appli
     "Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",
   });
-  res.end(type === "application/json" ? JSON.stringify(value) : String(value));
+  res.end(type === "application/json" || type === "application/fhir+json" ? JSON.stringify(value) : String(value));
 }
 async function body(req: IncomingMessage) {
   let text = "";
@@ -361,6 +362,22 @@ const server = createServer(async (req, res) => {
         world: store.engine.require(id),
         events: store.engine.state.events[id] ?? [],
       });
+    }
+    const fhirPath = path.match(/^\/api\/nhs\/(pds|ods)\/(?!actions(?:$|\/))(.+)$/);
+    if (fhirPath) {
+      try {
+        const world = authenticated();
+        const scope = fhirPath[1] === "pds" ? "gp" : "referrals";
+        if (!admin && !key!.scopes.includes(scope)) throw new SimError("Key lacks service scope", 403);
+        const result = handleFhir({ engine: store.engine, world, url, method });
+        if (!result) throw new SimError("Unknown FHIR endpoint", 404);
+        for (const [name, value] of Object.entries(result.headers ?? {})) res.setHeader(name, value);
+        return send(res, result.status, result.body, "application/fhir+json");
+      } catch (error) {
+        if (!(error instanceof SimError)) throw error;
+        const result = operationOutcome(error.status, error.status === 401 || error.status === 403 ? "security" : "not-found", error.message);
+        return send(res, result.status, result.body, "application/fhir+json");
+      }
     }
     const apiMatch = matchAdapterPath(path);
     if (apiMatch) {

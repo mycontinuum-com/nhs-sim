@@ -1,4 +1,5 @@
 import pg from "pg";
+import { migrateMedicationHistory } from "./medication-migration.ts";
 import { Engine, SimError } from "../../../packages/engine/src/index.ts";
 import type { Patient, Resource, SiteId } from "../../../packages/contracts/src/index.ts";
 import { createHash, randomBytes } from "node:crypto";
@@ -29,10 +30,10 @@ export class Store {
         "CREATE TABLE IF NOT EXISTS simulation_state(id integer PRIMARY KEY CHECK(id=1), schema_version integer NOT NULL, payload jsonb NOT NULL); CREATE TABLE IF NOT EXISTS team_keys(hash text PRIMARY KEY, team text NOT NULL, world text NOT NULL, scopes jsonb NOT NULL)",
       );
       await this.persistence.schema(client);
-      const loaded = await this.persistence.load(client);
-      let commit = () => {};
-      if (loaded) this.engine.state = loaded;
-      else {
+      const rowStorage = await client.query(
+        "SELECT schema_version FROM simulation_storage WHERE id=1",
+      );
+      if (!rowStorage.rows.length) {
         const legacy = await client.query(
           "SELECT schema_version,payload FROM simulation_state WHERE id=1",
         );
@@ -41,11 +42,14 @@ export class Store {
             throw new Error("Unsupported legacy database schema");
           this.engine.state = legacy.rows[0].payload;
         }
-        commit = await this.persistence.write(client, null, this.engine.state);
+        await this.persistence.write(client, null, this.engine.state);
       }
+      await migrateMedicationHistory(client);
+      const loaded = await this.persistence.load(client);
+      if (!loaded) throw new Error("Row storage did not initialize");
+      this.engine.state = loaded;
       this.keys = (await client.query("SELECT hash,team,world,scopes FROM team_keys")).rows;
       await client.query("COMMIT");
-      commit();
     } catch (error) {
       await client.query("ROLLBACK");
       await client.query("SELECT pg_advisory_unlock(7812026)");

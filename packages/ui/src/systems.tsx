@@ -41,7 +41,11 @@ const ehrSchema = z.object({
     z.object({ term: z.string(), code: z.string(), date: z.string(), status: z.string() }),
   ),
   medications: z.array(
-    z.object({ term: z.string(), isCurrent: z.boolean(), issueDate: z.string() }),
+    z.object({ term: z.string(), isCurrent: z.boolean(), issueDate: z.string(),
+      indication: z.string().optional(), route: z.string().optional(),
+      prescriptionType: z.string().optional(), supplyStatus: z.string().optional(),
+      reviewDate: z.string().optional(), note: z.string().optional(),
+    }),
   ),
   allergies: z.array(z.object({ term: z.string() })),
   miscCodes: z.array(z.object({ term: z.string(), code: z.string() })),
@@ -413,7 +417,8 @@ function ClinicalCollections({
         ? parsed.data.medications.map((x) => ({
             title: x.term,
             date: x.issueDate,
-            detail: "Medication history",
+            detail: [x.indication, x.route, x.prescriptionType, x.supplyStatus,
+              x.reviewDate ? `Review ${date(x.reviewDate)}` : undefined, x.note].filter(Boolean).join(" · ") || "Medication history",
             status: x.isCurrent ? "Current" : "Historical",
           }))
         : parsed.data.miscCodes.map((x) => ({

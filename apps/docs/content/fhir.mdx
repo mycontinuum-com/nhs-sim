@@ -1,0 +1,62 @@
+---
+title: Demographics and organisation APIs
+---
+
+# Demographics and organisation APIs
+
+Use the PDS-style API to find a person in your team's world, then follow their GP reference into the ODS-style organisation directory. These endpoints return FHIR R4 resource shapes with synthetic identifiers. They implement a documented subset of the NHS APIs.
+
+Supply your team key in `Authorization: Bearer …`. PDS requires the `gp` scope; ODS requires `referrals`. A normal team key has both. CIS2 staff tokens demonstrate identity protocols and do not replace team keys.
+
+## Find and read a patient
+
+```bash
+curl --fail --silent "$SIM_ORIGIN/api/nhs/pds/Patient?family=Robinson&_count=10" \
+  -H "Authorization: Bearer $SIM_KEY"
+
+curl --fail --silent "$SIM_ORIGIN/api/nhs/pds/Patient/SIM-050000" \
+  -H "Authorization: Bearer $SIM_KEY"
+```
+
+Search returns a `Bundle` with `type: searchset`, the total match count, entries and pagination links. Read returns a `Patient` with structured names, date of birth, synthetic address and contact details, local identifiers and a registered-GP reference. The names and birth dates come from the same patients you open in SystemTwo.
+
+| Parameter | Behaviour |
+| --- | --- |
+| `family`, `given` | Case-insensitive prefix matching |
+| `birthdate` | Exact calendar date, `YYYY-MM-DD` |
+| `identifier` | Local simulator patient identifier |
+| `_count` | Page size, 1–100 |
+| `_offset` | Nonnegative result offset |
+
+Filters combine with AND. Follow the returned `next` link rather than constructing page offsets. Unknown or repeated parameters and invalid dates return HTTP 400 with an `OperationOutcome`.
+
+## Find the registered organisation
+
+```bash
+curl --fail --silent "$SIM_ORIGIN/api/nhs/ods/Organization/SIM-RIVERSIDE" \
+  -H "Authorization: Bearer $SIM_KEY"
+```
+
+The directory includes Riverside Practice, Northbank General, Riverside Community Services and Riverside Pharmacy. The organisation identifiers match the fictional staff assignments in the CIS2 emulator.
+
+Search `Organization` using `name`, `identifier` or `active`, with the same pagination parameters. Read a specific organisation using its `SIM-…` identifier.
+
+## Exercise failure paths
+
+| Request | Response |
+| --- | --- |
+| Missing team key | 401, `OperationOutcome` |
+| Key without the required service scope | 403, `OperationOutcome` |
+| Unknown patient or organisation | 404, `OperationOutcome` |
+| Invalid search date or unsupported parameter | 400, `OperationOutcome` |
+| POST, PUT, PATCH or DELETE | 405, `OperationOutcome` |
+
+Successful resources and errors use `application/fhir+json`. These are read-only endpoints. Changes made through the simulator's normal patient workflows appear in subsequent reads.
+
+`/api/nhs/pds/metadata` and `/api/nhs/ods/metadata` describe this simulator's supported interactions. The PDS metadata route is a local discovery aid, not an endpoint offered by the real NHS PDS API.
+
+## Scope of the simulation
+
+The shapes are based on the official [PDS FHIR API](https://digital.nhs.uk/developer/api-catalogue/personal-demographics-service-fhir) and [ODS FHIR API](https://digital.nhs.uk/developer/api-catalogue/organisation-data-service-fhir). The emulator does not claim NHS conformance. It does not implement real NHS-number lookup, probabilistic patient matching, national organisation data, demographic updates or NHS production authentication.
+
+Every resource is marked synthetic. Addresses and contacts are fictional fixtures; SIM identifiers are not NHS numbers or real ODS codes. No request contacts an NHS service.

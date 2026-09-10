@@ -8,28 +8,30 @@ export const matchAdapterPath = (path: string) =>
 const adapterDefinitions = [
   {
     id: "pds",
-    name: "PDS-ish",
+    name: "Personal Demographics Service",
     site: "gp",
     resource: "Patient",
-    description: "Synthetic demographics: search and read",
+    description: "FHIR Patient search and read with local SIM identifiers",
+    fhirBase: "/api/nhs/pds/Patient",
   },
   {
     id: "ods",
-    name: "ODS & Ends",
+    name: "Organisation Data Service",
     site: "referrals",
     resource: "Organization",
-    description: "Fictional organisation directory",
+    description: "FHIR Organization search and read for the fictional care network",
+    fhirBase: "/api/nhs/ods/Organization",
   },
   {
     id: "dos",
-    name: "DoS Equis",
+    name: "Directory of Services",
     site: "referrals",
     resource: "HealthcareService",
     description: "Service discovery and availability",
   },
   {
     id: "ers",
-    name: "e-Re-ferrals",
+    name: "e-Referral Service",
     site: "referrals",
     resource: "ServiceRequest",
     kind: "referral",
@@ -37,7 +39,7 @@ const adapterDefinitions = [
   },
   {
     id: "eps",
-    name: "e-Pre-scripted",
+    name: "Electronic Prescription Service",
     site: "pharmacy",
     resource: "MedicationRequest",
     kind: "prescription",
@@ -45,7 +47,7 @@ const adapterDefinitions = [
   },
   {
     id: "eps-tracker",
-    name: "Where Is My Prescription?",
+    name: "Electronic Prescription Tracker",
     site: "pharmacy",
     resource: "MedicationRequest",
     kind: "prescription",
@@ -53,7 +55,7 @@ const adapterDefinitions = [
   },
   {
     id: "gp-connect",
-    name: "GP Disconnect",
+    name: "GP Connect task adapter",
     site: "gp",
     resource: "Task",
     kind: "task",
@@ -61,7 +63,7 @@ const adapterDefinitions = [
   },
   {
     id: "mesh",
-    name: "MESH-terious",
+    name: "MESH message adapter",
     site: "gp",
     resource: "Communication",
     kind: "message",
@@ -69,7 +71,7 @@ const adapterDefinitions = [
   },
   {
     id: "scr",
-    name: "Summary Scare Record",
+    name: "Shared Care Documents",
     site: "gp",
     resource: "DocumentReference",
     kind: "document",
@@ -93,7 +95,7 @@ const adapterDefinitions = [
   },
   {
     id: "pathology",
-    name: "Blood, Sweat & Tiers",
+    name: "Pathology results",
     site: "diagnostics",
     resource: "DiagnosticReport",
     kind: "test",
@@ -101,7 +103,7 @@ const adapterDefinitions = [
   },
   {
     id: "radiology",
-    name: "PACS to the Future",
+    name: "Radiology reports",
     site: "diagnostics",
     resource: "DiagnosticReport",
     kind: "report",
@@ -109,7 +111,7 @@ const adapterDefinitions = [
   },
   {
     id: "appointments",
-    name: "Slot Machine",
+    name: "Appointments",
     site: "gp",
     resource: "Appointment",
     kind: "appointment",

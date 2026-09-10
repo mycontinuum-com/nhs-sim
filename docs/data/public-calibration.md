@@ -46,3 +46,11 @@ The profile contains source URLs, the source file's SHA-256, filter, exact denom
 Contains information from NHS England, licenced under the current version of the Open Government Licence.
 
 The website's [content terms](https://digital.nhs.uk/about-nhs-digital/terms-and-conditions) release applicable content under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). No patient-level records or NHS branding are included in this profile.
+
+## Medication and allergy fixtures
+
+Medication histories use a separate, versioned condition-linked catalogue. Generic names, formulations and broad indications are checked against [NHS Medicines A to Z](https://www.nhs.uk/medicines/). The catalogue retains its source links in `packages/engine/src/medication-history.ts`.
+
+Prescription history, collection status, review dates, contact preferences and allergy reactions are authored fiction. They are not inferred from the GP appointment statistics or copied from patient records. Entries have no prescribing instructions. A broad diagnosis such as diabetes does not establish its type, and complex conditions do not automatically generate a treatment regimen.
+
+The startup migration replaces only the old placeholder medicines and allergens. Existing named entries, user-written records, team changes and patient identities remain intact. A migration marker makes the update run once per database.

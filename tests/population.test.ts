@@ -41,7 +41,8 @@ test("every patient has fictional EHR collections and dated history", () => {
     const medications = ehr.data.medications;
     assert.ok(Array.isArray(medications));
     for (const medication of medications) {
-      assert.match(medication.term, /^SYNTHETIC-MED-\d+$/);
+      assert.doesNotMatch(medication.term, /SYNTHETIC-MED/);
+      assert.ok(medication.indication);
       assert.equal("dosage" in medication, false);
     }
     assert.match(patient.id, /^SIM-\d{6}$/);
