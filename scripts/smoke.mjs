@@ -102,12 +102,30 @@ const order = await call("/api/sites/gp/actions", {
   body: JSON.stringify({ type: "order_test", patientId: "SIM-000001", title: "Smoke test order" }),
 });
 assert.equal(order.status, 200);
+assert.equal((await call("/api/clock")).status, 401);
+const initialClock = await call("/api/clock", { headers });
+assert.equal(initialClock.status, 200);
+assert.ok(initialClock.data.events.some((event) => event.resourceId === order.data.id));
+assert.equal((await call("/api/clock", {
+  method: "POST", headers, body: JSON.stringify({ paused: false }),
+})).status, 200);
 const step = await call("/api/clock", {
   method: "POST",
   headers,
-  body: JSON.stringify({ advanceMinutes: 121 }),
+  body: JSON.stringify({ paused: true, advanceMinutes: 121 }),
 });
 assert.equal(step.status, 200);
+assert.equal(step.data.paused, true, "one click pauses and advances a running clock");
+assert.ok(step.data.events.some((event) => event.actor === "Smoke test" && event.type.startsWith("clock.")),
+  "team clock actions appear in the activity trail");
+const otherTeam = await call("/api/keys", {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ teamName: "Clock isolation" }),
+});
+const otherClock = await call("/api/clock", { headers: { Authorization: "Bearer " + otherTeam.data.apiKey } });
+assert.equal(otherClock.status, 200);
+assert.ok(!otherClock.data.events.some((event) => event.resourceId === order.data.id || event.actor === "Smoke test"),
+  "the activity trail stays inside its team world");
 const view = await call("/api/sites/diagnostics/view", { headers });
 assert.equal(view.data.resources.find((r) => r.id === order.data.id).status, "available");
 const session = await fetch(base + "/api/session", { method: "POST", headers, body: "{}" });

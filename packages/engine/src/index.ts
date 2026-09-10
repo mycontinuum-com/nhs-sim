@@ -859,8 +859,7 @@ export class Engine {
       return r!;
     });
   }
-  staffing(w: World) {
-    const resources = resourceSnapshot(w);
+  staffing(w: World, resources = resourceSnapshot(w)) {
     const on = resources.filter(
       (r) => r.kind === "staff" && r.status === "available" && r.data.allocated,
     );
@@ -875,7 +874,7 @@ export class Engine {
       ).length,
     };
   }
-  clock(id: string, update: { paused?: boolean; speed?: number; advanceMinutes?: number }) {
+  clock(id: string, update: { paused?: boolean; speed?: number; advanceMinutes?: number }, actor?: string) {
     return this.transaction(id, (w) => {
       if (update.paused !== undefined) w.paused = update.paused;
       if (update.speed !== undefined) {
@@ -893,12 +892,31 @@ export class Engine {
           throw new SimError("Step must be 0–10080 minutes");
         this.advance(w, update.advanceMinutes * minute);
       }
+      const detail = update.advanceMinutes !== undefined
+        ? `Advanced simulation by ${update.advanceMinutes} minutes; clock paused`
+        : update.paused !== undefined
+          ? `Simulation ${w.paused ? "paused" : "resumed"}`
+          : `Simulation speed set to ${w.speed}×`;
+      if (actor) this.event(w, "clock.changed", actor, detail);
       return { now: w.now, paused: w.paused, speed: w.speed };
     });
   }
   advance(w: World, ms: number) {
     const end = w.now + ms;
     let processed = 0;
+    const targets = new Set(w.scheduled.flatMap((job) => job.resourceId ? [job.resourceId] : []));
+    targets.add("robot-1");
+    targets.add("capacity-community");
+    const targetIndices = new Map<string, number>();
+    const flowIndices: number[] = [];
+    if (w.scheduled.some((job) => job.at <= end)) {
+      resourceSnapshot(w).forEach((record, index) => {
+        if (targets.has(record.id)) targetIndices.set(record.id, index);
+        if (record.kind === "staff" || record.kind === "bed" ||
+          (["encounter", "handover"].includes(record.kind) && record.status === "waiting"))
+          flowIndices.push(index);
+      });
+    }
     while (true) {
       w.scheduled.sort((a, b) => a.at - b.at);
       const job = w.scheduled[0];
@@ -907,21 +925,19 @@ export class Engine {
       w.scheduled.shift();
       w.now = job.at;
       const resourceIndex = job.resourceId
-        ? resourceSnapshot(w).findIndex((x) => x.id === job.resourceId)
+        ? (targetIndices.get(job.resourceId) ?? -1)
         : -1;
       const r = resourceIndex < 0 ? undefined : w.resources[resourceIndex];
       const enabled = (id: string) => w.agents.some((a) => a.id === id && a.enabled);
       if (job.type === "acute") {
         if (enabled("acute-flow")) {
-          const capacity = Math.floor(this.staffing(w).staffedSpaces / 2);
-          const resources = resourceSnapshot(w);
-          const queue = resources
-            .flatMap((item, index) =>
-              ["encounter", "handover"].includes(item.kind) && item.status === "waiting"
-                ? [index]
-                : [],
-            )
-            .sort((a, b) => resources[a].createdAt - resources[b].createdAt);
+          const capacity = Math.floor(this.staffing(w, flowIndices.map((index) => w.resources[index])).staffedSpaces / 2);
+          const queue = flowIndices
+            .filter((index) => {
+              const item = w.resources[index];
+              return ["encounter", "handover"].includes(item.kind) && item.status === "waiting";
+            })
+            .sort((a, b) => w.resources[a].createdAt - w.resources[b].createdAt);
           for (const index of queue.slice(0, capacity)) {
             const item = w.resources[index];
             item.status = "completed";
@@ -946,6 +962,7 @@ export class Engine {
               i === 0 ? "ambulance" : "hospital",
               patient.id,
             );
+            flowIndices.push(w.resources.length - 1);
             item.status = "waiting";
             item.visibleTo = ["ambulance", "hospital"];
             this.event(w, "emergency.arrived", "acute-flow", item.title, item);
@@ -955,7 +972,7 @@ export class Engine {
       }
       if (job.type === "bed-pressure") {
         if (enabled("bed-flow")) {
-          const resources = resourceSnapshot(w);
+          const resources = flowIndices.map((index) => w.resources[index]);
           const openBeds = resources.filter(
             (x) => x.kind === "bed" && x.status === "available",
           ).length;
@@ -1067,10 +1084,10 @@ export class Engine {
         r.version++;
         w.counters.completed++;
         if (job.type === "delivery") {
-          const index = resourceSnapshot(w).findIndex((x) => x.id === "robot-1");
+          const index = targetIndices.get("robot-1")!;
           w.resources[index].status = "available";
         } else {
-          const index = resourceSnapshot(w).findIndex((x) => x.id === "capacity-community");
+          const index = targetIndices.get("capacity-community")!;
           const cap = w.resources[index];
           cap.data.remaining = Math.min(Number(cap.data.total), Number(cap.data.remaining) + 1);
         }

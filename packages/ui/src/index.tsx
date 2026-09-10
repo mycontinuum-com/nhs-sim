@@ -33,6 +33,8 @@ type View = {
   agents?: { id: string; enabled: boolean }[];
   faults?: Record<string, boolean>;
 };
+type Clock = Pick<View, "now" | "paused" | "speed" | "events">;
+type ClockCommand = { paused: boolean } | { paused: true; advanceMinutes: number };
 const places = [
   {
     id: "practice",
@@ -194,6 +196,19 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
       ),
     enabled: !!key,
     refetchInterval: 3000,
+  });
+  const clock = useQuery({
+    queryKey: ["clock", key],
+    queryFn: () => api<Clock>("/api/clock"),
+    enabled: !!key,
+    refetchInterval: 3000,
+  });
+  const clockChange = useMutation({
+    mutationFn: (command: ClockCommand) => api<Clock>("/api/clock", command),
+    onSuccess: (result) => {
+      client.setQueryData(["clock", key], result);
+      void client.invalidateQueries({ predicate: (query) => query.queryKey[0] !== "clock" });
+    },
   });
   const patients = useQuery({
     queryKey: ["patients", key, search],
@@ -476,12 +491,12 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
             <a href="/control/?challenges=1">Plan challenges</a>
             <a href="/control/">Neighbourhood</a>
             <span>
-              {view.data
-                ? new Date(view.data.now).toLocaleString("en-GB", { timeZone: "UTC" }) + " UTC"
+              {clock.data
+                ? new Date(clock.data.now).toLocaleString("en-GB", { timeZone: "UTC" }) + " UTC"
                 : "Synthetic workspace"}
             </span>
             <button onClick={() => setDrawer("simulation")}>
-              {view.data?.paused ? "Paused" : "Running"} · Simulation controls
+              {clock.data ? (clock.data.paused ? "Paused" : "Running") : "Connect"} · Simulation controls
             </button>
             <button onClick={() => setDrawer("team")}>Team & API key</button>
             <a href="/docs/">Handbook</a>
@@ -604,31 +619,45 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               <>
                 <h2>Simulation time</h2>
                 <p>Advance this team's world to see delayed results, deliveries and home visits.</p>
+                {clock.data && <p><strong>{new Date(clock.data.now).toLocaleString("en-GB", { timeZone: "UTC" })} UTC</strong> · {clock.data.paused ? "Paused" : `Running at ${clock.data.speed}×`}</p>}
+                {!key && <p>Connect your team to control its simulation time.</p>}
+                {key && clock.isPending && <p role="status">Loading simulation clock…</p>}
                 <div className="control-row">
                   <button
+                    disabled={!clock.data || clockChange.isPending}
                     onClick={() =>
-                      mutation.mutate({ path: "/api/clock", data: { paused: !view.data?.paused } })
+                      clockChange.mutate({ paused: !clock.data?.paused })
                     }
                   >
-                    {view.data?.paused ? "Run" : "Pause"}
+                    {clock.data?.paused ? "Run" : "Pause"}
                   </button>
                   {[15, 60, 121].map((minutes) => (
                     <button
                       key={minutes}
-                      disabled={mutation.isPending}
+                      disabled={!clock.data || clockChange.isPending}
                       onClick={() =>
-                        mutation.mutate({ path: "/api/clock", data: { advanceMinutes: minutes } })
+                        clockChange.mutate({ paused: true, advanceMinutes: minutes })
                       }
                     >
                       +{minutes} minutes
                     </button>
                   ))}
                 </div>
-                <details>
+                <p>Advancing time pauses the clock and processes scheduled activity.</p>
+                <p role="status" aria-live="polite">
+                  {clockChange.isPending
+                    ? ("advanceMinutes" in clockChange.variables ? `Advancing ${clockChange.variables.advanceMinutes} minutes…` : (clockChange.variables.paused ? "Pausing…" : "Starting…"))
+                    : clockChange.isSuccess
+                      ? ("advanceMinutes" in clockChange.variables ? `Advanced ${clockChange.variables.advanceMinutes} minutes. Clock paused.` : (clockChange.variables.paused ? "Clock paused." : "Clock running."))
+                      : ""}
+                </p>
+                {(clockChange.error || clock.error) && <p role="alert">{(clockChange.error ?? clock.error)?.message}</p>}
+                <details open>
                   <summary>Activity trail</summary>
-                  {view.data?.events.slice(0, 20).map((event) => (
+                  {clock.data?.events.length === 0 && <p>No activity yet. Advance time or save a record to start this team's trail.</p>}
+                  {clock.data?.events.slice(0, 20).map((event) => (
                     <p key={event.id}>
-                      {new Date(event.time).toISOString().slice(11, 16)} · {event.detail}
+                      {new Date(event.time).toISOString().slice(11, 16)} UTC · {event.actor} · {event.detail}
                     </p>
                   ))}
                 </details>
@@ -704,7 +733,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                 <a href="/cis2/">Open CIS2 identity controls</a>
               </>
             )}
-            {notice && <p role="alert">{notice}</p>}
+            {notice && drawer !== "simulation" && <p role="alert">{notice}</p>}
           </section>
         </div>
       )}

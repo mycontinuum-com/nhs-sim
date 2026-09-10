@@ -299,8 +299,17 @@ const server = createServer(async (req, res) => {
       }
       return send(res, 405, { error: "Method not allowed" });
     }
-    if (path === "/api/clock" && method === "POST") {
+    if (path === "/api/clock" && (method === "GET" || method === "POST")) {
       const id = authenticated();
+      const snapshot = () => {
+        const world = store.engine.require(id);
+        const events = store.engine.events(id, "control", 500)
+          .filter((event) => admin || event.type === "clock.changed" ||
+            event.visibleTo.some((site) => key!.scopes.includes(site)))
+          .slice(0, 100);
+        return { now: world.now, paused: world.paused, speed: world.speed, events };
+      };
+      if (method === "GET") return send(res, 200, snapshot());
       const input = z
         .object({
           paused: z.boolean().optional(),
@@ -308,7 +317,8 @@ const server = createServer(async (req, res) => {
           advanceMinutes: z.number().min(0).max(10080).optional(),
         })
         .parse(await json(req));
-      return send(res, 200, await store.run(() => store.engine.clock(id, input)));
+      await store.run(() => store.engine.clock(id, input, key?.team ?? "operator"), id);
+      return send(res, 200, snapshot());
     }
     if (path === "/api/control/worlds") {
       operator();

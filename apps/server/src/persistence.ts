@@ -161,7 +161,7 @@ export class RowPersistence {
       );
       for (const receipt of receipts.rows) state.receipts[receipt.id] = receipt.payload;
     }
-    return state;
+    return freeze(state, true);
   }
   private async createPopulation(client: Queryable, world: World): Promise<Population> {
     const population = {
@@ -326,6 +326,7 @@ export class RowPersistence {
     await client.query("INSERT INTO simulation_storage VALUES(1,2) ON CONFLICT(id) DO NOTHING");
     return () => {
       for (const batch of pendingFreeze) freezeRows(batch);
+      freeze(after, true);
       this.populations = populations;
       this.worldPopulations = bindings;
       this.attachments.clear();

@@ -64,9 +64,17 @@ test(
       store = new Store(isolated.toString());
       await store.init();
       assert.equal(store.keys[0]?.hash, "preserved-key");
+      const committedBeforeClock = store.engine.state;
+      await store.run(() => store!.engine.clock("default", { paused: true, advanceMinutes: 1 }, "Clock QA"), "default");
+      assert.equal(store.engine.require("default").now, committedBeforeClock.worlds.default.now + 60_000);
+      assert.equal(store.engine.require("default").resources, committedBeforeClock.worlds.default.resources);
+      assert.equal(Object.isFrozen(store.engine.state), true);
+      const committedClock = store.engine.state;
+      await assert.rejects(store.run(() => store!.engine.clock("default", { advanceMinutes: -1 }, "Clock QA")));
+      assert.equal(store.engine.state, committedClock);
       assert.equal(Object.isFrozen(store.engine.require("default").patients[0]), true);
       assert.equal(Object.isFrozen(store.engine.require("default").resources[0]?.data), true);
-      assert.equal(Object.isFrozen(store.engine.require("default").resources), false);
+      assert.equal(Object.isFrozen(store.engine.require("default").resources), true);
       assert.deepEqual(
         (await store.pool.query("SELECT payload FROM simulation_state")).rows[0].payload,
         legacy.state,
@@ -289,7 +297,7 @@ test(
         true,
       );
       assert.equal(Object.isFrozen(store.engine.require("default").patients[0]), true);
-      assert.equal(Object.isFrozen(store.engine.require("existing").resources), false);
+      assert.equal(Object.isFrozen(store.engine.require("existing").resources), true);
       assert.equal(
         store.engine.require("existing").patients[100],
         store.engine.require("default").patients[100],
