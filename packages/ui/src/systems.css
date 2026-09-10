@@ -1104,3 +1104,89 @@
   .systemtwo .ehr-summary { grid-template-columns: 1fr; }
   .systemtwo .ehr-patient-banner, .hospital-encounter .ehr-patient-banner { gap: 10px 20px; }
 }
+
+/* Practice desktop: menu commands and launch tiles. */
+.systemtwo { --ehr-accent: #394c80; --ehr-line: #bcc5dc; --ehr-pale: #edf0f9; --ehr-ink: #242a39; background: #f1f3fa; }
+.systemtwo .ehr-titlebar { min-height: 28px; padding: 3px 9px; background: linear-gradient(#e5eafa, #c8d2ee); color: #27354e; border-bottom: 1px solid #8a9ac0; }
+.systemtwo .ehr-titlebar strong { font-size: 13px; }
+.systemtwo .ehr-titlebar strong span, .systemtwo .ehr-titlebar .ehr-location, .systemtwo .ehr-titlebar .ehr-identity { color: #354868; }
+.systemtwo .ehr-titlebar button { color: #283954; border-color: #a7b7d4; background: #e6ebf7; padding: 2px 7px; }
+.practice-menubar { display: flex; align-items: center; background: #e1e6f7; border-bottom: 1px solid #bdc7df; padding: 0 4px; position: relative; z-index: 8; }
+.practice-menu { position: relative; }
+.systemtwo .practice-menubar button, .practice-menubar > a { border: 1px solid transparent; background: transparent; box-shadow: none; border-radius: 0; padding: 4px 8px; color: #20283c; font-size: 12px; text-decoration: none; }
+.systemtwo .practice-menubar button[aria-expanded=true] { background: #f5f5f7; border-color: #8c9ab4; }
+.practice-menu-items { position: absolute; top: 100%; left: 0; min-width: 245px; background: #f1f1f3; border: 1px solid #939bab; box-shadow: 3px 4px 5px #26334a30; padding: 3px; }
+.systemtwo .practice-menu-items button { display: block; width: 100%; text-align: left; padding: 8px 12px; border: 0; }
+.systemtwo .practice-menu-items button:hover { background: #d5e1f5; }
+.systemtwo .practice-iconbar { background: #f0f2fa; padding: 5px 8px; border-bottom: 1px solid #c4cde3; gap: 4px; }
+.systemtwo .practice-iconbar button { min-width: 66px; height: 57px; padding: 3px 8px; border: 1px solid transparent; background: transparent; box-shadow: none; font-size: 11px; }
+.systemtwo .practice-iconbar button:hover { background: #e5eafa; border-color: #a6b6d8; }
+.practice-iconbar button > span { display: block; font-family: Georgia, serif; font-size: 27px; line-height: 30px; color: #526c99; text-shadow: 1px 1px white; }
+.systemtwo .ehr-searchbar { background: #f0f2fa; padding: 5px 10px; border-color: #c3cce2; }
+.systemtwo .ehr-tabs { background: #e4e8f5; border-color: #b8c2dc; }
+.systemtwo .ehr-tabs button { background: #eff1f9; color: #394765; border-color: #b5c0db; font-size: 11px; }
+.systemtwo .ehr-tabs button.active { border-top-color: #7086b8; }
+.systemtwo .ehr-content { background: #fafbfe; }
+.systemtwo .ehr-table th { background: #e2e7f4; border-color: #bcc5d9; }
+.systemtwo .ehr-statusbar { background: #e2e7f4; border-color: #b9c4dc; }
+.practice-desktop { display: grid; grid-template-columns: 430px minmax(0, 1fr); min-height: 550px; margin: 0 -12px; background: #f5f6fc; }
+.practice-shortcuts { padding: 22px 16px; border-right: 1px solid #bdc8e3; background: #eff2fa; }
+.practice-desktop h2 { font-size: 14px; font-weight: normal; color: #374967; margin-bottom: 5px; }
+.practice-desktop p { color: #69758d; font-size: 11px; margin-bottom: 18px; }
+.practice-shortcuts > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.systemtwo .practice-shortcuts button { border: 1px solid #b9c7e3; border-radius: 0; background: linear-gradient(#fafbff, #eef2fa); height: 87px; padding: 5px; font-size: 11px; }
+.practice-shortcuts button > span { display: block; font-family: Georgia, serif; font-size: 32px; color: #55779d; line-height: 40px; }
+.practice-shortcuts button:nth-child(3n) > span { color: #487c70; }
+.practice-recent { padding: 22px 26px; max-width: 660px; }
+.systemtwo .practice-recent button { display: flex; justify-content: space-between; gap: 20px; width: 100%; padding: 10px 8px; border: 0; border-bottom: 1px solid #d8dfee; background: transparent; box-shadow: none; border-radius: 0; text-align: left; font-size: 12px; }
+.practice-recent button span { color: #78839a; font-size: 11px; }
+
+/* Encounter workflow: blue context banner with local chart navigation. */
+.hospital-chart-layout { display: grid; grid-template-columns: 172px minmax(0, 1fr); flex: 1; }
+.hospital-workflow-nav { padding: 8px 5px; background: #eff1f3; border-right: 1px solid #afb7bf; }
+.hospital-workflow-nav h2 { font-size: 12px; padding: 7px 9px 15px; color: #446179; }
+.hospital-operations .hospital-workflow-nav button { display: block; width: 100%; padding: 9px 10px; border: 0; background: transparent; box-shadow: none; text-align: left; font-size: 12px; }
+.hospital-operations .hospital-workflow-nav button.active { background: #0784b5; color: white; }
+.hospital-encounter .ehr-patient-banner { background: linear-gradient(#229ac0, #08749c); border-color: #005677; color: #fff; padding: 9px 14px; }
+.hospital-encounter .ehr-patient-name strong { color: white; font-size: 19px; }
+.hospital-encounter .ehr-patient-banner small { color: #c8e9f2; }
+.hospital-encounter .ehr-allergy { border-color: #7fc1d7; }
+.hospital-encounter .ehr-allergy b { color: #fff4d4; }
+.hospital-encounter .ehr-synthetic { color: #e5f7fc; border-color: #77b9d0; }
+.hospital-chart-title { background: linear-gradient(#0d6485, #064963); color: #fff; }
+.hospital-chart-title > span { color: #cae4ee; }
+.hospital-encounter-content { padding: 10px 15px 24px; }
+.hospital-summary-heading { display: flex; align-items: center; justify-content: space-between; padding: 5px 0 14px; gap: 12px; }
+.hospital-summary-heading h2 { font-size: 16px; font-weight: normal; }
+.hospital-summary-heading span { font-size: 11px; color: #698091; }
+.hospital-summary-panels > section { margin-bottom: 25px; }
+.hospital-summary-panels > section > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 2px solid #84b7c8; padding: 5px 0; }
+.hospital-summary-panels h3 { font-size: 15px; font-weight: normal; }
+.hospital-summary-panels header button { padding: 3px 7px; font-size: 11px; }
+.hospital-panel-strip { background: #cbdde8; padding: 5px 9px; margin-top: 5px; color: #355268; }
+.hospital-summary-panels .ehr-table th { background: #f0f2f3; font-size: 11px; }
+.hospital-summary-panels .ehr-table td { padding: 6px 9px; font-size: 12px; }
+.hospital-summary-panels .ehr-table tbody tr:nth-child(even) { background: #e8edf4; }
+@media (max-width: 850px) {
+  .practice-desktop { grid-template-columns: 1fr; margin: 0 -7px; }
+  .practice-shortcuts { border-right: 0; border-bottom: 1px solid #bdc8e3; }
+  .practice-recent { padding: 18px 16px; max-width: none; }
+  .systemtwo .practice-recent button { flex-wrap: wrap; gap: 5px; }
+  .practice-menubar { flex-wrap: wrap; }
+  .practice-menu-items { min-width: 200px; }
+  .practice-menu:last-of-type .practice-menu-items { left: auto; right: 0; }
+  .hospital-chart-layout { grid-template-columns: 132px minmax(0, 1fr); }
+  .hospital-workflow-nav { padding: 4px 2px; }
+  .hospital-operations .hospital-workflow-nav button { padding: 9px 6px; font-size: 11px; }
+  .hospital-summary-heading { display: block; }
+  .hospital-summary-heading span { display: block; margin-top: 5px; }
+  .hospital-encounter-content { padding: 8px; }
+  .hospital-summary-panels .ehr-table { min-width: 0; }
+  .hospital-summary-panels .ehr-table td, .hospital-summary-panels .ehr-table th { white-space: normal; overflow-wrap: anywhere; padding: 5px; }
+}
+@media (max-width: 500px) {
+  .hospital-chart-layout { display: block; }
+  .hospital-workflow-nav { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid #afb7bf; }
+  .hospital-workflow-nav h2 { display: none; }
+  .hospital-operations .hospital-workflow-nav button { width: auto; white-space: nowrap; }
+}

@@ -1,5 +1,5 @@
 import { RecordAttribution } from "./record-attribution.tsx";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { AppointmentBook, Consultations, type WorkflowApi } from "./gp-workflows.tsx";
 import { Problems } from "./gp-problems.tsx";
@@ -825,7 +825,7 @@ function PracticeWorkspace(props: Props) {
       ? "Care coordination"
       : hospital
         ? "Worklist"
-        : "Journal",
+        : props.selectedPatient ? "Journal" : "Home",
   );
   const [recordId, setRecordId] = useState("");
   const [operation, setOperation] = useState<Operation | null>(null);
@@ -841,9 +841,30 @@ function PracticeWorkspace(props: Props) {
   const selectedRecord = coordinationRows.find(
     (r) => r.id === recordId && r.patientId === patient?.id,
   );
+  const [menu, setMenu] = useState("");
+  const menuBar = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const dismiss = (event: PointerEvent) => { if (event.target instanceof Node && !menuBar.current?.contains(event.target)) setMenu(""); };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, [menu]);
+  const navigate = (name: string) => { setTab(name); setRecordId(""); setMenu(""); };
+  const findPatient = () => { setMenu(""); document.getElementById("ehr-patient-search")?.focus(); };
+  const shortcuts = [
+    { label: "Search", symbol: "⌕", run: findPatient },
+    { label: "Appointments", symbol: "▦", run: () => navigate("Appointment book") },
+    { label: "Consultations", symbol: "✎", run: () => navigate("Consultations") },
+    { label: "Problems", symbol: "✚", run: () => navigate("Problems") },
+    { label: "Results", symbol: "▤", run: () => navigate("Results") },
+    { label: "Medication", symbol: "℞", run: () => navigate("Medication") },
+    { label: "Tasks", symbol: "☑", run: () => navigate("Tasks") },
+    { label: "Care coordination", symbol: "⇄", run: () => navigate("Care coordination") },
+  ];
   const tabs = hospital
     ? ["Worklist", "Journal", "Results", "Medication", "Documents", "Care coordination"]
     : [
+        "Home",
         "Journal",
         "Consultations",
         "Appointment book",
@@ -873,54 +894,34 @@ function PracticeWorkspace(props: Props) {
         </span>
         <span className="ehr-identity">{props.identityLabel ?? "Simulation workspace"}</span>
       </header>
-      <div className="ehr-toolbar">
-        {!hospital && (
-          <button
-            disabled={!patient}
-            onClick={() => {
-              setTab("Consultations");
-              setRecordId("");
-              if (patient) setNewNoteRequest({ id: Date.now(), patientId: patient.id });
-            }}
-          >
-            New consultation
-          </button>
-        )}
-        {!hospital && (
-          <button
-            onClick={() => {
-              setTab("Appointment book");
-              setRecordId("");
-            }}
-          >
-            Appointment book
-          </button>
-        )}
-        {operations
-          .filter((x) => !hospital || x.type !== "create_referral")
-          .map((x) => (
-            <button
-              key={x.type}
-              disabled={!patient || props.pending}
-              onClick={() => setOperation(x)}
-            >
-              {x.label}
-            </button>
-          ))}
-        <a href="/docs/" target="_blank" rel="noreferrer">
-          Handbook ↗
-        </a>
+      <nav ref={menuBar} className="practice-menubar" aria-label="Practice menu" onKeyDown={(event) => { if (event.key === "Escape") setMenu(""); }}>
+        {[
+          { name: "Patient", items: [{ label: "Find patient", run: findPatient }, { label: "Practice home", run: () => navigate("Home") }, { label: "Patient journal", run: () => navigate("Journal") }] },
+          { name: "Appointments", items: [{ label: "Appointment book", run: () => navigate("Appointment book") }] },
+          { name: "Clinical tools", items: shortcuts.filter((item) => ["Consultations", "Problems", "Medication", "Results"].includes(item.label)) },
+          { name: "Workflow", items: [{ label: "Task list", run: () => navigate("Tasks") }, { label: "Pathology / radiology inbox", run: () => navigate("Results") }, { label: "Document management", run: () => navigate("Documents") }, { label: "Care coordination", run: () => navigate("Care coordination") }] },
+        ].map((group) => <div className="practice-menu" key={group.name}>
+          <button aria-expanded={menu === group.name} onClick={() => setMenu(menu === group.name ? "" : group.name)}>{group.name}</button>
+          {menu === group.name && <div className="practice-menu-items">{group.items.map((item) => <button key={item.label} onClick={item.run}>{item.label}</button>)}</div>}
+        </div>)}
+        <a href="/docs/" target="_blank" rel="noreferrer">Help</a>
+      </nav>
+      <div className="ehr-toolbar practice-iconbar">
+        <button onClick={findPatient}><span aria-hidden="true">⌕</span>Search</button>
+        <button onClick={() => navigate("Home")}><span aria-hidden="true">▦</span>Home</button>
+        <button disabled={!patient} onClick={() => { navigate("Consultations"); if (patient) setNewNoteRequest({ id: Date.now(), patientId: patient.id }); }}><span aria-hidden="true">✎</span>New consultation</button>
+        {operations.map((operation, index) => <button key={operation.type} disabled={!patient || props.pending} onClick={() => setOperation(operation)}><span aria-hidden="true">{["☑", "▤", "℞", "↗", "⌂"][index]}</span>{operation.label}</button>)}
         <time>{date(props.view.now)}</time>
       </div>
       <div className="ehr-searchbar">
-        <PatientFinder {...props} />
+        <PatientFinder {...props} selectPatient={(id) => { props.selectPatient(id); if (tab === "Home") navigate("Journal"); }} />
         <span>
           {hospital
             ? "Inpatient care · shared discharge coordination"
             : "Longitudinal record · practice correspondence"}
         </span>
       </div>
-      <Banner patient={patient} rows={props.rows} />
+      {tab !== "Home" && <Banner patient={patient} rows={props.rows} />}
       <div className="ehr-body">
         <div className="ehr-main">
           <nav className="ehr-tabs" aria-label="Patient record sections">
@@ -939,7 +940,12 @@ function PracticeWorkspace(props: Props) {
             ))}
           </nav>
           <div className="ehr-content">
-            {hospital && tab === "Worklist" ? (
+            {tab === "Home" ? (
+              <div className="practice-desktop">
+                <section className="practice-shortcuts"><h2>Riverside Practice</h2><p>Clinical workspace</p><div>{shortcuts.map((shortcut) => <button key={shortcut.label} onClick={shortcut.run}><span aria-hidden="true">{shortcut.symbol}</span>{shortcut.label}</button>)}</div></section>
+                <section className="practice-recent"><h2>Open a patient record</h2><p>Search the directory or select a patient below.</p>{props.patients.slice(0, 8).map((person) => <button key={person.id} onClick={() => { props.selectPatient(person.id); navigate("Journal"); }}><b>{person.name}</b><span>{person.id} · {date(person.birthDate)}</span></button>)}</section>
+              </div>
+            ) : hospital && tab === "Worklist" ? (
               <HospitalWorklist {...props} />
             ) : tab === "Appointment book" ? (
               <AppointmentBook
@@ -1007,10 +1013,10 @@ function PracticeWorkspace(props: Props) {
             )}
           </div>
         </div>
-        <details className="ehr-summary-disclosure">
+        {tab !== "Home" && <details className="ehr-summary-disclosure">
           <summary>Patient overview and outstanding tasks</summary>
           <Summary patient={patient} rows={coordinationRows} act={props.act} pending={props.pending} select={setRecordId} />
-        </details>
+        </details>}
       </div>
       <footer className="ehr-statusbar">
         <span>{props.pending ? "Saving changes…" : "Connected to simulation"}</span>
@@ -1032,10 +1038,24 @@ function PracticeWorkspace(props: Props) {
   );
 }
 
+function HospitalSummary({ patient, rows, openSection, select }: { patient: Patient; rows: Resource[]; openSection: (section: string) => void; select: (id: string) => void }) {
+  const problems = patientProblems(rows, patient);
+  const sections = [
+    { title: "Results & investigations", destination: "Results", records: rows.filter((record) => ["test", "report", "observation", "genomic-test"].includes(record.kind)) },
+    { title: "Current care activity", destination: "Journal", records: rows.filter((record) => ["encounter", "task", "referral", "visit"].includes(record.kind) && !finished(record)) },
+    { title: "Documents & handover", destination: "Handover", records: rows.filter((record) => ["document", "discharge", "handover"].includes(record.kind)) },
+  ];
+  return <div className="hospital-summary-panels">
+    <div className="hospital-summary-heading"><h2>Inpatient summary</h2><span>Shared clinical record · {patient.id}</span></div>
+    <section><header><h3>Histories</h3><button onClick={() => openSection("Problems")}>Open problem list</button></header><div className="hospital-panel-strip">Problems ({problems.length})</div><table className="ehr-table"><thead><tr><th>Problem</th><th>Status</th><th>Onset</th></tr></thead><tbody>{problems.slice(0, 8).map((problem) => <tr key={problem.key}><td>{problem.term}</td><td>{problem.status}</td><td>{problem.onsetDate || "Not recorded"}</td></tr>)}</tbody></table>{!problems.length && <p className="ehr-empty">No problems recorded.</p>}</section>
+    {sections.map((section) => <section key={section.title}><header><h3>{section.title}</h3><button onClick={() => openSection(section.destination)}>View all ({section.records.length})</button></header><table className="ehr-table"><thead><tr><th>Record</th><th>Status</th><th>Recorded</th></tr></thead><tbody>{section.records.slice(0, 5).map((record) => <tr key={record.id}><td><button className="ehr-record-link" onClick={() => select(record.id)}>{record.title}</button><RecordAttribution record={record} /></td><td>{record.status}</td><td>{date(record.createdAt)}</td></tr>)}</tbody></table>{!section.records.length && <p className="ehr-empty">No records available in this section.</p>}</section>)}
+  </div>;
+}
+
 function HospitalWorkspace(props: Props) {
   const [section, setSection] = useState("Hospital operations");
   const [drawerTab, setDrawerTab] = useState(
-    new URLSearchParams(location.search).has("care") ? "Handover" : "Journal",
+    new URLSearchParams(location.search).has("care") ? "Handover" : "Summary",
   );
   const [recordId, setRecordId] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(Boolean(props.selectedPatient));
@@ -1146,7 +1166,7 @@ function HospitalWorkspace(props: Props) {
           selectPatient={(id) => {
             props.selectPatient(id);
             setRecordId("");
-            setDrawerTab("Journal");
+            setDrawerTab("Summary");
             setDrawerOpen(true);
           }}
         />
@@ -1246,9 +1266,12 @@ function HospitalWorkspace(props: Props) {
                 <span>{patient.conditions.join(", ") || "No problems recorded"}</span>
               </div>
             )}
-            <nav aria-label="Encounter sections">
+            <div className="hospital-chart-layout">
+            <nav className="hospital-workflow-nav" aria-label="Encounter sections">
+              <h2>Workflow</h2>
               {(patient
                 ? [
+                    "Summary",
                     "Encounter",
                     "Journal",
                     "Results",
@@ -1270,7 +1293,9 @@ function HospitalWorkspace(props: Props) {
               ))}
             </nav>
             <div className="hospital-encounter-content">
-              {drawerTab === "Encounter" ? (
+              {drawerTab === "Summary" && patient ? (
+                <HospitalSummary patient={patient} rows={patientRows} openSection={setDrawerTab} select={(id) => { setRecordId(id); setDrawerTab("Encounter"); }} />
+              ) : drawerTab === "Encounter" ? (
                 record ? (
                   <Detail
                     record={record}
@@ -1325,6 +1350,7 @@ function HospitalWorkspace(props: Props) {
                   }}
                 />
               )}
+            </div>
             </div>
           </aside>
         )}
