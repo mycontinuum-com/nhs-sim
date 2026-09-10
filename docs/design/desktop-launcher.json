@@ -1,0 +1,7 @@
+{
+  "mode": "built-in image_gen",
+  "asset": "apps/control/public/world/riverside-xp.e7c13383bdca.webp",
+  "prompt": "Create a desktop wallpaper only, no text, no icons, no UI, no logos. A photorealistic nostalgic early-2000s computer desktop landscape reminiscent of Windows XP: brilliant spring-green gently rolling English hillside occupying lower 45 percent, vivid cobalt blue sky with soft scattered white cumulus clouds occupying upper 55 percent. Subtle darker green contour and a distant tiny hedgerow on far right; no buildings or people. Spacious smooth left side to allow desktop icons to remain readable. Cheerful slightly oversaturated digital photography. Wide 16:9 landscape. This is an original fictional landscape for an NHS hackathon simulated Windows XP workstation.",
+  "encoding": "cwebp -q 78",
+  "bytes": 194522
+}

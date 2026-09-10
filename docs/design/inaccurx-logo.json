@@ -1,0 +1,6 @@
+{
+  "mode": "Built-in imagegen",
+  "prompt": "Use case: logo-brand. Create a transparent square app logo mark for InaccuRx, a fictional playful primary-care messaging product in a healthcare hackathon simulation. Two overlapping mint-green and golden-yellow chat bubbles shaped like friendly little birds exchanging a paper envelope, one raised eyebrow, subtle wit. Navy outlines, crisp clean vector-like illustration, bold simple silhouette readable at 40px, compact center with modest padding. No text or letters, no real company mark, no backdrop or frame or checkerboard. Genuine alpha transparency. Professional software identity with a charming visual joke.",
+  "source": "/Users/souradip/.codex/generated_images/01a08d1d-55ac-7952-a4c4-43f26f6651dc/exec-04b6b473-1e39-4592-bd9d-7be556f9d448.png",
+  "asset": "apps/control/public/brands/inaccurx.png"
+}

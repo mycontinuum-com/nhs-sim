@@ -1,0 +1,49 @@
+---
+title: InaccuRx messaging
+sidebar_position: 7
+---
+
+# InaccuRx messaging
+
+InaccuRx is the fictional primary-care messaging workspace beside SystemTwo and DocuMañana. Open Riverside Practice on the neighbourhood map and choose **InaccuRx**. It uses the same team world and patient directory as the other products.
+
+## Send a patient message
+
+1. Select **New message** and find any synthetic patient by name or ID.
+2. Enter a subject and message, or choose an editable practice template.
+3. Choose SMS or email and whether to allow replies.
+4. Select **Queue message**.
+5. Open **Delivery simulator** and choose **Deliver** or **Fail delivery**.
+
+Messages never leave the simulation. A queued message does not appear in the patient's app until it is delivered. Failed messages can be retried; the complete delivery history remains attached to the original message.
+
+## Reply from home
+
+Open **Messages** at the patient's home, or follow the patient Messages link from a practice conversation. Choose the same patient, open a delivered conversation and send a reply. Replies appear in the practice inbox. A completed conversation or one-way message cannot accept replies. The practice can reopen a completed conversation.
+
+Internal practice notes and assignments are not shown in the patient app. The patient selector lets hackathon teams role-play different synthetic people inside their own world.
+
+## Manage the inbox
+
+Conversations can be assigned to a named clinician or team, supplemented with internal notes and marked done. **Done** holds completed conversations and offers a reopen action. Patient messages retain their original text and author when colleagues add subsequent messages.
+
+**Templates** supports creating, editing and archiving reusable SMS and email text. Applying a template copies its content into an editable composer; changing a template does not rewrite previously sent messages.
+
+## API
+
+Read practice conversations and templates with `GET /api/sites/gp/messaging-workspace`. Read one patient's delivered conversations with `GET /api/sites/patient/messaging-workspace?patientId=SIM-000001`. Both use the existing team key with GP scope.
+
+Post to `/api/sites/gp/actions` with `type: "messaging_action"` and a `messagingCommand`. Commands are discriminated by `kind`:
+
+- `create`: `subject`, `body`, `channel` (`sms` or `email`), `allowReply`; also supply top-level `patientId`.
+- `send`: `body`, `channel`.
+- `reply`: `body`; the patient route is `/api/sites/patient/actions` and requires the matching top-level `patientId`.
+- `note`: `body`.
+- `assign`: `assignee`; an empty value clears the assignment.
+- `complete` and `reopen`.
+- `delivery`: `entryId`, `status` (`delivered` or `failed`).
+- `retry`: `entryId`.
+- `save_template`: `title`, `body`, `channel`.
+- `archive_template`.
+
+Existing resources require top-level `resourceId` and `expectedVersion`. Supply an `Idempotency-Key` header for safely retried requests. A stale version returns a conflict instead of overwriting another participant's changes. Patient messaging commands only accept `reply`; patient reads and responses omit internal notes and undelivered outgoing messages.

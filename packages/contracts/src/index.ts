@@ -1,3 +1,4 @@
+import { messagingCommandSchema } from "./messaging.ts";
 import { documentTagsSchema, documentCodesSchema, dischargeSectionsSchema } from "./documents.ts";
 import { pharmacyPathways } from "./pharmacy.ts";
 import { z } from "zod";
@@ -182,6 +183,7 @@ export const actionSchema = z
     type: z.enum([
       "save_discharge_summary",
       "process_document",
+      "messaging_action",
       "place_pharmacy_order",
       "update_pharmacy_basket",
       "remove_pharmacy_basket_line",
@@ -223,6 +225,7 @@ export const actionSchema = z
       "allocate_shift",
     ]),
     dischargeSections: dischargeSectionsSchema.optional(),
+    messagingCommand: messagingCommandSchema.optional(),
     documentTags: documentTagsSchema.optional(),
     documentSnomedCodes: documentCodesSchema.optional(),
     documentCommand: z.enum(["send", "assign", "review", "file", "annotate"]).optional(),

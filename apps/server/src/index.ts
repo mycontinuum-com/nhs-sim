@@ -1,3 +1,4 @@
+import { patientConversation } from "../../../packages/engine/src/messaging.ts";
 import { freeze, original } from "immer";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -413,17 +414,27 @@ const server = createServer(async (req, res) => {
       }
       throw new SimError("Unsupported mock operation", 405);
     }
-    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents)$/);
+    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents|messaging-workspace)$/);
     if (match) {
       const id = authenticated(),
         site = match[1] as SiteId;
-      if (!activeServices.includes(site)) throw new SimError("Unknown site", 404);
+      if (!activeServices.includes(site) && !(site === "patient" && ["messaging-workspace", "actions", "view"].includes(match[2] ?? ""))) throw new SimError("Unknown site", 404);
       if (site === "legacy")
         return send(res, 501, {
           error: "Use /browser/legacy after creating a team browser session.",
         });
       if (site === "control" && !admin) throw new SimError("Operator only", 403);
-      if (!admin && !key!.scopes.includes(site)) throw new SimError("Key lacks service scope", 403);
+      if (!admin && !key!.scopes.includes(site === "patient" ? "gp" : site)) throw new SimError("Key lacks service scope", 403);
+      if (match[2] === "messaging-workspace") {
+        if (method !== "GET") throw new SimError("Method not allowed", 405);
+        if (site !== "gp" && site !== "patient") throw new SimError("Messaging workspace required", 404);
+        const world = store.engine.require(id);
+        const patientId = url.searchParams.get("patientId");
+        if (site === "patient" && (!patientId || !world.patients.some(patient => patient.id === patientId))) throw new SimError("Choose a patient", 400);
+        const resources = world.resources.filter(r => r.visibleTo.includes(site) && (site === "patient" ? r.kind === "conversation" && r.patientId === patientId : ["conversation", "message-template"].includes(r.kind))).map(r => site === "patient" ? patientConversation(r) : r).filter(r => site !== "patient" || (Array.isArray(r.data.entries) && r.data.entries.length > 0));
+        const patientIds = new Set(resources.map(r => r.patientId));
+        return send(res, 200, { resources, patients: world.patients.filter(p => patientIds.has(p.id)) });
+      }
       if (match[2] === "documents") {
         if (method !== "GET") throw new SimError("Method not allowed", 405);
         if (site !== "gp" && site !== "hospital") throw new SimError("Clinical document workspace required", 404);
@@ -485,6 +496,8 @@ const server = createServer(async (req, res) => {
         )
           throw new SimError("Invalid resource page; limit must be 1–500 and offset nonnegative");
         const w = store.engine.require(id);
+        const page = await store.readResources(id, site, url.searchParams.get("patient") ?? undefined, offset, limit ?? 500);
+        if (site === "patient") page.resources = page.resources.map(r => r.kind === "conversation" ? patientConversation(r) : r).filter(r => r.kind !== "conversation" || (Array.isArray(r.data.entries) && r.data.entries.length > 0));
         return send(res, 200, {
           id: w.id,
           now: w.now,
@@ -492,13 +505,7 @@ const server = createServer(async (req, res) => {
           paused: w.paused,
           population: w.patients.length,
           counters: w.counters,
-          ...(await store.readResources(
-            id,
-            site,
-            url.searchParams.get("patient") ?? undefined,
-            offset,
-            limit ?? 500,
-          )),
+          ...page,
           staffing: store.engine.staffing(w),
           faults: w.faults,
           events: store.engine.events(id, site),
@@ -516,19 +523,14 @@ const server = createServer(async (req, res) => {
       }
       if (match[2] === "actions" && method === "POST") {
         const action = await json(req);
-        return send(
-          res,
-          200,
-          await store.run(() =>
-            store.engine.action(
+        const result = await store.run(() => store.engine.action(
               id,
               site,
               action,
               key ? { kind: "team", name: key.team } : { kind: "operator", name: "Operator" },
               req.headers["idempotency-key"] as string | undefined,
-            ),
-          ),
-        );
+            ));
+        return send(res, 200, site === "patient" && result.kind === "conversation" ? patientConversation(result) : result);
       }
       throw new SimError("Method not allowed", 405);
     }
@@ -567,10 +569,12 @@ const server = createServer(async (req, res) => {
       ".css": "text/css",
       ".svg": "image/svg+xml",
       ".png": "image/png",
+      ".webp": "image/webp",
       ".json": "application/json",
     };
     res.writeHead(status, {
       "Content-Type": mime[extname(file)] ?? "application/octet-stream",
+      "Cache-Control": /\.[a-f0-9]{12}\.webp$/.test(file) ? "public, max-age=31536000, immutable" : "no-cache",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "same-origin",
     });

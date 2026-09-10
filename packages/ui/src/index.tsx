@@ -1,6 +1,8 @@
-import { DocumentWorkspace } from "./document-workspace.tsx";
-import { PharmacyWorkspace } from "./pharmacy-workspace.tsx";
-import React, { useState, useEffect, useRef } from "react";
+import { Neighbourhood } from "./neighbourhood.tsx";
+const MessagingWorkspace = lazy(() => import("./messaging-workspace.tsx").then((module) => ({ default: module.MessagingWorkspace })));
+const DocumentWorkspace = lazy(() => import("./document-workspace.tsx").then((module) => ({ default: module.DocumentWorkspace })));
+const PharmacyWorkspace = lazy(() => import("./pharmacy-workspace.tsx").then((module) => ({ default: module.PharmacyWorkspace })));
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider, useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -12,10 +14,10 @@ import {
   type Action,
   type SimEvent,
 } from "../../contracts/src/index.ts";
-import { SystemWorkspace } from "./systems.tsx";
-import { CareWorkspace } from "./care-workspaces.tsx";
-import { HomeWorkspace } from "./home-workspace.tsx";
-import { PlanExploration } from "./plan-exploration.tsx";
+const SystemWorkspace = lazy(() => import("./systems.tsx").then((module) => ({ default: module.SystemWorkspace })));
+const CareWorkspace = lazy(() => import("./care-workspaces.tsx").then((module) => ({ default: module.CareWorkspace })));
+const HomeWorkspace = lazy(() => import("./home-workspace.tsx").then((module) => ({ default: module.HomeWorkspace })));
+const PlanExploration = lazy(() => import("./plan-exploration.tsx").then((module) => ({ default: module.PlanExploration })));
 import "./care-workspaces.css";
 import "./home-workspace.css";
 import "./style.css";
@@ -37,71 +39,6 @@ type View = {
 };
 type Clock = Pick<View, "now" | "paused" | "speed" | "events">;
 type ClockCommand = { paused: boolean } | { paused: true; advanceMinutes: number };
-const places = [
-  {
-    id: "practice",
-    title: "Riverside Practice",
-    label: "Primary care",
-    description: "Open the patient record in SystemTwo, or process incoming letters in DocuMañana.",
-    href: "/gp/",
-    x: 23,
-    y: 44,
-    system: "SystemTwo",
-  },
-  {
-    id: "hospital",
-    title: "Northbank General",
-    label: "Secondary care",
-    description: "Work the ward list and coordinate discharge in Millenni-ish EPR.",
-    href: "/hospital/",
-    x: 75,
-    y: 39,
-    system: "Millenni-ish EPR",
-  },
-  {
-    id: "community",
-    title: "Neighbourhood Care",
-    label: "Community",
-    description: "Arrange home visits and follow the handover from hospital to home.",
-    href: "/community/",
-    x: 49,
-    y: 64,
-    system: "CareBnB",
-  },
-  {
-    id: "pharmacy",
-    title: "High Street Pharmacy",
-    label: "Pharmacy",
-    description:
-      "Review, approve and dispense a synthetic prescription as part of the shared care journey.",
-    href: "/pharmacy/",
-    x: 37,
-    y: 79,
-    system: "NoobScript",
-  },
-  {
-    id: "home",
-    title: "At home",
-    label: "At home",
-    description:
-      "Choose a resident, open their messages from the practice, or explore their wearable health dashboard.",
-    href: "/wearables/",
-    x: 17,
-    y: 73,
-    system: "Witherings",
-  },
-  {
-    id: "identity",
-    title: "Staff identity",
-    label: "CIS2 emulator",
-    description:
-      "Choose a fictional staff identity and explore sign-in, role selection and controlled failure scenarios.",
-    href: "/cis2/",
-    x: 79,
-    y: 69,
-    system: "Care identity",
-  },
-];
 export function mount(siteId: SiteId) {
   document.title = (sites.find((site) => site.id === siteId)?.name ?? "NHS-SIM") + " | NHS-SIM";
   createRoot(document.getElementById("root")!).render(
@@ -127,9 +64,11 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const [copyStatus, setCopyStatus] = useState("");
   const [world, setWorld] = useState("default");
   const [operatorToken, setOperatorToken] = useState("");
-  const [place, setPlace] = useState<string | null>(null);
   const isMap = siteId === "control";
   const isDocuments = siteId === "gp" && location.pathname.replace(/\/$/, "") === "/gp/documents";
+  const isMessages = (siteId === "gp" || siteId === "wearables") && location.pathname.replace(/\/$/, "") === `/${siteId}/messages`;
+  const isOffice = isDocuments || isMessages;
+  useEffect(() => { if (isMessages) document.title = (siteId === "gp" ? "InaccuRx" : "Messages") + " | NHS-SIM"; }, [isMessages, siteId]);
   useEffect(() => { if (isDocuments) document.title = "DocuMañana | NHS-SIM"; }, [isDocuments]);
   const [tourStep, setTourStep] = useState<number | null>(() =>
     siteId !== "control" && sessionStorage.getItem("sim-key") && sessionStorage.getItem("sim-tour-world") ? 0 : null,
@@ -146,7 +85,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     history.replaceState(null, "", url.pathname + url.search + url.hash);
   }, [isMap, explorePlan]);
   const Workspace =
-    isDocuments ? DocumentPortal : siteId === "pharmacy" ? PharmacyWorkspace : siteId === "community"
+    isMessages ? MessagingPortal : isDocuments ? DocumentPortal : siteId === "pharmacy" ? PharmacyWorkspace : siteId === "community"
       ? CareWorkspace
       : siteId === "wearables"
         ? HomeWorkspace
@@ -191,13 +130,13 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     }
   }
   const view = useQuery({
-    queryKey: ["view", siteId, key, patient, offset, isDocuments],
+    queryKey: ["view", siteId, key, patient, offset, isOffice],
     placeholderData: (previous) => previous,
     queryFn: () =>
       api<View>(
-        `/api/sites/${isMap ? "gp" : siteId}/view?${isDocuments ? "limit=1" : patient ? "patient=" + encodeURIComponent(patient) : "limit=200&offset=" + offset}`,
+        `/api/sites/${isMap ? "gp" : siteId}/view?${isOffice ? "limit=1" : patient ? "patient=" + encodeURIComponent(patient) : "limit=200&offset=" + offset}`,
       ),
-    enabled: !!key,
+    enabled: !!key && !isMap,
     refetchInterval: 3000,
   });
   const clock = useQuery({
@@ -227,7 +166,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
       api<{ items: Patient[]; total: number }>(
         `/api/sites/${isMap ? "gp" : siteId}/patients?q=` + encodeURIComponent(patient),
       ),
-    enabled: !!key && !!patient && !isMap && !isDocuments,
+    enabled: !!key && !!patient && !isMap && !isOffice,
   });
   const overview = useQuery({
     queryKey: ["hospital-overview", key, offset],
@@ -241,6 +180,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
       api<{ identity: null | { name: string; role: string; organisation: string } }>(
         "/cis2/session",
       ),
+    enabled: !isMap,
     refetchInterval: 5000,
   });
   const handovers = useQuery({
@@ -265,7 +205,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
         ),
       };
     },
-    enabled: !!key && !!patient && !isMap && !isDocuments,
+    enabled: !!key && !!patient && !isMap && !isOffice,
     refetchInterval: 3000,
   });
   const operatorView = useQuery({
@@ -400,7 +340,6 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     else url.searchParams.delete("patient");
     history.replaceState(null, "", url.pathname + url.search + url.hash);
   };
-  const selectedPlace = places.find((item) => item.id === place);
   const error = view.error?.message || patients.error?.message;
   return (
     <div className={isMap ? "world-app" : "immersive-app"}>
@@ -427,83 +366,19 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
             </nav>
           </header>
           {explorePlan && (
-            <PlanExploration enter={enter} close={() => {
+            <Suspense fallback={<p className="loading">Opening the plan…</p>}><PlanExploration enter={enter} close={() => {
               setExplorePlan(false);
               planToggleRef.current?.focus();
-            }} />
+            }} /></Suspense>
           )}
-          <main className="world-map" aria-label="Interactive neighbourhood map">
-            <div className="map-intro">
-              <span>A SYNTHETIC HEALTH NEIGHBOURHOOD</span>
-              <h1>Where would you like to work?</h1>
-              <p>
-                Choose a building to enter its system.
-                <span className="map-mobile-hint"> Swipe the map or open Places below.</span>
-              </p>
-            </div>
-            <div className="map-landscape">
-              <img
-                src="/control/world/neighbourhood-v2.png"
-                alt="Illustrated English neighbourhood with Riverside GP practice to the west, Northbank hospital to the east, a community centre and high street pharmacy beside the river"
-              />
-              {places.map((item) => (
-                <button
-                  key={item.id}
-                  className={"map-place" + (item.id === place ? " selected" : "")}
-                  style={{ left: item.x + "%", top: item.y + "%" }}
-                  onClick={() => setPlace(item.id)}
-                  aria-label={`Explore ${item.title}`}
-                  aria-expanded={item.id === place}
-                >
-                  <span className="map-pin" />
-                  <span className="map-label">
-                    <small>{item.label}</small>
-                    {item.title}
-                  </span>
-                </button>
-              ))}
-            </div>
-            {selectedPlace && (
-              <section className="place-detail" aria-label={selectedPlace.title}>
-                <button
-                  className="close"
-                  onClick={() => setPlace(null)}
-                  aria-label="Close place details"
-                >
-                  ×
-                </button>
-                <span>{selectedPlace.label}</span>
-                <h2>{selectedPlace.title}</h2>
-                <p>{selectedPlace.description}</p>
-                <button className="primary" onClick={() => enter(selectedPlace.href)}>
-                  Enter {selectedPlace.system}
-                </button>
-                {selectedPlace.id === "practice" && <button className="primary place-documents" onClick={() => enter("/gp/documents/")}>Open DocuMañana · Document inbox</button>}
-              </section>
-            )}
-            <footer className="map-footer">
-              <span>Fictional people. Shared records. Consequences over time.</span>
-              <details>
-                <summary>Places</summary>
-                <nav aria-label="Accessible place directory">
-                  {places.map((item) => (
-                    <button key={item.id} onClick={() => enter(item.href)}>
-                      {item.title}
-                      <small>{item.system}</small>
-                    </button>
-                  ))}
-                  <button onClick={() => enter("/gp/documents/")}>Riverside document office<small>DocuMañana</small></button>
-                </nav>
-              </details>
-            </footer>
-          </main>
+          <Neighbourhood enter={enter} suspended={drawer !== null} now={clock.data?.now} openTeam={() => setDrawer("team")} />
         </>
       ) : (
         <>
           {!key ? (
             <main className="access-gate">
               <a href="/control/">Back to neighbourhood</a>
-              <h1>{isDocuments ? "DocuMañana" : sites.find((s) => s.id === siteId)?.name}</h1>
+              <h1>{isMessages ? (siteId === "gp" ? "InaccuRx" : "Messages") : isDocuments ? "DocuMañana" : sites.find((s) => s.id === siteId)?.name}</h1>
               <p>Join a team world to open this workspace.</p>
               <button
                 className="primary"
@@ -516,7 +391,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               </button>
             </main>
           ) : view.data ? (
-            <Workspace
+            <Suspense fallback={<p className="loading" role="status">Opening the app…</p>}><Workspace
               siteId={siteId}
               view={view.data}
               rows={[
@@ -550,7 +425,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               api={api}
               pending={mutation.isPending}
               exitToMap={() => location.assign("/control/")}
-            />
+            /></Suspense>
           ) : view.error ? (
             <main className="access-gate">
               <h1>Unable to open this workspace</h1>
@@ -575,6 +450,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
           )}
           <footer ref={statusRef} className="workspace-status" aria-label="Workspace controls">
             <a href="/control/?explore=plan">Explore the plan</a>
+            <a href={`/control/?place=${siteId === "gp" ? "practice" : siteId === "wearables" ? "home" : siteId}`}>{siteId === "wearables" ? "Phone" : "Desktop"}</a>
             <a href="/control/">Neighbourhood</a>
             <span>
               {clock.data
@@ -588,7 +464,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
             <a href="/docs/">Handbook</a>
             <span className="synthetic-label">SIMULATION</span>
           </footer>
-          {!isDocuments && !patient && view.data && view.data.resourceTotal > 200 && (
+          {!isOffice && !patient && view.data && view.data.resourceTotal > 200 && (
             <div className="resource-pager">
               <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 200))}>
                 Previous records
@@ -854,6 +730,10 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   );
 }
 
-function DocumentPortal(props: Parameters<typeof SystemWorkspace>[0]) {
+function DocumentPortal(props: React.ComponentProps<typeof SystemWorkspace>) {
   return <DocumentWorkspace api={props.api} worldId={props.view.id} mode="gp" selectedPatient={props.selectedPatient} patients={props.patients} standalone />;
+}
+
+function MessagingPortal(props: React.ComponentProps<typeof SystemWorkspace>) {
+  return <MessagingWorkspace api={props.api} worldId={props.view.id} role={props.siteId === "wearables" ? "patient" : "practice"} selectedPatient={props.selectedPatient} patients={props.patients} patientMatches={props.patientMatches} patientSearch={props.patientSearch} searchPatients={props.searchPatients} selectPatient={props.selectPatient} />;
 }

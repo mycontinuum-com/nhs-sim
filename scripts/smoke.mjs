@@ -39,6 +39,8 @@ for (const path of ["/icb/", "/messaging/"])
 assert.equal((await fetch(base + "/control/world/neighbourhood-v2.png")).status, 200);
 assert.equal((await fetch(base + "/cis2/")).status, 200);
 assert.equal((await fetch(base + "/gp/documents/")).status, 200, "standalone document workspace");
+assert.equal((await fetch(base + "/gp/messages/")).status, 200, "practice messaging workspace");
+assert.equal((await fetch(base + "/wearables/messages/")).status, 200, "patient messages app");
 assert.equal((await call("/api/operator/cis2")).status, 401);
 for (const site of catalogue.sites) {
   const response = await fetch(base + "/" + site.id + "/");

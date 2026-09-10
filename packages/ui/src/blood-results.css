@@ -1,0 +1,21 @@
+.blood-results .ehr-section-heading { gap: 12px; flex-wrap: wrap; }
+.blood-panels { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.blood-panels button[aria-pressed="true"] { background: #dbeaf5; border-color: #21739d; font-weight: bold; }
+.blood-hint { color: #576b7b; font-size: 12px; margin: 8px 0; }
+.blood-table-scroll { overflow: auto; }
+.blood-results td small { display: block; color: #63798a; margin-top: 4px; }
+.blood-flag { color: #a32622; background: #fff0e7; padding: 2px 5px; font-weight: bold; }
+.blood-other { padding: 14px 0; }
+.blood-trend-modal { width: min(900px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); padding: 0; border: 1px solid #69869b; color: #223848; background: white; box-shadow: 0 12px 65px #0005; }
+.blood-trend-modal::backdrop { background: #18304488; }
+.blood-trend-modal header { display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 14px 20px; background: #e4edf3; position: sticky; top: 0; z-index: 1; border-bottom: 1px solid #b4c8d5; }
+.blood-trend-modal h2, .blood-trend-modal header p { margin: 0 0 4px; }
+.blood-trend-modal button { padding: 6px 12px; cursor: pointer; }
+.blood-period { display: flex; align-items: center; gap: 12px; padding: 12px 20px; }
+.blood-period select { padding: 5px; }
+.blood-trend-body { padding: 0 20px 20px; }
+.blood-trend { border-top: 1px solid #d0dde5; padding: 10px 0; }
+.blood-trend h3 { margin: 4px 0; }
+.blood-trend h3 small { font-weight: normal; }
+.blood-trend svg { display: block; width: 100%; max-height: 280px; font: 12px Arial, sans-serif; }
+.blood-trend summary { cursor: pointer; padding: 6px 0; }

@@ -118,6 +118,7 @@ export function HomeWorkspace(props: Props) {
         <a className="home-wordmark" href="/wearables/">
           <ProductBrand product="wearables" />
         </a>
+        <a className="home-back" href={`/wearables/messages/${props.selectedPatient ? "?patient=" + encodeURIComponent(props.selectedPatient) : ""}`}>Messages</a>
         <span className="home-synthetic">Synthetic world</span>
       </header>
       <main className="home-main">

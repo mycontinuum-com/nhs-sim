@@ -1,3 +1,4 @@
+import { BloodResults } from "./blood-results.tsx";
 import { ProductBrand } from "./product-brand.tsx";
 import { DocumentWorkspace } from "./document-workspace.tsx";
 import { dischargeDocumentSchema, dischargeSectionLabels, dischargeSectionsSchema } from "../../contracts/src/documents.ts";
@@ -878,7 +879,7 @@ function PracticeWorkspace(props: Props) {
     document.addEventListener("pointerdown", dismiss);
     return () => document.removeEventListener("pointerdown", dismiss);
   }, [menu]);
-  const navigate = (name: string) => { if (name === "DocuMañana") { location.assign(`/gp/documents/${props.selectedPatient ? "?patient=" + encodeURIComponent(props.selectedPatient) : ""}`); return; } setTab(name); setRecordId(""); setMenu(""); };
+  const navigate = (name: string) => { if (name === "InaccuRx") { location.assign(`/gp/messages/${props.selectedPatient ? "?patient=" + encodeURIComponent(props.selectedPatient) : ""}`); return; } if (name === "DocuMañana") { location.assign(`/gp/documents/${props.selectedPatient ? "?patient=" + encodeURIComponent(props.selectedPatient) : ""}`); return; } setTab(name); setRecordId(""); setMenu(""); };
   const findPatient = () => { setMenu(""); document.getElementById("ehr-patient-search")?.focus(); };
   const shortcuts = [
     { label: "Search", icon: "search", run: findPatient },
@@ -888,13 +889,14 @@ function PracticeWorkspace(props: Props) {
     { label: "Results", icon: "results", run: () => navigate("Results") },
     { label: "Medication", icon: "medicine", run: () => navigate("Medication") },
     { label: "Tasks", icon: "task", run: () => navigate("Tasks") },
+    { label: "InaccuRx", icon: "note", run: () => navigate("InaccuRx") },
     { label: "DocuMañana", icon: "note", run: () => navigate("DocuMañana") },
     { label: "Care coordination", icon: "transfer", run: () => navigate("Care coordination") },
   ] satisfies { label: string; icon: DesktopIconName; run: () => void }[];
   const recordGroups = [
     { name: "Record", sections: ["Journal", "Consultations", "Documents", "Coded history"] },
     { name: "Clinical", sections: ["Problems", "Allergies", "Medication", "Results"] },
-    { name: "Workflow", sections: ["Appointment book", "Tasks", "DocuMañana", "Care coordination"] },
+    { name: "Workflow", sections: ["Appointment book", "Tasks", "DocuMañana", "InaccuRx", "Care coordination"] },
   ];
   return (
     <section className="system-ui immersive-ehr systemtwo">
@@ -904,7 +906,7 @@ function PracticeWorkspace(props: Props) {
           { name: "Patient", items: [{ label: "Find patient", run: findPatient }, { label: "Practice home", run: () => navigate("Home") }, { label: "Patient journal", run: () => navigate("Journal") }] },
           { name: "Appointments", items: [{ label: "Appointment book", run: () => navigate("Appointment book") }] },
           { name: "Clinical tools", items: shortcuts.filter((item) => ["Consultations", "Problems", "Medication", "Results"].includes(item.label)) },
-          { name: "Workflow", items: [{ label: "Task list", run: () => navigate("Tasks") }, { label: "Pathology / radiology inbox", run: () => navigate("Results") }, { label: "DocuMañana · Document management", run: () => navigate("DocuMañana") }, { label: "Care coordination", run: () => navigate("Care coordination") }] },
+          { name: "Workflow", items: [{ label: "Task list", run: () => navigate("Tasks") }, { label: "Pathology / radiology inbox", run: () => navigate("Results") }, { label: "InaccuRx · Patient messaging", run: () => navigate("InaccuRx") }, { label: "DocuMañana · Document management", run: () => navigate("DocuMañana") }, { label: "Care coordination", run: () => navigate("Care coordination") }] },
         ].map((group) => <div className="practice-menu" key={group.name}>
           <button aria-expanded={menu === group.name} onClick={() => setMenu(menu === group.name ? "" : group.name)}>{group.name}</button>
           {menu === group.name && <div className="practice-menu-items">{group.items.map((item) => <button key={item.label} onClick={item.run}>{item.label}</button>)}</div>}
@@ -975,6 +977,8 @@ function PracticeWorkspace(props: Props) {
               />
             ) : tab === "Problems" ? (
               <Problems key={props.view.id + patient.id} patient={patient} rows={rows} api={props.api} siteId={props.siteId} />
+            ) : tab === "Results" ? (
+              <BloodResults key={patient.id} rows={rows} patientName={patient.name} select={setRecordId} />
             ) : tab === "Allergies" ? (
               <Allergies key={props.view.id + patient.id} patient={patient} rows={rows} api={props.api} siteId={props.siteId} />
             ) : ["Medication", "Coded history"].includes(tab) ? (
@@ -1213,6 +1217,8 @@ function HospitalWorkspace(props: Props) {
                     setDrawerTab("Encounter");
                   }}
                 />
+              ) : drawerTab === "Results" && patient ? (
+                <BloodResults key={patient.id} rows={patientRows} patientName={patient.name} select={(id) => { setRecordId(id); setDrawerTab("Encounter"); }} />
               ) : ["Medication", "Problems"].includes(drawerTab) && patient ? (
                 <ClinicalCollections
                   key={patient.id + drawerTab}

@@ -52,3 +52,13 @@ A `book_appointment` action accepts `startsAt` in epoch milliseconds, `durationM
 Use `save_problem` with `patientId`, `title`, and `problemStatus` (`active` or `resolved`); `problemCode` and `onsetDate` are optional. Use `save_allergy` with `patientId`, `title`, and `allergyStatus` (`active` or `inactive`); `reaction` is optional. Editing either resource requires `resourceId` and `expectedVersion`. Their records remain in history after resolution or deactivation.
 
 Read the book with `GET /api/sites/gp/appointments?date=2026-09-10`. It returns appointments and the names needed to display them. Patient consultation records remain available through the normal patient view.
+
+## Blood results and trends
+
+Open a patient and select **Results** in SystemTwo, or **Results review** in the hospital chart. Both EPRs show the same laboratory history for that patient and team world.
+
+The synthetic history includes FBC, U&E, HbA1c, LFT, CRP and lipids, with six sample dates per panel. The table shows each analyte's latest value, units, sample date, previous value and illustrative reference interval. Lab results are separate from wearable observations. Pending requests and other investigations remain under their own disclosure.
+
+Choose **View trend** beside one test, or tick several tests and choose **Graph selected**. Each test gets its own chart and units in a popup. Change the history period or expand **View values** to inspect the dated values. Close the popup with its Close button or Escape.
+
+All values and reference intervals are fictional simulation data. Historical dates respect the patient's date of birth. Existing team worlds receive each patient's history on first opening that record, without replacing their own records or expanding every large cohort at startup.

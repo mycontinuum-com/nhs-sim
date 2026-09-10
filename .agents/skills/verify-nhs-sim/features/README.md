@@ -7,3 +7,5 @@ The primary surface is a single-origin web ecosystem backed by PostgreSQL. Use t
 - [NHS-shaped adapters and CIS-too](nhs-adapters.md)
 - [Legacy browser workflow](legacy-browser.md)
 - [Incidents and autonomous agents](incidents-and-agents.md)
+
+- [Practice and patient messaging](practice-messaging.md)

@@ -1,3 +1,6 @@
+import { seedBloodResults } from "./blood-results.ts";
+import { applyMessaging } from "./messaging.ts";
+import { seedMessaging } from "./messaging-seed.ts";
 import { documentSnomedConcepts } from "../../contracts/src/document-terminology.ts";
 import { seedAppointmentSessions } from "./appointment-sessions.ts";
 import { appointmentSessionSchema, occupiesAppointmentSlot } from "../../contracts/src/appointments.ts";
@@ -472,8 +475,10 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
   seedHospitalAttendances(w);
   seedPharmacy(w);
   seedDocuments(w);
+  seedMessaging(w);
   seedAppointmentSessions(w);
   populateHistories(w);
+  seedBloodResults(w);
   for (const record of w.resources) {
     const created: RecordChange = {
       actor: { kind: "simulation", name: "Synthetic seed" },
@@ -659,6 +664,7 @@ export class Engine {
         if (a.expectedVersion !== undefined && r.version !== a.expectedVersion)
           throw new SimError("Stale resource version", 409);
       }
+      if (r && ["conversation", "message-template"].includes(r.kind) && a.type !== "messaging_action") throw new SimError("Use the messaging workflow for this record", 409);
       const existingId = r?.id;
       const create: Partial<Record<Action["type"], [string, SiteId]>> = {
         create_task: ["task", a.target ?? site],
@@ -670,7 +676,10 @@ export class Engine {
         schedule_visit: ["visit", "community"],
         dispatch_robot: ["robot-job", "robotics"],
       };
-      if (a.type === "create_appointment_session" || a.type === "set_appointment_slot") {
+      if (a.type === "messaging_action") {
+        if (!a.messagingCommand) throw new SimError("Messaging command required");
+        r = applyMessaging({ world: w, site, command: a.messagingCommand, actor: attribution, resource: r, patientId: a.patientId, expectedVersion: a.expectedVersion, add: (kind, title, patientId) => this.add(w, kind, title, "gp", patientId), fail: (message, status) => { throw new SimError(message, status); } });
+      } else if (a.type === "create_appointment_session" || a.type === "set_appointment_slot") {
         if (site !== "gp") throw new SimError("Only GP can manage appointment sessions", 403);
         const resources = original(w)?.resources ?? w.resources;
         if (a.type === "create_appointment_session") {
