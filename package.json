@@ -23,6 +23,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "6.1.1",
     "esbuild": "^0.25.0",
+    "swagger-ui-dist": "5.32.15",
     "typescript": "^5.9.0",
     "vite-plus": "0.3.0"
   },

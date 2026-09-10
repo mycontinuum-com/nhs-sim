@@ -20,17 +20,17 @@ The smoke test creates a team world, reads each advertised adapter, transfers a 
 
 ## Prepare teams
 
-Issue one key per team. Ask teams to retain that key rather than issue another on reconnect. Test the expected number of concurrent worlds before the event. The current backend stores world snapshots in PostgreSQL JSONB.
+Issue one key per team. Ask teams to retain that key rather than issue another on reconnect. Test the expected number of concurrent worlds before the event. PostgreSQL stores patient records, resources, events, and receipts as separate rows. Teams share the published population baseline and keep their changes in separate worlds.
 
 ## Introduce a failure
 
-Open <a href="/control/">Simulation control</a> with the operator token. Select the team's world before changing incidents or agents. Leave deterministic agents enabled for the initial run, then introduce one incident for the team's second demonstration.
+Open <a href="/control/">the neighbourhood map</a> and choose **Operator**. Connect with the operator token and select the team's world before changing incidents or agents. Leave deterministic agents enabled for the initial run, then introduce one incident for the team's second demonstration.
 
 Operator API endpoints accept `?world=...`. Team clock requests always affect the key's own world.
 
 ## Exercise staff sign-in
 
-Open <a href="/cis2/">the CIS2 emulator</a> to run a fictional staff sign-in. The workbench provides operator controls for client registration, token lifetime, denial, session expiry and service unavailability. Use the organiser token for these controls.
+Open <a href="/cis2/">CIS-too, the CIS2 emulator</a> to run a fictional staff sign-in. The workbench provides operator controls for client registration, token lifetime, denial, session expiry and service unavailability. Use the organiser token for these controls.
 
 Identity settings affect the whole running application. Changing them revokes current interactions, codes and access tokens. Restore the normal scenario before another team tries to sign in. Restarting the application resets identity settings to their defaults.
 
@@ -40,4 +40,4 @@ Team worlds and API keys are separate from these identity sessions. A successful
 
 Ask for the initial state, the action sequence, and the final records. Distinguish accepted requests from completed work. Keep model APIs optional so teams can run the default deterministic agents without a paid model account.
 
-[API and operator endpoint reference](./api.md)
+[API and operator endpoint reference](./api.mdx)

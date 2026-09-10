@@ -1,0 +1,36 @@
+---
+title: Team access and simulation time
+---
+
+# Team access and simulation time
+
+## Create or reconnect a team
+
+1. Open <a href="/control/">the neighbourhood map</a> and choose a workplace.
+2. Enter a team name to create a world, or expand the existing-key option and connect with your team's API key.
+3. For a new team, choose **Copy API key** before continuing. The confirmation stays open until you continue.
+4. Launch an app. The first-use tour points out the key, simulation controls, and patient selector.
+
+Creating another key creates another world, even if you reuse the team name. Share the original key with your teammates and agents to work on the same records. The browser stores its connection in the current session. Retain a separate copy of the key to reconnect on another device or after the browser session ends.
+
+Open **Team & API key** in the fixed bottom bar to copy or reveal the connected key. **Disconnect this browser** removes the browser connection without deleting the world.
+
+## Choose the person and workplace
+
+Use the patient directory in each workplace. Witherings and patient Messages have resident selectors. Changing the person changes the records on screen. Use the same SIM identifier when comparing a patient's GP, hospital, pharmacy, community, and home records.
+
+Return through **Neighbourhood map** to change workplaces. A service sees the records shared with it; absence in one workplace does not mean the record is absent everywhere.
+
+## Advance time and inspect activity
+
+Open **Simulation controls** in the fixed bottom bar. **Pause** stops automatic time progression, and **Run** resumes it. The advance buttons pause the clock, move it forward, and process due activity.
+
+A saved request can remain pending until its scheduled time. A hospital laboratory order is due after 120 minutes for collection now or 240 minutes for the next round. A home visit is due after 90 minutes. A newly connected watch schedules its first reading after 10 minutes. Supplier orders show their own due times.
+
+Read **Activity trail** to see recent actions, their acting team or simulator actor, and simulation time. Open individual record details for that record's authorship and version history. The trail shows the most recent 20 events.
+
+## Connect an agent
+
+Use the same key as `Authorization: Bearer YOUR_TEAM_KEY`. The <a href="/docs/explorer/">API explorer</a> lets you authorize requests and try them against this instance. <a href="/api/openapi.json">Download the OpenAPI JSON</a> for tools that import API definitions.
+
+Use [Make your first API call](./quickstart.mdx) for a complete request sequence. Team keys, organiser tokens, and [CIS-too staff tokens](./identity.mdx) have separate purposes.

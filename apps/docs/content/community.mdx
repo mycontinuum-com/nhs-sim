@@ -1,0 +1,25 @@
+---
+title: Arrange community visits in CareBnB
+---
+
+# Arrange community visits in CareBnB
+
+Open [Neighbourhood Care](/community/) with your team's key. CareBnB shows upcoming visits, care plans, and the selected person's recorded needs and goals.
+
+## Arrange a visit
+
+1. Find a person in **Patient directory**.
+2. Choose **Arrange a visit** and enter its purpose.
+3. Choose **Schedule visit**. The visit appears in your team's records with a due time 90 simulation minutes later.
+4. Open **Simulation controls** and advance time past the due time.
+5. Select **Completed** to inspect the completed visit and its attribution.
+
+You can also choose **Complete visit** to record completion manually. **All visits** includes the earlier history. Scheduling consumes community capacity, so an exhausted allocation rejects a new visit rather than creating it silently.
+
+A GP or hospital **Home visit** request enters the same community workflow. Use the same patient ID to inspect the handover across services. The visit board does not calculate travel routes, access to the home, or clinical outcomes.
+
+## Connect an agent
+
+Read `GET /api/sites/community/view?patient=SIM-000006` with your team's bearer key. Submit `type: "schedule_visit"`, `patientId`, and `title` to the GP, hospital, or community action endpoint. Complete a visit through the community action endpoint using `type: "complete"`, `resourceId`, and `expectedVersion`.
+
+Inspect the resulting resource after time advances; successful scheduling does not mean the visit has completed. The <a href="/docs/explorer/">API explorer</a> documents these actions and the clock endpoint.

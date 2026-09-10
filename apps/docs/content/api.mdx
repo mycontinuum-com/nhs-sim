@@ -1,0 +1,77 @@
+---
+title: API reference
+---
+
+# API reference
+
+<a href="/docs/explorer/">Open the interactive API explorer</a> to browse every published operation, inspect its request schema, and execute requests. <a href="/api/openapi.json">Download the OpenAPI 3.1 JSON specification</a> to import it into an API client or give it to an agent. The specification is also available at `/openapi.json`.
+
+These are synthetic simulation contracts. The NHS adapters implement the documented subset, not production NHS wire compatibility. CIS2 credentials do not grant access to team records.
+
+## Find the contract
+
+| Reference | Contents |
+| --- | --- |
+| <a href="/docs/explorer/">Interactive explorer</a> | Operations grouped by service, editable requests, responses, and authentication controls |
+| <a href="/api/openapi.json">OpenAPI JSON</a> | Machine-readable paths, parameters, schemas, examples, and security requirements |
+| <a href="/api/catalogue">Runtime catalogue</a> | Published workplaces, NHS adapters, scenarios, and documentation links |
+| <a href="/docs/handbook.json">Handbook JSON</a> | Every published guide with its title, URL, source format, and content for agents |
+| [First API workflow](/docs/quickstart/) | Create a world, find a patient, and submit an action |
+
+The explorer uses this website's origin. Requests on the local simulator affect local worlds. Requests on `sim.animahacks.com` affect hosted worlds.
+
+## Authenticate a request
+
+Copy your existing key from **Team & API key** in any workspace. In the explorer, select **Authorize** and enter the key into the team bearer scheme. Enter the key without the `Bearer` prefix. Expand an operation, choose **Try it out**, fill its parameters, and select **Execute**.
+
+Outside the explorer, send `Authorization: Bearer YOUR_TEAM_KEY`. A key belongs to one world. It can also have service restrictions. The explorer clears authorization on reload.
+
+`POST /api/keys` is public. Each successful call creates a separate team world, even when you reuse a team name. Omit `site` to access all API-enabled services. Save the response's `apiKey` and reuse it. Each deployment supports up to 5,000 teams. There is no per-IP or time-based sign-up throttle, so participants can create teams together on shared hackathon Wi-Fi.
+
+Operator operations require the separately configured operator token. Their `world` query parameter chooses a world. A team key cannot select another team's world. CIS2 access tokens are used only for the emulated identity endpoints.
+
+## Read records and submit actions
+
+`GET /api/sites/{site}/patients` searches and pages through the team's patients. Use the returned patient identifier with `GET /api/sites/{site}/view?patient=SIM-000001`. This view includes the patient's visible records and service resources without a patient.
+
+The resource view defaults to 500 resources. Use `limit` from 1 through 500 and advance `offset` to read more. Check `resourceTotal`, `resourceOffset`, and `resourceLimit`. A view is a projection of visible records, not an export of the complete world or its scheduled jobs.
+
+`POST /api/sites/{site}/actions` submits a typed action. The explorer's schema and examples describe the action fields. Use the relevant service and workflow guide. An action can create work for another service, so its response does not necessarily represent a completed patient journey.
+
+For a versioned update, send the resource's current `version` as `expectedVersion`. Send an `Idempotency-Key` header when retrying the same logical action. The `clientRequestId` action field provides a body-based alternative. If both are present, the header takes precedence. Reuse the original request and key after an uncertain network response. A changed request with the same key returns a conflict.
+
+`POST /api/clock` controls only the authenticated team's clock. Send `paused: true` with `advanceMinutes` to pause and process scheduled results, visits, deliveries, and other activity. Stepping a running clock without pausing returns `409`. The explorer executes real changes in that synthetic world.
+
+## Follow a workflow
+
+- [SystemTwo](/docs/systemtwo/) covers GP consultations and patient records.
+- [Appointment book](/docs/appointments/) covers session slots, bookings, and attendance.
+- [Clinical records and hospital orders](/docs/clinical-records/) covers signed notes, addenda, prescriptions, and laboratory requests.
+- [Document processing](/docs/documents/) covers hospital discharge letters and GP filing.
+- [Practice and patient messaging](/docs/messaging/) covers conversations, delivery, and replies.
+- [Pharmacy](/docs/pharmacy/) covers referrals, dispensing, supplier quotes, purchasing, and stock costs.
+- [FHIR-shaped APIs](/docs/fhir/) covers supported demographics and organisation search.
+- [Legacy browser integration](/docs/legacy/) covers the HTML-only service and session cookies.
+- [Organiser controls](/docs/organisers/) covers administration and the configured model agent.
+
+## Handle errors
+
+Read the status code and response body. Most simulation errors use JSON with an `error` message. FHIR endpoints use their documented `OperationOutcome` responses, and CIS2 uses OAuth errors where appropriate.
+
+| Status | Typical cause | Next step |
+| --- | --- | --- |
+| `400` | Invalid input or malformed JSON | Correct the request using the operation schema |
+| `401` | Missing or invalid credentials | Check the authentication scheme and key |
+| `403` | Wrong scope, ownership, or operator permission | Use an authorized service and credential |
+| `404` | Unknown endpoint or missing resource | Check the path and the current world |
+| `409` | Stale version, changed retry payload, or invalid state transition | Refresh the record and resolve the conflict |
+| `413` | Request body exceeds the server limit | Reduce the payload |
+| `429` | The deployment has reached its 5,000-team cap | Contact the organiser |
+| `501` | A deliberately unsupported API capability | Use the documented alternative |
+| `503` | Simulated identity unavailability | Check the configured CIS2 scenario |
+
+## Keep integrations aligned
+
+The JSON specification is generated from the implemented route catalogue and shared validation schemas where available. Repository tests check route coverage. The build packages the explorer with its JavaScript and CSS, and smoke checks verify that the published reference and explorer remain accessible.
+
+For production NHS integration requirements, use the [NHS API catalogue](https://digital.nhs.uk/developer/api-catalogue). This simulator does not need live NHS credentials.

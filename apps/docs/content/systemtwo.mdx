@@ -31,11 +31,11 @@ After requesting a test and advancing simulation time, open its entry in **Resul
 
 ## Work the appointment book
 
-Choose **Appointment book**, even before selecting a patient. It shows all patients for the selected date, with a clinician filter. Dates and times use the simulation's UTC clock.
+Choose **Appointment book** before or after selecting a patient. The diary groups timed slots into clinician sessions. Filter by date, clinician, or AM and PM. Dates and times use the simulation's UTC clock.
 
-Select a patient to book. Enter the time, duration, clinician, contact type and reason. Overlapping appointments for the same clinician are rejected. **Arrive**, **Complete** and **Cancel** update the booking. A cancelled appointment remains visible in the book.
+Select an available slot, find the patient, and enter the reason. The session supplies the clinician, location, contact type, and duration. A booked slot offers arrival, completion, and cancellation. Cancelled slots become available again; completed bookings remain in history.
 
-New API bookings reserve service capacity and release it once on completion or cancellation. Authored starter appointments do not consume the team's allocation. This is an operational simulation, not a scheduling policy for a real practice.
+Use **Create session** to add sessions. A free slot can be blocked for protected time and unblocked later. The server rejects overlapping sessions and bookings. Read [Appointment sessions and slots](./appointments.mdx) for the complete workflow and request fields.
 
 ## Explore the population
 
@@ -47,7 +47,7 @@ Try Nina Brooks, a child whose appointment arrangements involve her parent; Yasm
 
 Use `POST /api/sites/gp/actions` with your bearer key. A consultation action contains `type: "save_consultation"`, `patientId`, `title`, `text`, `mode` and `consultationStatus`, either `draft` or `saved`. Updates also require `resourceId` and `expectedVersion`.
 
-A `book_appointment` action accepts `startsAt` in epoch milliseconds, `durationMinutes`, `clinician` and `mode`. Existing clients that omit them receive the next available slot. `arrive_appointment` and `cancel_appointment` take a resource ID and support `expectedVersion`.
+A session-based `book_appointment` action supplies `sessionId`, `sessionVersion`, `startsAt`, `patientId`, and `title`. The session defines its duration, clinician, and contact type. `arrive_appointment`, `complete`, and `cancel_appointment` take a resource ID and support `expectedVersion`.
 
 Use `save_problem` with `patientId`, `title`, and `problemStatus` (`active` or `resolved`); `problemCode` and `onsetDate` are optional. Use `save_allergy` with `patientId`, `title`, and `allergyStatus` (`active` or `inactive`); `reaction` is optional. Editing either resource requires `resourceId` and `expectedVersion`. Their records remain in history after resolution or deactivation.
 
@@ -57,7 +57,7 @@ Read the book with `GET /api/sites/gp/appointments?date=2026-09-10`. It returns 
 
 Open a patient and select **Results** in SystemTwo, or **Results review** in the hospital chart. Both EPRs show the same laboratory history for that patient and team world.
 
-The synthetic history includes FBC, U&E, HbA1c, LFT, CRP and lipids, with six sample dates per panel. The table shows each analyte's latest value, units, sample date, previous value and illustrative reference interval. Lab results are separate from wearable observations. Pending requests and other investigations remain under their own disclosure.
+The synthetic history includes FBC, U&E, HbA1c, LFT, CRP and lipids, with six sample dates per panel. SystemTwo shows each analyte's latest value, units, sample date, previous value, and illustrative reference interval. Hospital Results defaults to a flowsheet with sample dates in columns and a panel navigator. Lab results are separate from wearable observations. Pending requests and other investigations remain under their own disclosure.
 
 Choose **View trend** beside one test, or tick several tests and choose **Graph selected**. Each test gets its own chart and units in a popup. Change the history period or expand **View values** to inspect the dated values. Close the popup with its Close button or Escape.
 

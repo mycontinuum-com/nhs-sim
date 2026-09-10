@@ -20,6 +20,7 @@ export default {
         { to: '/quickstart/', label: 'Start', position: 'right' },
         { to: '/ten-year-plan/', label: 'Explore the plan', position: 'right' },
         { to: '/api/', label: 'API', position: 'right' },
+        { href: 'pathname:///docs/explorer/', autoAddBaseUrl: false, label: 'API explorer', position: 'right' },
         { to: '/data/', label: 'Data', position: 'right' },
         { href: 'pathname:///control/', autoAddBaseUrl: false, label: 'Open simulator ↗', position: 'right' },
       ],

@@ -10,15 +10,21 @@ Every person in NHS-SIM is fictional. Patient identifiers start with `SIM-`. The
 
 A patient has an `id`, `name`, `birthDate`, service-specific `localIds`, `conditions`, `needs`, `goals`, and `synthetic: true`.
 
-A resource has an `id`, optional `patientId`, `kind`, `title`, `status`, `owner`, `visibleTo`, `priority`, timestamps, `data`, and `version`. The owning service controls its transitions. Other services see it only when visibility permits.
+A resource has an `id`, optional `patientId`, `kind`, `title`, `status`, `owner`, `visibleTo`, `priority`, timestamps, `data`, and `version`. Authored changes also record provenance and audit history. The owning service controls its transitions. Other services see it only when visibility permits.
 
-`GET /api/sites/{site}/patients` returns a paginated demographic directory. `GET /api/sites/{site}/view` returns the service's visible records and current operational state. The view does not expose hidden scheduled events.
+`GET /api/sites/{site}/patients` returns a paginated demographic directory. `GET /api/sites/{site}/view` returns the service's visible records and current operational state. The resource view defaults to at most 500 records. Use `limit` and `offset`, and inspect `resourceTotal`, `resourceOffset`, and `resourceLimit` when reading additional pages. The view does not expose hidden scheduled events.
 
 ## Separate team worlds
 
 Issuing a team key creates a world. Portal activity and API actions using that key affect the same world. Another team's key sees another world. Team names do not grant access to an existing world.
 
 The simulation clock controls delayed events. A test order schedules a result. A community visit schedules a completion. Read the resulting resource after advancing time to check whether it completed.
+
+## Record authorship
+
+Record details distinguish the original author from later changes. Portal actions and API actions use the acting team's name. A named assignee records responsibility without impersonating that person. Seeded records identify their synthetic source or fictional author. Legacy records without an author retain an explicit unknown-author label rather than an invented identity.
+
+Hospital notes preserve their signed text. Later corrections are separate attributed addenda. GP consultation edits update the version and retain their audit history.
 
 ## Provenance and coverage
 
@@ -32,4 +38,4 @@ The checked-in aggregate profile is `packages/engine/src/ehr-profile.json`. Orga
 
 Missing records do not establish that a condition is absent. Message delivery does not establish treatment, and prescription collection does not establish adherence.
 
-See the [API reference](./api.md) for each adapter's implemented data and deviations from the corresponding NHS service.
+See the [API reference](./api.mdx) for each adapter's implemented data and deviations from the corresponding NHS service.

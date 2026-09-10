@@ -146,8 +146,10 @@ export class Store {
       hash = createHash("sha256").update(raw).digest("hex"),
       world = "team-" + randomBytes(6).toString("hex");
     const key = { hash, team, world, scopes };
-    await this.enqueue(() =>
-      this.write(
+    await this.enqueue(async () => {
+      if (this.keys.length >= 5000)
+        throw new SimError("The 5,000-team capacity has been reached; ask the organiser", 429);
+      await this.write(
         () => {
           this.engine.create(world);
           const baseline = this.persistence.baseline("default");
@@ -170,9 +172,9 @@ export class Store {
             JSON.stringify(scopes),
           ]);
         },
-      ),
-    );
-    this.keys.push(key);
+      );
+      this.keys.push(key);
+    });
     return { apiKey: raw, team, world, scopes };
   }
   authenticate(raw: string) {

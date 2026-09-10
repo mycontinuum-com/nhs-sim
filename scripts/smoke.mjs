@@ -30,6 +30,22 @@ if (process.env.SMOKE_RESTORE === "1") {
   process.exit(0);
 }
 const { data: catalogue } = await call("/api/catalogue");
+const specification = await fetch(base + "/api/openapi.json");
+assert.equal(specification.status, 200);
+assert.match(specification.headers.get("content-type"), /application\/json/);
+const openapi = await specification.json();
+assert.equal(openapi.openapi, "3.1.0");
+assert.ok(openapi.paths["/api/keys"].post.requestBody);
+assert.ok(openapi.paths["/api/sites/{site}/actions"].post.requestBody);
+assert.deepEqual((await call("/openapi.json")).data, openapi);
+assert.equal(catalogue.documentation.openapi, "/api/openapi.json");
+const handbook = await call("/docs/handbook.json");
+assert.equal(handbook.status, 200);
+assert.ok(handbook.data.pages.length >= 18);
+for (const page of handbook.data.pages) {
+  assert.ok(page.content.length > 100, page.url);
+  assert.equal((await fetch(base + page.url)).status, 200, page.url);
+}
 const retiredChallengePage = await fetch(base + "/control/?challenges=1", { redirect: "manual" });
 assert.equal(retiredChallengePage.status, 302);
 assert.equal(retiredChallengePage.headers.get("location"), "/control/");
@@ -51,7 +67,7 @@ for (const site of catalogue.sites) {
   assert.ok(assets.length > 0);
   for (const [, asset] of assets) assert.equal((await fetch(base + asset)).status, 200, asset);
 }
-for (const path of ["/docs/", "/docs/quickstart/", "/docs/api/", "/docs/data/"]) {
+for (const path of ["/docs/", "/docs/quickstart/", "/docs/api/", "/docs/data/", "/docs/explorer/", "/docs/explorer"]) {
   const response = await fetch(base + path);
   assert.equal(response.status, 200, path);
   const html = await response.text();
@@ -62,12 +78,16 @@ for (const path of ["/docs/", "/docs/quickstart/", "/docs/api/", "/docs/data/"])
     assert.equal((await fetch(new URL(asset, base + path))).status, 200, asset);
 }
 assert.equal((await fetch(base + "/docs/missing-page/")).status, 404);
-const issued = await call("/api/keys", {
+const [issued, otherTeam] = await Promise.all([call("/api/keys", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ teamName: "Smoke test" }),
-});
-assert.equal(issued.status, 201);
+}), call("/api/keys", {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ teamName: "Clock isolation", site: "gp" }),
+})]);
+assert.equal(issued.status, 201, issued.data.error);
+assert.equal(otherTeam.status, 201, "simultaneous teams sharing an IP can sign up without throttling");
 const headers = {
   Authorization: "Bearer " + issued.data.apiKey,
   "Content-Type": "application/json",
@@ -177,13 +197,6 @@ assert.ok(homeReadings.data.resources.some((item) => item.kind === "observation"
 assert.equal(step.data.paused, true, "one click pauses and advances a running clock");
 assert.ok(step.data.events.some((event) => event.actor === "Smoke test" && event.type.startsWith("clock.")),
   "team clock actions appear in the activity trail");
-// Team creation is limited to one request per IP every two seconds.
-await setTimeout(2100);
-const otherTeam = await call("/api/keys", {
-  method: "POST", headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ teamName: "Clock isolation", site: "gp" }),
-});
-assert.equal(otherTeam.status, 201, "create the second team before checking clock isolation");
 const otherClock = await call("/api/clock", { headers: { Authorization: "Bearer " + otherTeam.data.apiKey } });
 assert.equal(otherClock.status, 200);
 const scopedDirectory = await call("/api/nhs/ods/Organization", { headers: { Authorization: "Bearer " + otherTeam.data.apiKey } });

@@ -1,0 +1,29 @@
+---
+title: Explore home readings in Witherings
+---
+
+# Explore home readings in Witherings
+
+Open **At home** on <a href="/control/">the neighbourhood map</a> and launch Witherings. The wearable dashboard and patient Messages are separate apps at the same location.
+
+## Select a resident and inspect readings
+
+Open the resident selector and find any synthetic person by name or SIM identifier. Choose a person to view their devices and observations. Use the day or week controls to change the reading period, and expand **Recorded readings** to inspect dated values and quality labels.
+
+A missing value remains missing. Charts and summaries use the selected resident's recorded data. They do not assess health or recommend treatment.
+
+## Connect a simulated watch
+
+If the resident has no active activity watch, choose **Connect simulated watch**. The first activity reading is due after 10 simulation minutes, followed by hourly readings. Advance time using **Simulation controls** in the fixed bottom bar, then inspect the new reading.
+
+No physical device or external Apple or Withings account connects to the simulator. Reconnecting an already active activity watch does not create another device. An organiser can simulate device disconnection; missing readings stay visible as missing data.
+
+## Read and reply to practice messages
+
+Return to the home desktop and launch **Messages**. Select the same resident to see delivered practice conversations. Reply where the practice allows replies. See [InaccuRx messaging](./messaging.mdx) for the delivery simulator and practice inbox.
+
+## Connect an agent
+
+Use `GET /api/sites/wearables/view?patient=SIM-000006` for the resident's shared wearable records. Post `type: "connect_device"`, `patientId`, and `title: "Home activity watch"` to `/api/sites/wearables/actions`. These requests require a team key with wearable scope.
+
+Read the [API reference](./api.mdx) for the wearable adapter and clock operations, or try requests in the <a href="/docs/explorer/">API explorer</a>.

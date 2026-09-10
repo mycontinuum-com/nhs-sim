@@ -9,49 +9,44 @@ hide_table_of_contents: true
 A referral gets rejected. A result arrives late. A discharge letter sits in another system. Enter the map, open a workplace, and follow one fictional patient across their care.
 
 <div className="handbook-grid">
-<a href="/docs/fhir/"><strong>Find a patient through FHIR</strong><span>PDS demographics, ODS organisations, pagination and error handling.</span></a>
-<a href="/docs/population/"><strong>Explore the population</strong><span>Reproducible people, public appointment statistics and isolated team changes.</span></a>
-<a href="/docs/systemtwo/"><strong>Work in SystemTwo</strong><span>Save consultations, use the appointment book and explore patient histories.</span></a>
-<a href="/docs/pharmacy/"><strong>Run the pharmacy</strong><span>Receive referrals, dispense prescriptions, compare suppliers, and manage stock.</span></a>
-<a href="/docs/ten-year-plan/"><strong>Explore the ten-year plan</strong><span>Connect the plan’s questions to people and places in the simulator.</span></a>
-<a href="/docs/quickstart/"><strong>Make your first API call</strong><span>Create a team world, read a patient, and add a task.</span></a>
-<a href="/docs/challenges/"><strong>Use the patient workflows</strong><span>Start with a referral, a discharge, or a browser-only record.</span></a>
-<a href="/docs/api/"><strong>Find an endpoint</strong><span>Actions, scopes, adapters, errors, and retry behavior.</span></a>
-<a href="/docs/data/"><strong>Understand the data</strong><span>Fictional identities, shared records, and reproducible worlds.</span></a>
+<a href="/docs/team-access/"><strong>Start a team world</strong><span>Copy your key, choose patients, and control simulation time.</span></a>
+<a href="/docs/systemtwo/"><strong>Work in SystemTwo</strong><span>Consultations, problems, allergies, and the appointment book.</span></a>
+<a href="/docs/hospital/"><strong>Work in Millenni-ish</strong><span>A&E tracking, the medical take, inpatient charts, and orders.</span></a>
+<a href="/docs/pharmacy/"><strong>Run NoobScript</strong><span>Receive referrals, dispense prescriptions, compare suppliers, and manage stock.</span></a>
+<a href="/docs/ten-year-plan/"><strong>Explore the ten-year plan</strong><span>Connect the plan's questions to people and places in the simulator.</span></a>
+<a href="/docs/explorer/"><strong>Try an API request</strong><span>Interactive Swagger UI, request schemas, and responses.</span></a>
 </div>
 
-## Five workplaces, one patient journey
+## Choose a workplace
 
-Open <a href="/control/">the neighbourhood map</a>. Choose Riverside Practice for SystemTwo, or Northbank General for Millenni-ish EPR. The map gets out of the way inside each workplace.
+Open <a href="/control/">the neighbourhood map</a>. Each location opens a desktop with its apps. The map gets out of the way inside the workplace.
 
-High Street Pharmacy opens NoobScript, with a prescription queue and dispensing bench. Neighbourhood Care opens CareBnB, a visit board for community teams. At home opens Witherings, a personal wearable dashboard for any resident. Diagnostics and referrals remain supporting APIs.
+- Riverside Practice offers [SystemTwo](./systemtwo.mdx), [DocuMañana](./documents.mdx), and [InaccuRx](./messaging.mdx).
+- Northbank General opens [Millenni-ish EPR](./hospital.mdx).
+- High Street Pharmacy opens [NoobScript](./pharmacy.mdx).
+- Neighbourhood Care opens [CareBnB](./community.mdx).
+- At home offers [Witherings](./home.mdx) and [patient Messages](./messaging.mdx).
 
-One API key opens one isolated world. The portals and APIs read the same records. Actions can reserve capacity, schedule work, change ownership, or make a record visible to another service. Advancing the clock lets you observe delayed results.
+One team key opens one isolated world. The portals and APIs read the same records. Use the same patient identifier across workplaces to follow a handover. Actions can schedule work, reserve capacity, or make a record visible to another service. Advance the clock to observe delayed results.
 
-## Inside the record
+## Use the records
 
-In SystemTwo, use **Find patient** to search by name or identifier. The **Journal** holds dated entries; **Problems**, **Medication** and **Coded history** let you inspect the larger EHR collections. Select a record to open its details.
+- [Team access and simulation time](./team-access.mdx) covers onboarding, the key, patient selection, and the activity trail.
+- [Appointment sessions and slots](./appointments.mdx) covers booking, protected time, and session management.
+- [Clinical records and hospital orders](./clinical-records.mdx) covers narrative journals, signed notes, prescriptions, and blood tests.
+- [Discharge letters and GP document processing](./documents.mdx) covers hospital drafts, sending, GP review, filing, tags, and codes.
+- [Patient workflows](./challenges.mdx) follows records across services without assigning a hackathon challenge.
 
-Millenni-ish opens on a **Worklist**. Choose a patient, then use **Results**, **Medication** or **Documents** to inspect their record. The **Discharge chart** groups GP handover, pharmacy supply and community follow-up.
+## Build an integration
 
-Both workplaces offer **Request test**, **Prescription** and **Home visit** actions. Use **Neighbourhood map** in the title bar to change workplaces.
+Start with [your first API call](./quickstart.mdx), then use the [API reference](./api.mdx) and <a href="/docs/explorer/">interactive API explorer</a>. <a href="/api/openapi.json">OpenAPI JSON</a> is available for client generators and agents. <a href="/docs/handbook.json">The handbook JSON</a> contains the published guides with their titles, URLs, and source text.
 
-Use the portals to inspect what your code changed. A successful request is the beginning of the workflow. Show the completed result in your demo.
+Use [PDS and ODS FHIR APIs](./fhir.mdx) for demographics and organisations, [CIS-too](./identity.mdx) for staff sign-in, or [the legacy browser workflow](./legacy.mdx) for HTML-only document transfer.
 
-<a href="/control/">Open the simulator</a> · [Run the event](./organisers.mdx) · [Integrate the legacy browser](./legacy.mdx)
+## Understand the world
 
-### Hospital patient lists
+Read [the data guide](./data.md) for fictional identities, authorship, record visibility, and production-derived aggregate counts. [The population guide](./population.mdx) explains reproducible people, public appointment statistics, and isolated team changes.
 
-Millenni-ish opens the **Patient List Manager**. **A&E tracking** shows current attendances, arrival times, assessment waits, acuity, location and responsible clinician. **Medical take** shows patients referred for admission, and **Inpatient census** shows admitted patients. **Discharged** preserves completed attendances.
+The [ten-year plan guide](./ten-year-plan.mdx) connects the plan's themes to existing patients and workflows. You choose what to build. [Run the event](./organisers.mdx) covers operator setup, incidents, and verification.
 
-Use **Register A&E attendance** to find any synthetic patient. Select a row to assign a clinician, start assessment, refer to the medical take, record an inpatient location or discharge. Select the patient's name to enter the existing chart. Time and waiting measures follow the team's simulation clock.
-
-## Hospital letters and GP processing
-
-Use **Discharge summaries** in Millenni-ish to write a patient handover and send it to the GP. Open **DocuMañana** directly from the GP building on the map, or launch it from SystemTwo's practice home or Workflow menu to assign, review and file incoming letters. [Follow the document workflow](./documents.mdx).
-
-## Practice and patient messages
-
-Click the GP building and choose **InaccuRx** to open the practice inbox. From the patient’s home, choose **Messages** to read delivered messages and reply when the practice allows it. Witherings remains a separate app in the same home. [Use the messaging workflow](./messaging.mdx).
-
-Read [Clinical records and hospital orders](./clinical-records.mdx) for documentation, prescriptions and laboratory requests.
+<a href="/control/">Open the simulator</a>

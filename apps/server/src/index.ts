@@ -26,6 +26,7 @@ import {
 import { handleCis2 } from "./cis2.ts";
 import { handleFhir, operationOutcome } from "../../../packages/nhs-mocks/src/fhir.ts";
 import { ModelAgent } from "../../../packages/agents/src/index.ts";
+import { openApiDocument } from "./openapi.ts";
 
 const port = Number(process.env.PORT ?? 8080);
 const origin = process.env.PUBLIC_ORIGIN ?? "http://localhost:" + port;
@@ -40,7 +41,6 @@ const oidc = new MockOIDC(origin);
 await oidc.init();
 const staticRoot = resolve("dist/sites");
 const sessions = new Map<string, { key: string; csrf: string; expires: number }>();
-const issuance = new Map<string, number>();
 const equal = (a: string, b: string) => {
   const x = Buffer.from(a),
     y = Buffer.from(b);
@@ -98,12 +98,17 @@ const server = createServer(async (req, res) => {
       await store.pool.query("SELECT 1");
       return send(res, 200, { ok: true, database: "postgresql", mode: "synthetic" });
     }
+    if (path === "/api/openapi.json" || path === "/openapi.json") {
+      if (method !== "GET" && method !== "HEAD") throw new SimError("Method not allowed", 405);
+      return send(res, 200, openApiDocument);
+    }
     if (path === "/api/catalogue")
       return send(res, 200, {
         sites,
         apis: catalogue,
         scenarios,
         identity: { issuer: origin + "/cis2", clientId: "nhs-sim-client" },
+        documentation: { handbook: "/docs/", explorer: "/docs/explorer/", openapi: "/api/openapi.json" },
         notice: "Local approximations, not NHS-certified implementations. No real patient data.",
       });
     if (path === "/api/keys" && method === "POST") {
@@ -116,12 +121,6 @@ const server = createServer(async (req, res) => {
           message:
             "This legacy service supports browser integration only. Create a session at POST /api/session and use /browser/legacy.",
         });
-      if (store.keys.length >= 200)
-        throw new SimError("Team limit reached; ask the organiser", 429);
-      const ip = req.socket.remoteAddress ?? "local";
-      if ((issuance.get(ip) ?? 0) > Date.now() - 2000)
-        throw new SimError("Please wait two seconds before creating another key", 429);
-      issuance.set(ip, Date.now());
       const allowed = activeServices.filter((id) => !["control", "legacy"].includes(id));
       if (input.site && !allowed.includes(input.site as SiteId))
         throw new SimError("Unknown API site");

@@ -4,3 +4,4 @@ packages:
 allowBuilds:
   esbuild: true
   core-js: false
+  '@scarf/scarf': false
