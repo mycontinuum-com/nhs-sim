@@ -355,7 +355,7 @@ export function PharmacyWorkspace(props: Props) {
                     team's world with its author.
                   </p>
                   <div className="rx-paper">
-                    <b>PROSCRIP-ISH / DAILY CHECK</b>
+                    <b>NOOBSCRIPT / DAILY CHECK</b>
                     <p>Receive → Review → Approve → Dispense → Collect</p>
                     <small>Synthetic prescriptions and prices · Not for real dispensing</small>
                   </div>

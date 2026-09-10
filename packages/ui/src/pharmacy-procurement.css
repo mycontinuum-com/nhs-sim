@@ -311,6 +311,9 @@
 .rx-basket-group h2 {
   margin: 18px 0;
 }
+.rx-basket-group table {
+  min-width: 800px;
+}
 .rx-inline-form {
   display: flex;
   align-items: end;
@@ -318,6 +321,7 @@
 }
 .rx-inline-form label {
   margin: 0;
+  flex: 0 0 96px;
 }
 .rx-inline-form input {
   width: 90px;
