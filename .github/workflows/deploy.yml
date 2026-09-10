@@ -45,15 +45,17 @@ jobs:
           docker compose down
       - name: Verify deployment inputs
         run: |
-          test -n "$ECR_REPOSITORY" && test -n "$ARTIFACT_BUCKET"
-          test -n "$INSTANCE_ID" && test -n "$DEPLOY_DOCUMENT"
+          : "${ECR_REPOSITORY:?}" "${ARTIFACT_BUCKET:?}" "${INSTANCE_ID:?}" "${DEPLOY_DOCUMENT:?}"
           bash -n deploy/deploy.sh deploy/backup.sh
           node scripts/validate-skills.mjs
+      - name: Check deployment identity
+        run: node deploy/check-oidc.mjs
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.SIM_DEPLOY_ROLE_ARN }}
           aws-region: eu-west-2
           role-session-name: nhs-sim-${{ github.run_id }}
+          retry-max-attempts: 2
       - name: Build and publish immutable application
         id: image
         shell: bash
