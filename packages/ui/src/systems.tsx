@@ -938,7 +938,7 @@ function PracticeWorkspace(props: Props) {
                 now={props.view.now}
                 api={props.api}
                 patient={patient}
-                selectPatient={props.selectPatient}
+                selectPatient={(id) => { props.selectPatient(id); navigate("Journal"); }}
               />
             ) : !patient ? (
               <div className="ehr-start">
