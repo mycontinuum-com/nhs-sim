@@ -1,4 +1,4 @@
-import { dischargeSectionsSchema } from "./documents.ts";
+import { documentTagsSchema, documentCodesSchema, dischargeSectionsSchema } from "./documents.ts";
 import { pharmacyPathways } from "./pharmacy.ts";
 import { z } from "zod";
 
@@ -223,7 +223,9 @@ export const actionSchema = z
       "allocate_shift",
     ]),
     dischargeSections: dischargeSectionsSchema.optional(),
-    documentCommand: z.enum(["send", "assign", "review", "file"]).optional(),
+    documentTags: documentTagsSchema.optional(),
+    documentSnomedCodes: documentCodesSchema.optional(),
+    documentCommand: z.enum(["send", "assign", "review", "file", "annotate"]).optional(),
     patientId: z.string().optional(),
     resourceId: z.string().optional(),
     title: z.string().min(1).max(500).optional(),

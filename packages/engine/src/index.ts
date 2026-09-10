@@ -1,3 +1,4 @@
+import { documentSnomedConcepts } from "../../contracts/src/document-terminology.ts";
 import { seedAppointmentSessions } from "./appointment-sessions.ts";
 import { appointmentSessionSchema, occupiesAppointmentSlot } from "../../contracts/src/appointments.ts";
 import { seedDocuments } from "./document-seed.ts";
@@ -723,8 +724,16 @@ export class Engine {
             r.visibleTo = ["hospital", "gp"];
           } else {
             if (site !== "gp") throw new SimError("GP document processing required", 403);
-            if (doc.stage === "draft" || doc.stage === "filed") throw new SimError("Document is not awaiting processing", 409);
-            if (a.documentCommand === "assign") {
+            if (doc.stage === "draft" || (doc.stage === "filed" && a.documentCommand !== "annotate")) throw new SimError("Document is not awaiting processing", 409);
+            if (a.documentCommand === "annotate") {
+              if (!a.documentTags || !a.documentSnomedCodes) throw new SimError("Tags and SNOMED codes required");
+              const codes = a.documentSnomedCodes.map(value => {
+                const concept = documentSnomedConcepts.find(item => item.code === value.code);
+                if (!concept) throw new SimError("SNOMED code is not in the simulation catalogue");
+                return concept;
+              });
+              r.data = { ...doc, tags: [...new Map(a.documentTags.map(tag => [tag.toLowerCase(), tag])).values()], snomedCodes: [...new Map(codes.map(code => [code.code, code])).values()] };
+            } else if (a.documentCommand === "assign") {
               if (!a.clinician) throw new SimError("Assignee required");
               r.data = { ...doc, assignee: a.clinician };
             } else if (a.documentCommand === "review") {

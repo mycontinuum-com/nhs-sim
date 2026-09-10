@@ -45,3 +45,25 @@ test("Document mutations reject stale versions, other teams and non-clinical ser
   assert.throws(() => e.action("other", "hospital", { type: "process_document", resourceId: r.id, expectedVersion: r.version, documentCommand: "send" }, "Other team"), /Unknown resource/);
   assert.throws(() => e.action("default", "pharmacy", { type: "save_discharge_summary", patientId: "SIM-000001", title: "Wrong service", dischargeSections: emptyDischargeSections }, "Pharmacy"), /Hospital authors/);
 });
+test("Document tags and canonical SNOMED annotations survive filing and remain editable with attribution", () => {
+  const e = new Engine();
+  const seeded = e.require("default").resources.find(item => item.kind === "discharge-summary" && item.status === "sent");
+  assert.ok(seeded);
+  let r = seeded;
+  const original = r.data.sections;
+  const id = r.id;
+  const annotate = (expectedVersion: number, code = "195967001") => e.action("default", "gp", { type: "process_document", resourceId: id, expectedVersion, documentCommand: "annotate", documentTags: ["Follow-up", "follow-up"], documentSnomedCodes: [{ code, display: "Client label" }, { code, display: "Duplicate" }] }, "Coding team");
+  r = annotate(r.version);
+  assert.deepEqual(r.data.tags, ["follow-up"]);
+  assert.deepEqual(r.data.snomedCodes, [{ code: "195967001", display: "Asthma" }]);
+  assert.equal(r.provenance?.changes.at(-1)?.actor.name, "Coding team");
+  assert.throws(() => annotate(r.version - 1), /Stale/);
+  assert.throws(() => annotate(r.version, "999999999"), /simulation catalogue/);
+  for (const documentCommand of ["review", "file"]) r = e.action("default", "gp", { type: "process_document", resourceId: id, expectedVersion: r.version, documentCommand, text: "Checked fictional correspondence" }, "Review team");
+  assert.deepEqual(r.data.snomedCodes, [{ code: "195967001", display: "Asthma" }]);
+  r = e.action("default", "gp", { type: "process_document", resourceId: id, expectedVersion: r.version, documentCommand: "annotate", documentTags: [], documentSnomedCodes: [] }, "Coding team");
+  assert.equal(r.status, "filed");
+  assert.deepEqual(r.data.tags, []);
+  assert.deepEqual(r.data.snomedCodes, []);
+  assert.deepEqual(r.data.sections, original);
+});

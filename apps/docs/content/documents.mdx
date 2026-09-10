@@ -19,6 +19,14 @@ Enter a review note and choose **Confirm reviewed**. Then enter the filing outco
 
 These actions do not automatically prescribe medication, create diagnoses, arrange follow-up or send messages outside the simulation. Teams must carry out any additional simulated actions separately.
 
+## Tags and SNOMED codes
+
+Open **Tags and SNOMED codes** in the processing panel. Add document tags such as `Follow-up needed`, search a clinical term or numeric code, and select a concept. Choose **Save tags and codes** to persist your selections. Remove a tag or code with its remove button and save again. The inbox search includes saved tags, concept names and codes.
+
+Coding remains available after filing and records the acting team in the document history. These are annotations on the letter. They do not automatically add diagnoses to the patient problem list or change the original hospital text.
+
+The searchable simulation subset contains 10 concepts from the [HL7 IPS CORE problem-list expansion](https://www.hl7.org/fhir/uv/ips/2019Sep/ValueSet-core-problem-list-disorders-uv-ips.html). It is not a complete terminology service.
+
 ## Agent API
 
 Use your team API key with the existing authenticated site action endpoints. Documents are shared only within that team's world.
@@ -28,6 +36,7 @@ Use your team API key with the existing authenticated site action endpoints. Doc
 - `POST /api/sites/hospital/actions` with `type: "save_discharge_summary"`, `patientId`, `title` and `dischargeSections` creates a draft. The sections object contains `reason`, `course`, `diagnoses`, `medicationChanges`, `results`, `followUp` and `gpActions`.
 - To update a draft, include its `resourceId` and `expectedVersion`.
 - Send through the hospital action endpoint using `type: "process_document"`, `documentCommand: "send"`, `resourceId` and `expectedVersion`.
+- To save annotations, use `documentCommand: "annotate"`, `documentTags: ["Follow-up needed"]` and `documentSnomedCodes: [{"code": "195967001", "display": "Asthma"}]`, with `resourceId` and `expectedVersion`. Both arrays are required; empty arrays clear annotations. The server accepts catalogue codes and stores their canonical display terms.
 - The GP action endpoint accepts document commands `assign` (with `clinician`), `review` (with `text`) and `file` (with `text`). Each requires `resourceId` and `expectedVersion`.
 
 Use a fresh idempotency key for each operation and reuse it when retrying the identical request. Stale resource versions and invalid stage changes return an error without changing the letter.

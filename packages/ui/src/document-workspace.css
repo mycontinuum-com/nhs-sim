@@ -4,3 +4,15 @@
 @media(max-width:500px){.document-processing{grid-template-columns:1fr;gap:0}.document-processing form+form{border-left:0;border-top:1px solid #e9e9ed;margin-top:20px;padding:8px 0 0}.document-toolbar>label:not(.document-check){width:100%;max-width:none}.document-banner nav{width:100%}.document-letter-head h1{font-size:20px}.document-letter{padding:20px 18px}.document-paper-label{font-size:8px}.document-letter-route{flex-wrap:wrap}.document-reading{padding:18px 12px}}
 
 @media(min-width:851px){.document-processing-pane{padding-top:15px;padding-bottom:15px}.document-processing-pane>h2{margin-bottom:12px}.document-steps{margin-bottom:12px}.document-facts{padding:10px 0;margin-bottom:10px;gap:6px 8px}.document-processing label{margin:9px 0;gap:5px}.document-processing form+form{margin-top:13px;padding-top:3px}.document-processing textarea{min-height:90px}.document-processing form:last-child .document-primary{position:sticky;bottom:0;z-index:2;box-shadow:0 0 0 6px white}.document-processing .document-help{margin:10px 0 0;font-size:10px;line-height:1.4}}
+
+.document-coding { border-bottom: 1px solid #dddde3; padding: 10px 0; margin-bottom: 12px; }
+.document-coding summary { cursor: pointer; font-weight: 700; }
+.document-coding summary small { display: block; margin: 4px 0 8px; font-weight: 400; }
+.document-coding form { display: grid; gap: 6px; margin-top: 10px; }
+.document-coding input { width: 100%; min-width: 0; }
+.document-code-results { list-style: none; padding: 0; max-height: 180px; overflow-y: auto; border: 1px solid #dddde3; }
+.document-code-results button { text-align: left; width: 100%; border: 0; border-bottom: 1px solid #eee; }
+.document-code-results small, .document-code-chips small { display: block; color: #686477; }
+.document-code-chips { list-style: none; padding: 0; display: grid; gap: 5px; }
+.document-code-chips li { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #eeedf5; padding: 5px 8px; overflow-wrap: anywhere; }
+.document-code-chips button { flex-shrink: 0; padding: 2px 8px; }
