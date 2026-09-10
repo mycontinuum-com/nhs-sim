@@ -71,6 +71,7 @@ export function HomeWorkspace(props: Props) {
   const [period, setPeriod] = useState<"day" | "week">("week");
   const [showReadings, setShowReadings] = useState(false);
   const [chooseResident, setChooseResident] = useState(false);
+  const [connectionError, setConnectionError] = useState("");
   const patient = props.patients.find((resident) => resident.id === props.selectedPatient);
   const readings: Reading[] = props.rows
     .filter(
@@ -101,8 +102,12 @@ export function HomeWorkspace(props: Props) {
       resource.kind === "device" &&
       resource.owner === "wearables",
   );
+  const activityWatch = devices.find(
+    (device) => device.status === "active" &&
+      (device.data.metric === "steps" || device.title === "Home activity watch"),
+  );
   const latest = readings.at(-1);
-  const suggested = props.patients.find((resident) => resident.id === "SIM-000006");
+
   return (
     <div className="home-workspace">
       <header className="home-header">
@@ -135,7 +140,10 @@ export function HomeWorkspace(props: Props) {
                     .slice(0, 2)
                     .join("")}
                 </span>
-                {patient.name}
+                <span>
+                  {patient.name}
+                  <small>Change resident</small>
+                </span>
               </>
             ) : (
               "Choose a resident"
@@ -158,26 +166,20 @@ export function HomeWorkspace(props: Props) {
               />
             </label>
             <div className="home-resident-options">
-              {(suggested && !props.patientSearch
-                ? [suggested, ...props.patients.filter((resident) => resident.id !== suggested.id)]
-                : props.patients
-              )
-                .slice(0, 6)
-                .map((resident) => (
-                  <button
-                    key={resident.id}
-                    onClick={() => {
-                      props.selectPatient(resident.id);
-                      setChooseResident(false);
-                    }}
-                  >
-                    {resident.name}
-                    <small>
-                      {resident.id === "SIM-000006" ? "Home monitoring scenario" : resident.id}
-                    </small>
-                  </button>
-                ))}
-              {!props.patients.length && <p>No matching residents.</p>}
+              {props.patientMatches.map((resident) => (
+                <button
+                  key={resident.id}
+                  onClick={() => {
+                    props.selectPatient(resident.id);
+                    setChooseResident(false);
+                    setConnectionError("");
+                  }}
+                >
+                  {resident.name}
+                  <small>{resident.id}</small>
+                </button>
+              ))}
+              {!props.patientMatches.length && <p>No matching residents.</p>}
             </div>
           </section>
         )}
@@ -317,17 +319,38 @@ export function HomeWorkspace(props: Props) {
                   ) : (
                     <p className="home-muted">No device is registered for this resident.</p>
                   )}
+                  {!activityWatch && (
+                    <button
+                      className="home-connect-device"
+                      disabled={props.pending}
+                      onClick={async () => {
+                        setConnectionError("");
+                        try {
+                          await props.create(
+                            "connect_device", props.selectedPatient, "Home activity watch",
+                          );
+                        } catch (error) {
+                          setConnectionError(
+                            error instanceof Error ? error.message : "Unable to connect the watch.",
+                          );
+                        }
+                      }}
+                    >
+                      {props.pending ? "Connecting…" : "Connect simulated watch"}
+                    </button>
+                  )}
+                  {connectionError && <p role="alert">{connectionError}</p>}
                   <p className="home-panel-note">
-                    Device and reading states come from this simulation’s records.
+                    These are simulated devices. No physical device or external account is connected.
                   </p>
                 </section>
                 <section className="home-panel home-simulation">
                   <p className="home-eyebrow">Try it in your team’s world</p>
                   <h2>See a new reading arrive.</h2>
                   <p>
-                    Eleanor’s home monitor sends an activity reading every simulated hour. Select
-                    Eleanor, advance the clock below by 60 minutes, then watch her next reading
-                    arrive here.
+                    Connect a simulated watch for this resident. Its first activity reading arrives
+                    after 10 simulated minutes, followed by a reading every hour. Use Simulation time
+                    to advance the clock.
                   </p>
                   <p className="home-panel-note">
                     The operator can simulate a disconnected device. Missing readings stay missing.

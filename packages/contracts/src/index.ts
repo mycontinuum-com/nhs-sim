@@ -166,6 +166,7 @@ export type World = {
 export const actionSchema = z
   .object({
     type: z.enum([
+      "connect_device",
       "create_task",
       "create_referral",
       "order_test",
@@ -210,6 +211,10 @@ export const actionSchema = z
     mode: z.enum(["in-person", "telephone", "video", "online"]).optional(),
   })
   .superRefine((action, context) => {
+    if (action.type === "connect_device") {
+      if (!action.patientId?.trim()) context.addIssue({ code: "custom", path: ["patientId"], message: "patientId is required for a device" });
+      if (action.resourceId) context.addIssue({ code: "custom", path: ["resourceId"], message: "Connect a device by patient, not resource" });
+    }
     if (action.type === "save_allergy") {
       for (const field of ["patientId", "title", "allergyStatus"] as const)
         if (!action[field]?.trim()) context.addIssue({ code: "custom", path: [field], message: field + " is required for an allergy" });

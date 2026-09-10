@@ -13,6 +13,7 @@ type Props = {
   rows: Resource[];
   handoverRows?: Resource[];
   patients: Patient[];
+  patientMatches: Patient[];
   selectedPatient: string;
   patientSearch: string;
   searchPatients: (query: string) => void;
@@ -107,7 +108,7 @@ function PatientSearch(props: Props) {
               ×
             </button>
           </div>
-          {props.patients.slice(0, 20).map((patient) => (
+          {props.patientMatches.map((patient) => (
             <button
               key={patient.id}
               onClick={() => {
@@ -119,7 +120,7 @@ function PatientSearch(props: Props) {
               <small>{patient.id}</small>
             </button>
           ))}
-          {!props.patients.length && <p>No matching patients.</p>}
+          {!props.patientMatches.length && <p>No matching patients.</p>}
         </div>
       )}
     </div>
@@ -713,7 +714,7 @@ export function CareWorkspace(props: Props) {
                 <p className="care-eyebrow">SIMULATION LABEL</p>
                 <h2>{(composing ? draftingPatient : patient)?.name ?? "Select a prescription"}</h2>
                 <p>
-                  {(composing ? draftingPatient?.id : selected?.patientId) ?? "No patient selected"}
+                  {(composing ? draftingPatient?.id : patient?.id) ?? "No patient selected"}
                 </p>
                 <hr />
                 <strong>

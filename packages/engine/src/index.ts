@@ -221,7 +221,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     "wearables",
     "active",
     5,
-    { battery: 76, quality: "good", lastSyncedAt: START },
+    { battery: 76, quality: "good", lastSyncedAt: START, metric: "steps" },
     ["wearables", "community", "patient"],
   );
   const homeHistory = [
@@ -657,7 +657,23 @@ export class Engine {
         schedule_visit: ["visit", "community"],
         dispatch_robot: ["robot-job", "robotics"],
       };
-      if (a.type === "save_allergy") {
+      if (a.type === "connect_device") {
+        if (site !== "wearables" && site !== "control")
+          throw new SimError("Connect home devices through the home workspace", 403);
+        const existing = w.resources.find((item) => item.kind === "device" && item.owner === "wearables" && item.patientId === a.patientId && item.status === "active" && (item.data.metric === "steps" || item.title === "Home activity watch"));
+        if (existing) {
+          if (key) this.state.receipts[id + ":" + key] = {
+            fingerprint, result: structuredClone(isDraft(existing) ? current(existing) : existing),
+          };
+          return existing;
+        }
+        r = this.add(w, "device", "Home activity watch", "wearables", a.patientId,
+          { metric: "steps", battery: 100, quality: "awaiting-first-reading" });
+        r.status = "active";
+        r.visibleTo = ["wearables", "community", "patient"];
+        if (!w.scheduled.some((job) => job.type === "observation" && job.patientId === a.patientId))
+          w.scheduled.push({ at: w.now + 10 * minute, type: "observation", patientId: a.patientId });
+      } else if (a.type === "save_allergy") {
         if (site !== "gp" && site !== "control")
           throw new SimError("Only primary care may maintain the allergy record", 403);
         if (!a.patientId || !a.title?.trim() || !a.allergyStatus)
@@ -1108,6 +1124,12 @@ export class Engine {
           );
           x.status = "available";
           x.visibleTo = ["wearables", "community", "patient"];
+          const device = w.resources.find((item) => item.kind === "device" && item.owner === "wearables" && item.patientId === job.patientId && (item.data.metric === "steps" || item.title === "Home activity watch"));
+          if (device) {
+            device.data.quality = x.data.quality;
+            if (!w.faults["wearable-disconnect"]) device.data.lastSyncedAt = w.now;
+            device.version++;
+          }
           this.event(w, "observation.received", "home-monitor", x.title, x);
         }
         w.scheduled.push({

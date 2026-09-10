@@ -658,3 +658,26 @@
     grid-row: 3;
   }
 }
+
+.home-resident-button small {
+  display: block;
+  margin-top: 3px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+}
+.home-resident-options {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.home-connect-device {
+  padding: 10px 16px;
+  border: 1px solid #46694e;
+  border-radius: 20px;
+  color: #fff;
+  background: #46694e;
+  font: inherit;
+}
+.home-connect-device:disabled {
+  opacity: 0.6;
+}

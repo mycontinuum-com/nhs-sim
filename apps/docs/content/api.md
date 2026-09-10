@@ -46,6 +46,7 @@ POST /api/sites/{site}/actions supports:
 
 | Action | Required input | Effect |
 |---|---|---|
+| connect_device | patientId, through wearables | Connect a synthetic activity watch; first reading after 10 simulation minutes, then hourly. Reuses an existing watch. |
 | create_task | patientId, optional title | New owning-service work item |
 | create_referral | patientId | New referral visible to sender and referral service |
 | order_test | patientId | Reserve diagnostics slot; result due in 120 simulation minutes |

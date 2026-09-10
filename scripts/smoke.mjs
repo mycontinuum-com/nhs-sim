@@ -129,6 +129,11 @@ const order = await call("/api/sites/gp/actions", {
 });
 assert.equal(order.status, 200);
 assert.equal((await call("/api/clock")).status, 401);
+const connectedWatch = await call("/api/sites/wearables/actions", {
+  method: "POST", headers, body: JSON.stringify({ type: "connect_device", patientId: "SIM-000003" }),
+});
+assert.equal(connectedWatch.status, 200);
+assert.equal(connectedWatch.data.patientId, "SIM-000003");
 const initialClock = await call("/api/clock", { headers });
 assert.equal(initialClock.status, 200);
 assert.ok(initialClock.data.events.some((event) => event.resourceId === order.data.id));
@@ -141,6 +146,8 @@ const step = await call("/api/clock", {
   body: JSON.stringify({ paused: true, advanceMinutes: 121 }),
 });
 assert.equal(step.status, 200);
+const homeReadings = await call("/api/sites/wearables/view?patient=SIM-000003", { headers });
+assert.ok(homeReadings.data.resources.some((item) => item.kind === "observation" && item.owner === "wearables" && item.patientId === "SIM-000003"), "newly connected patient's watch emits a reading");
 assert.equal(step.data.paused, true, "one click pauses and advances a running clock");
 assert.ok(step.data.events.some((event) => event.actor === "Smoke test" && event.type.startsWith("clock.")),
   "team clock actions appear in the activity trail");

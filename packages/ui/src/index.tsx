@@ -79,11 +79,11 @@ const places = [
   },
   {
     id: "home",
-    title: "Eleanor’s home",
+    title: "At home",
     label: "At home",
     description:
-      "Explore a week of synthetic activity, sleep and heart-rate readings. Advance time to receive the next watch reading.",
-    href: "/wearables/?patient=SIM-000006",
+      "Choose a resident, connect a simulated watch and explore their activity, sleep and heart-rate readings.",
+    href: "/wearables/",
     x: 17,
     y: 73,
     system: "At home",
@@ -117,7 +117,9 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const [offset, setOffset] = useState(0);
   const [notice, setNotice] = useState("");
   const [drawer, setDrawer] = useState<"team" | "simulation" | "operator" | null>(null);
-  const [destination, setDestination] = useState("/gp/");
+  const [destination, setDestination] = useState(
+    () => siteId === "control" ? "/gp/" : location.pathname + location.search,
+  );
   const [team, setTeam] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [world, setWorld] = useState("default");
@@ -222,7 +224,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     },
   });
   const patients = useQuery({
-    queryKey: ["patients", key, search],
+    queryKey: ["patients", siteId, key, search],
     queryFn: () =>
       api<{ items: Patient[]; total: number }>(
         `/api/sites/${isMap ? "gp" : siteId}/patients?q=` + encodeURIComponent(search),
@@ -230,7 +232,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     enabled: !!key && !isMap,
   });
   const selectedPatient = useQuery({
-    queryKey: ["selected-patient", key, patient],
+    queryKey: ["selected-patient", siteId, key, patient],
     queryFn: () =>
       api<{ items: Patient[]; total: number }>(
         `/api/sites/${isMap ? "gp" : siteId}/patients?q=` + encodeURIComponent(patient),
@@ -327,7 +329,12 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     });
   const selectPatient = (id: string) => {
     setPatient(id);
+    setSearch("");
     setOffset(0);
+    const url = new URL(location.href);
+    if (id) url.searchParams.set("patient", id);
+    else url.searchParams.delete("patient");
+    history.replaceState(null, "", url.pathname + url.search + url.hash);
   };
   const selectedPlace = places.find((item) => item.id === place);
   const error = view.error?.message || patients.error?.message;
@@ -464,10 +471,10 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                   (p) => !patients.data?.items.some((item) => item.id === p.id),
                 ),
               ]}
+              patientMatches={patients.data?.items ?? []}
               selectedPatient={patient}
               patientSearch={search}
               searchPatients={(value) => {
-                setPatient("");
                 setSearch(value);
                 setOffset(0);
               }}

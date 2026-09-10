@@ -20,6 +20,7 @@ type Props = {
   rows: Resource[];
   handoverRows?: Resource[];
   patients: Patient[];
+  patientMatches: Patient[];
   selectedPatient: string;
   patientSearch: string;
   searchPatients: (query: string) => void;
@@ -143,7 +144,7 @@ function PatientFinder(props: Props) {
               ×
             </button>
           </div>
-          {props.patients.slice(0, 20).map((patient) => (
+          {props.patientMatches.map((patient) => (
             <button
               key={patient.id}
               onClick={() => {
@@ -157,7 +158,7 @@ function PatientFinder(props: Props) {
               </small>
             </button>
           ))}
-          {!props.patients.length && <p>No matching patients.</p>}
+          {!props.patientMatches.length && <p>No matching patients.</p>}
         </div>
       )}
     </div>
