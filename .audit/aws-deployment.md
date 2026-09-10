@@ -20,3 +20,7 @@ User approved the documented single-host London deployment and automatic main de
 ## Approval and limits
 
 Budget approximately $90–120/month at light usage. Budget and health notification email requested asynchronously. No production EHR permissions. PostgreSQL and TLS data retained. One simulator process; app replacement entails a brief interruption.
+
+## Deployment evidence
+
+CloudFormation stack nhs-sim reached UPDATE_COMPLETE in eu-west-2. GitHub Actions run 34480205969 deployed commit 8fa5086 and passed public doctor, journey and smoke checks. CloudWatch receives instance memory and data disk metrics. Public browser verification confirms the map and team onboarding. Notification email remains pending.

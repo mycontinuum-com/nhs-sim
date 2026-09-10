@@ -1,0 +1,33 @@
+# Operating the simulator
+
+The deployment stack is `nhs-sim` in AWS account `797629229500`, region `eu-west-2`. The public origin is https://sim.animahacks.com.
+
+## Deploy
+
+Push to main. `Verify ecosystem` runs first; a successful push verification triggers `Deploy simulator`. A manual run of `Deploy simulator` also runs integration checks before publishing. Superseded revisions are rejected. Each successful release records an immutable ECR digest.
+
+The GitHub role uses OIDC and has permission only to publish the simulator image/runtime artifact and invoke its deployment document. It cannot provision infrastructure or read runtime secrets.
+
+## Operator access
+
+The simulator operator token is in Secrets Manager at `/nhs-sim/operator-token`. Retrieve it using your existing AWS access when needed; do not save it in the repo or GitHub variables. Use it in the simulator's operator controls. Team keys cannot change global CIS2 settings.
+
+## Data and recovery
+
+PostgreSQL, Caddy certificate data and configuration are stored on the separate encrypted EBS data volume. Application deployment keeps PostgreSQL running and backs it up before replacement. The daily systemd timer `nhs-sim-backup.timer` runs at 03:00 UTC. Backups are compressed PostgreSQL dumps under the stack storage bucket's `backups/` prefix and expire after 14 days.
+
+An unhealthy app deployment restores the prior application image. Public workflow verification can also request that rollback. Restore a database only as a separate deliberate operation after taking another backup; restoring an older database discards subsequent team actions. Database secret rotation requires a coordinated PostgreSQL password change.
+
+Use Systems Manager Session Manager or Run Command for host administration. The host has no SSH key or inbound SSH port. Deployment files are at `/opt/nhs-sim`; the data mount is `/srv/nhs-sim`. Avoid displaying `.env` or secret values in command logs.
+
+## Monitoring and cost
+
+Runtime logs are in CloudWatch `/nhs-sim/runtime`, retained for 14 days. Alarms cover host status, data-disk use and memory. The `nhs-sim-monthly` budget tracks `Project=nhs-sim` costs and alerts at 80% of $120. Cost allocation updates can take time to appear. A budget alert does not stop spending.
+
+The `nhs-sim-alerts` SNS topic needs a confirmed email subscription for notifications to reach a person. Email confirmation must be completed by the recipient.
+
+Stopping the EC2 host stops its compute charges, but storage, backups and the public IP continue to incur charges. Preserve the data volume and backups unless their deletion is separately requested.
+
+## Release limits
+
+One application process owns the simulation. Scaling to multiple replicas requires redesigning state ownership. Deployments briefly interrupt service. CIS2 sessions and settings reset with the application process. Functional verification is not a claim of 100-team event capacity.

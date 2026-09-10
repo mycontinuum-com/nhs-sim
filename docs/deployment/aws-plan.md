@@ -1,6 +1,6 @@
 # Deployment approval plan
 
-Status: approved by the user on 10 September 2026. Implementation and provisioning are in progress.
+Status: approved by the user on 10 September 2026. Provisioned and live at https://sim.animahacks.com. Public workflow verification passed in GitHub Actions run 34480205969. See runbook.md for operations.
 
 ## Verified starting point
 
