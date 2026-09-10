@@ -995,526 +995,112 @@
   font-size: 11px;
 }
 
-/* Hospital operations uses resource lanes; it does not imply bed allocation. */
-.hospital-operations {
-  --ehr-accent: #006ecb;
-  --ehr-line: #dce6ef;
-  --ehr-pale: #edf6fd;
-  --ehr-ink: #122c47;
-  background: #f1f6fa;
-  font-family: Arial, Helvetica, sans-serif;
-}
-.hospital-operations button {
-  background: #fff;
-  box-shadow: none;
-  border-color: #d7e3ee;
-  border-radius: 4px;
-}
-.hospital-masthead {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  background: #183951;
-  color: #fff;
-  padding: 15px 24px;
-  margin: 0;
-  border: 0;
-}
-.hospital-brand {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-.hospital-brand > span {
-  font-size: 35px;
-  color: #55c2ff;
-  line-height: 1;
-}
-.hospital-brand strong {
-  display: block;
-  font-size: 18px;
-  letter-spacing: 0.2px;
-}
-.hospital-brand small {
-  display: block;
-  color: #bad4e7;
-  margin-top: 4px;
-}
-.hospital-masthead nav {
-  display: flex;
-  gap: 16px;
-  flex: 1;
-}
-.hospital-masthead button {
-  color: #d5e7f5;
-  border: 0;
-  background: transparent;
-  padding: 9px 0;
-  border-radius: 0;
-  white-space: nowrap;
-}
-.hospital-masthead button:hover {
-  color: white;
-  background: transparent;
-}
-.hospital-masthead nav button.active {
-  color: #fff;
-  box-shadow: 0 2px #35b9ff;
-}
-.hospital-masthead > span {
-  font-size: 11px;
-  color: #c1d9eb;
-  max-width: 180px;
-}
-.hospital-overview {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 26px 28px 20px;
-}
-.hospital-overview h1 {
-  font-size: 25px;
-  margin: 5px 0;
-  letter-spacing: -0.6px;
-}
-.hospital-overview small,
-.hospital-overview time {
-  color: #617b93;
-  font-size: 11px;
-}
-.hospital-overview dl {
-  display: flex;
-  gap: 36px;
-  flex-wrap: wrap;
-}
-.hospital-overview dl > div {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 4px;
-}
-.hospital-overview dt,
-.hospital-overview dd {
-  border: 0;
-  padding: 0;
-}
-.hospital-overview dd {
-  font-size: 25px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.hospital-overview dt {
-  color: #647e95;
-  font-size: 11px;
-}
-.hospital-tools {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  padding: 0 28px 22px;
-}
-.hospital-tools .ehr-finder {
-  flex: 1;
-  max-width: 540px;
-}
-.hospital-tools .ehr-finder input {
-  flex: 1;
-  width: auto;
-}
-.hospital-tools > label {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  white-space: nowrap;
-  font-size: 12px;
-}
-.hospital-tools a {
-  margin-left: auto;
-  color: #426787;
-  white-space: nowrap;
-}
-.hospital-stage {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  flex: 1;
-  align-items: start;
-}
-.hospital-stage.with-encounter {
-  grid-template-columns: minmax(0, 1fr) minmax(370px, 32%);
-}
-.hospital-board {
-  min-width: 0;
-  padding: 0 22px 24px;
-}
-.hospital-lanes {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  align-items: start;
-}
-.hospital-lane {
-  min-width: 0;
-  padding: 12px;
-  background: #ffffff87;
-  border: 1px solid #e3ecf4;
-  border-radius: 5px;
-}
-.hospital-lane > header {
-  padding: 6px 3px 16px;
-  margin: 0;
-  border: 0;
-  display: block;
-}
-.hospital-lane h2 {
-  font-size: 14px;
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-}
-.hospital-lane h2 span {
-  color: #6a849a;
-  font-size: 12px;
-  font-weight: normal;
-}
-.hospital-lane > header small {
-  display: block;
-  margin-top: 6px;
-  color: #687e91;
-}
-.hospital-operations .hospital-case {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 10px 11px 8px;
-  border: 1px solid #dce8f2;
-  border-left: 4px solid #48b4d7;
-  border-radius: 4px;
-  margin: 0 0 8px;
-  color: #17344d;
-  background: #fff;
-}
-.hospital-operations .hospital-case:hover {
-  border-color: #75b9e9;
-  background: #f5fbff;
-}
-.hospital-operations .hospital-case.selected {
-  background: #e6f5ff;
-  border-color: #159be9;
-}
-.hospital-case.urgent {
-  border-left-color: #f34562;
-}
-.hospital-case-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: center;
-  margin-bottom: 6px;
-}
-.hospital-case-meta > span {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #647b91;
-}
-.hospital-case-meta b {
-  font-size: 10px;
-  font-weight: 500;
-  background: #e8f5ef;
-  color: #29734e;
-  padding: 3px 7px;
-  border-radius: 3px;
-}
-.hospital-case.urgent .hospital-case-meta b {
-  background: #ffe0e5;
-  color: #b82d47;
-}
-.hospital-case > strong {
-  display: block;
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-.hospital-case > p {
-  font-size: 12px;
-  line-height: 1.5;
-  margin-bottom: 7px;
-  overflow-wrap: anywhere;
-}
-.hospital-case > small {
-  color: #5a7790;
-  text-transform: capitalize;
-}
-.hospital-case-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 10px;
-  color: #678297;
-  margin-top: 8px;
-  padding-top: 7px;
-  border-top: 1px solid #edf2f7;
-}
-.hospital-case-footer > span {
-  color: #0074c2;
-}
-.hospital-activity {
-  margin-top: 20px;
-  background: #fff;
-  border: 1px solid #e2ebf3;
-  padding: 17px;
-  border-radius: 5px;
-}
-.hospital-activity header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0 0 14px;
-  border: 0;
-  padding: 0;
-}
-.hospital-activity h2 {
-  font-size: 14px;
-}
-.hospital-activity header button {
-  border: 0;
-  color: #0074c2;
-  font-size: 11px;
-}
-.hospital-activity > button {
-  display: grid;
-  grid-template-columns: 95px minmax(0, 1fr) 85px;
-  width: 100%;
-  text-align: left;
-  gap: 12px;
-  border: 0;
-  border-top: 1px solid #eaf0f5;
-  border-radius: 0;
-  padding: 12px 0;
-  align-items: baseline;
-}
-.hospital-activity time,
-.hospital-activity small {
-  font-size: 10px;
-  color: #667e91;
-}
-.hospital-encounter {
-  position: sticky;
-  top: 0;
-  background: #fff;
-  border-left: 1px solid #d7e4ef;
-  box-shadow: -5px 0 16px #183f5f05;
-  min-width: 0;
-  max-height: 100dvh;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-}
-.hospital-encounter > header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 21px;
-  margin: 0;
-  border: 0;
-  border-bottom: 1px solid #e0eaf3;
-}
-.hospital-encounter > header small {
-  color: #63809a;
-}
-.hospital-encounter h2 {
-  font-size: 21px;
-  margin: 8px 0;
-}
-.hospital-encounter > header p {
-  color: #526e86;
-  font-size: 12px;
-  line-height: 1.6;
-}
-.hospital-encounter > header button {
-  border: 0;
-  font-size: 22px;
-  padding: 0 5px;
-}
-.hospital-encounter > nav {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  margin: 15px 16px;
-  background: #f5f8fb;
-  border-radius: 4px;
-  padding: 3px;
-  flex-shrink: 0;
-}
-.hospital-encounter > nav button {
-  border: 0;
-  white-space: nowrap;
-  background: transparent;
-  padding: 9px;
-  font-size: 11px;
-}
-.hospital-encounter > nav button.active {
-  background: #fff;
-  box-shadow: 0 2px #007acd;
-  color: #006dbb;
-}
-.hospital-encounter-content {
-  padding: 0 17px 20px;
-  flex: 1;
-  min-width: 0;
-}
-.hospital-encounter .ehr-record-detail {
-  position: static;
-  margin: 0;
-  max-height: none;
-  box-shadow: none;
-  border: 0;
-}
-.hospital-encounter .ehr-record-detail header {
-  background: #f4f9fd;
-  border-radius: 3px;
-}
-.hospital-encounter .ehr-record-detail footer {
-  flex-wrap: wrap;
-}
-.hospital-encounter .ehr-table {
-  font-size: 11px;
-}
-.hospital-encounter .ehr-handover {
-  padding: 0;
-  background: white;
-}
-.hospital-encounter .ehr-chart-heading h2 {
-  font-family: inherit;
-  font-size: 21px;
-}
-.hospital-encounter .ehr-chart-heading small {
-  color: #6c879b;
-}
-.hospital-encounter .ehr-handover section,
-.hospital-encounter .ehr-chart-heading {
-  border-color: #e0eaf3;
-}
-.hospital-encounter .ehr-handover .ehr-add-row {
-  color: #0074c2;
-}
-.hospital-encounter .ehr-section-heading {
-  flex-wrap: wrap;
-}
-.hospital-encounter > footer {
-  position: sticky;
-  bottom: 0;
-  background: #fff;
-  border-top: 1px solid #e0eaf3;
-  padding: 16px;
-  margin: 0;
-}
-.hospital-encounter > footer small {
-  display: block;
-  color: #637e94;
-  margin-bottom: 9px;
-}
-.hospital-encounter > footer > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-.hospital-encounter > footer button {
-  font-size: 11px;
-}
-.hospital-status {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 10px 25px;
-  margin: 0;
-  border-top: 1px solid #dce6ef;
-  font-size: 10px;
-  color: #648096;
-  background: #fff;
-}
-@media (max-width: 1200px) {
-  .hospital-masthead {
-    gap: 18px;
-    padding: 13px 18px;
-    flex-wrap: wrap;
-  }
-  .hospital-masthead > span {
-    display: none;
-  }
-  .hospital-stage.with-encounter {
-    grid-template-columns: minmax(0, 1fr) 370px;
-  }
-  .with-encounter .hospital-lanes {
-    grid-template-columns: 1fr;
-  }
-  .hospital-overview dl {
-    gap: 20px;
-  }
-}
-@media (max-width: 760px) {
-  .hospital-brand strong {
-    font-size: 16px;
-  }
-  .hospital-masthead nav {
-    order: 3;
-    flex-basis: 100%;
-  }
-  .hospital-masthead > button {
-    margin-left: auto;
-    font-size: 11px;
-  }
-  .hospital-overview {
-    align-items: start;
-    flex-direction: column;
-    padding: 22px 16px;
-    gap: 18px;
-  }
-  .hospital-overview dl {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px 30px;
-    width: 100%;
-  }
-  .hospital-overview h1 {
-    font-size: 23px;
-  }
-  .hospital-tools {
-    flex-wrap: wrap;
-    padding: 0 16px 18px;
-    gap: 12px;
-  }
-  .hospital-tools .ehr-finder {
-    flex-basis: 100%;
-    max-width: none;
-  }
-  .hospital-tools .ehr-finder label {
-    font-size: 12px;
-  }
-  .hospital-board {
-    padding: 0 12px 20px;
-  }
-  .hospital-lanes {
-    grid-template-columns: 1fr;
-  }
-  .hospital-stage.with-encounter {
-    display: block;
-  }
-  .hospital-stage.with-encounter .hospital-encounter {
-    position: fixed;
-    inset: 0;
-    max-height: 100dvh;
-    z-index: 30;
-    border: 0;
-  }
-  .hospital-activity > button {
-    grid-template-columns: 1fr auto;
-    gap: 6px;
-  }
-  .hospital-activity > button time {
-    grid-column: 1 / -1;
-  }
-  .hospital-status {
-    flex-wrap: wrap;
-  }
+
+.systemtwo {
+  --ehr-accent: #176b70;
+  --ehr-line: #b6c2c2;
+  --ehr-pale: #e1e8e7;
+  --ehr-ink: #203536;
+  background: #e7ebea;
+  font-family: Tahoma, Arial, sans-serif;
+}
+.systemtwo .ehr-titlebar { padding: 6px 12px; min-height: 34px; background: linear-gradient(#20777c, #16585d); gap: 15px; }
+.systemtwo .ehr-titlebar strong { font-size: 17px; }
+.systemtwo .ehr-toolbar { padding: 5px 9px; gap: 3px; flex-wrap: wrap; background: linear-gradient(#f4f5f4, #d8dedc); border-color: #aeb9b7; }
+.systemtwo .ehr-toolbar button { border-radius: 0; padding: 5px 9px; background: linear-gradient(#fff, #e3e8e6); border-color: #acb8b5; }
+.systemtwo .ehr-toolbar button:first-child { border-bottom: 2px solid #236d70; }
+.systemtwo .ehr-searchbar { padding: 5px 10px; background: #e9eeec; gap: 18px; }
+.systemtwo .ehr-finder input { padding: 5px 8px; border-radius: 0; width: 340px; }
+.systemtwo .ehr-patient-banner { padding: 9px 12px; gap: 24px; background: #fffedc; border-color: #c6c5a4; }
+.systemtwo .ehr-patient-name strong { font-size: 18px; color: #193e42; }
+.systemtwo .ehr-patient-banner small { color: #66684c; }
+.systemtwo .ehr-allergy { border-color: #d6d3ac; }
+.systemtwo .ehr-body { display: flex; flex-direction: column; min-height: 560px; }
+.systemtwo .ehr-main { flex: 1; border: 0; }
+.systemtwo .ehr-tabs { padding: 5px 7px 0; gap: 2px; background: #d9e2df; border-color: #9eafaa; }
+.systemtwo .ehr-tabs button { border-radius: 0; background: #e7eeeb; color: #294b48; border-color: #a6b7b2; padding: 6px 12px; }
+.systemtwo .ehr-tabs button.active { background: #fff; border-top: 3px solid #23777b; padding-top: 4px; padding-bottom: 7px; }
+.systemtwo .ehr-section-heading { padding: 9px 3px 7px; }
+.systemtwo .ehr-table th { background: linear-gradient(#f1f3f1, #dbe3df); border-color: #bdc8c3; }
+.systemtwo .ehr-table td { padding: 5px 8px; border-color: #d5dcda; }
+.systemtwo .ehr-table tbody tr:nth-child(even) { background: #f0eef7; }
+.systemtwo .ehr-table .ehr-record-link { color: #175e67; }
+.systemtwo .ehr-statusbar { padding: 5px 10px; background: #dde5e1; border-color: #a8b9b1; }
+.ehr-summary-disclosure { border-top: 1px solid var(--ehr-line); background: #e2e9e6; }
+.ehr-summary-disclosure > summary { padding: 7px 12px; cursor: pointer; font-size: 12px; font-weight: 700; }
+.systemtwo .ehr-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; background: #e5ebe8; padding: 8px; }
+.systemtwo .ehr-summary > section { margin: 0; border-color: #aebfb7; }
+.systemtwo .ehr-summary h3 { background: #dce7e1; padding: 6px 9px; border-color: #b0c1b9; font-size: 12px; }
+.systemtwo .gp-note-form, .systemtwo .gp-book-form { padding: 12px; margin-bottom: 12px; }
+.systemtwo .gp-contact-history details { padding: 8px 4px; }
+.systemtwo .gp-contact-history summary { gap: 4px; }
+
+.hospital-operations { --ehr-accent: #245e91; --ehr-line: #afc0d0; --ehr-pale: #e6edf4; --ehr-ink: #21364a; background: #dce5ed; font: 12px Arial, sans-serif; }
+.hospital-operations button { border-radius: 0; }
+.hospital-masthead { display: flex; align-items: center; gap: 22px; background: linear-gradient(#366996, #234c74); color: #fff; padding: 6px 12px; margin: 0; border: 0; }
+.hospital-brand { display: flex; align-items: center; gap: 8px; }
+.hospital-brand > span { font-size: 24px; color: #b8d8ef; }
+.hospital-brand strong { display: block; font-size: 17px; }
+.hospital-brand small { display: block; font-size: 9px; color: #d5e5f1; margin-top: 2px; }
+.hospital-masthead nav { display: flex; gap: 2px; flex: 1; }
+.hospital-masthead button { color: #fff; border: 1px solid transparent; background: transparent; box-shadow: none; padding: 6px 10px; white-space: nowrap; }
+.hospital-masthead button:hover, .hospital-masthead nav button.active { background: #ffffff1c; border-color: #99b5ce; }
+.hospital-masthead > span { font-size: 11px; }
+.hospital-contextbar { display: flex; gap: 22px; align-items: center; padding: 6px 12px; background: #d9e2eb; border-bottom: 1px solid #a4b6c7; color: #3c536b; font-size: 11px; }
+.hospital-contextbar time { margin-left: auto; }
+.hospital-tools { display: flex; align-items: center; gap: 18px; padding: 7px 12px; background: linear-gradient(#f5f7fa, #e3e9ef); border-bottom: 1px solid #acbdce; }
+.hospital-tools .ehr-finder { flex: 1; max-width: 490px; }
+.hospital-tools .ehr-finder input { flex: 1; width: auto; padding: 5px 8px; }
+.hospital-tools > label { display: flex; gap: 6px; align-items: center; white-space: nowrap; font-size: 11px; }
+.hospital-tools a { margin-left: auto; color: #2c5981; white-space: nowrap; }
+.hospital-stage { flex: 1; min-width: 0; }
+.hospital-stage.with-encounter > .hospital-board { display: none; }
+.hospital-board { padding: 8px 10px 18px; min-width: 0; background: #fff; min-height: 620px; }
+.hospital-list-tabs { display: flex; gap: 2px; border-bottom: 1px solid #91aac0; background: #e0e7ee; padding: 4px 4px 0; overflow-x: auto; }
+.hospital-list-tabs button { padding: 6px 12px; background: #e8edf3; border-color: #a7bbce; border-bottom: 0; white-space: nowrap; }
+.hospital-list-tabs button.active { background: #fff; color: #174f7d; font-weight: bold; border-top: 3px solid #2c6b9d; padding-top: 4px; }
+.hospital-list-tabs span { margin-left: 6px; font-weight: normal; color: #59748c; }
+.hospital-activity-table { min-width: 790px; }
+.hospital-activity-table td { padding: 5px 8px; }
+.hospital-activity-table tr:hover { background: #e9f2fb; }
+.hospital-activity-table td:nth-child(3) { width: 32%; }
+.hospital-encounter { background: #fff; min-width: 0; min-height: 620px; display: flex; flex-direction: column; }
+.hospital-chart-title { display: flex; align-items: center; gap: 18px; padding: 5px 12px; background: #d4dfeb; border-bottom: 1px solid #9eb3c8; }
+.hospital-chart-title button { padding: 4px 8px; font-size: 11px; }
+.hospital-chart-title > span { margin-left: auto; color: #536c82; font-size: 11px; }
+.hospital-encounter .ehr-patient-banner { background: #e5eff8; padding: 10px 14px; gap: 30px; }
+.hospital-encounter .ehr-patient-name strong { font-size: 20px; color: #174971; }
+.hospital-chart-actions { padding: 5px 12px; gap: 5px; background: #f0f3f6; }
+.hospital-chart-actions > span { margin-left: auto; color: #526a7e; font-size: 11px; }
+.hospital-encounter > nav { display: flex; gap: 2px; overflow-x: auto; background: #dbe5ee; border-bottom: 1px solid #9cb3c7; padding: 5px 8px 0; }
+.hospital-encounter > nav button { padding: 7px 15px; background: #e5ecf3; border-color: #a6bbce; border-bottom: 0; white-space: nowrap; color: #305b80; }
+.hospital-encounter > nav button.active { background: #fff; border-top: 3px solid #2c6e9e; padding-top: 5px; font-weight: bold; }
+.hospital-encounter-content { padding: 0 12px 18px; flex: 1; min-width: 0; }
+.hospital-encounter .ehr-record-detail { position: static; margin: 10px 0 0; max-height: none; box-shadow: none; border: 1px solid #b1c1d0; }
+.hospital-encounter .ehr-record-detail header { background: #e7eef5; padding: 8px 12px; }
+.hospital-encounter .ehr-record-detail footer { flex-wrap: wrap; padding: 8px 12px; }
+.hospital-encounter .ehr-handover { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 10px 0; background: #fff; }
+.hospital-encounter .ehr-chart-heading { grid-column: 1 / -1; padding: 0 0 8px; border-color: #bacbda; }
+.hospital-encounter .ehr-chart-heading h2 { font-family: inherit; font-size: 16px; margin: 5px 0; }
+.hospital-encounter .ehr-handover section { padding: 8px; border: 1px solid #c7d5e1; }
+.hospital-encounter .ehr-handover h3 { font-size: 13px; }
+.hospital-encounter .ehr-handover .ehr-add-row { color: #245e91; }
+.hospital-status { display: flex; justify-content: space-between; gap: 16px; padding: 5px 12px; margin: 0; border-top: 1px solid #aebfd0; background: #dce5ee; font-size: 10px; color: #4a657d; }
+@media (max-width: 850px) {
+  .hospital-masthead { flex-wrap: wrap; gap: 7px 15px; }
+  .hospital-masthead nav { order: 3; flex-basis: 100%; }
+  .hospital-masthead > span { display: none; }
+  .hospital-masthead > button { margin-left: auto; }
+  .hospital-contextbar { flex-wrap: wrap; gap: 6px 15px; }
+  .hospital-tools { flex-wrap: wrap; gap: 8px; }
+  .hospital-tools .ehr-finder { flex-basis: 100%; max-width: none; }
+  .hospital-chart-actions { flex-wrap: wrap; }
+  .hospital-chart-actions > span { flex-basis: 100%; margin-left: 0; }
+  .hospital-encounter .ehr-handover { grid-template-columns: 1fr; }
+  .hospital-chart-title > span { display: none; }
+  .hospital-status { flex-wrap: wrap; }
+  .systemtwo .ehr-finder { width: 100%; }
+  .systemtwo .ehr-finder input { width: 100%; }
+  .systemtwo .ehr-summary { grid-template-columns: 1fr; }
+  .systemtwo .ehr-patient-banner, .hospital-encounter .ehr-patient-banner { gap: 10px 20px; }
 }

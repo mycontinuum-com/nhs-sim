@@ -861,7 +861,7 @@ function PracticeWorkspace(props: Props) {
       <header className="ehr-titlebar">
         <strong>
           {hospital ? "Millbank" : "SystemTwo"}
-          <span>{hospital ? "EPR" : "Primary care"}</span>
+          <span>{hospital ? "EPR" : "Primary care"} · SIMULATION</span>
         </strong>
         <button
           onClick={() => (props.exitToMap ? props.exitToMap() : location.assign("/control/"))}
@@ -1007,24 +1007,10 @@ function PracticeWorkspace(props: Props) {
             )}
           </div>
         </div>
-        {hospital ? (
-          <Handover
-            patient={patient}
-            rows={coordinationRows}
-            act={props.act}
-            pending={props.pending}
-            open={setOperation}
-            select={setRecordId}
-          />
-        ) : (
-          <Summary
-            patient={patient}
-            rows={coordinationRows}
-            act={props.act}
-            pending={props.pending}
-            select={setRecordId}
-          />
-        )}
+        <details className="ehr-summary-disclosure">
+          <summary>Patient overview and outstanding tasks</summary>
+          <Summary patient={patient} rows={coordinationRows} act={props.act} pending={props.pending} select={setRecordId} />
+        </details>
       </div>
       <footer className="ehr-statusbar">
         <span>{props.pending ? "Saving changes…" : "Connected to simulation"}</span>
@@ -1054,6 +1040,7 @@ function HospitalWorkspace(props: Props) {
   const [recordId, setRecordId] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(Boolean(props.selectedPatient));
   const [urgentOnly, setUrgentOnly] = useState(false);
+  const [activityGroup, setActivityGroup] = useState("All activity");
   const [limit, setLimit] = useState(30);
   const [operation, setOperation] = useState<Operation | null>(null);
   const allRows = [
@@ -1064,7 +1051,7 @@ function HospitalWorkspace(props: Props) {
   ];
   const patient = props.patients.find((p) => p.id === props.selectedPatient);
   const patientRows = allRows.filter((r) => r.patientId === patient?.id);
-  const record = allRows.find((r) => r.id === recordId);
+  const record = allRows.find((r) => r.id === recordId && (!r.patientId || r.patientId === props.selectedPatient));
   const operational = props.rows.filter(
     (r) => !["ehr-record", "problem", "allergy", "staff", "capacity", "robot"].includes(r.kind) && !finished(r),
   );
@@ -1112,6 +1099,7 @@ function HospitalWorkspace(props: Props) {
       ),
     },
   ];
+  const activityRows = activityGroup === "All activity" ? visible : groups.find((group) => group.title === activityGroup)?.rows ?? [];
   const openRecord = (r: Resource) => {
     props.selectPatient(r.patientId ?? "");
     setRecordId(r.id);
@@ -1124,8 +1112,8 @@ function HospitalWorkspace(props: Props) {
         <div className="hospital-brand">
           <span aria-hidden="true">▦</span>
           <div>
-            <strong>Northbank General</strong>
-            <small>Millbank Hospital · simulation</small>
+            <strong>Millbank</strong>
+            <small>Hospital record · SIMULATION</small>
           </div>
         </div>
         <nav aria-label="Hospital workspace">
@@ -1133,7 +1121,7 @@ function HospitalWorkspace(props: Props) {
             <button
               key={name}
               className={section === name ? "active" : ""}
-              onClick={() => setSection(name)}
+              onClick={() => { setSection(name); setDrawerOpen(false); }}
             >
               {name}
             </button>
@@ -1146,36 +1134,11 @@ function HospitalWorkspace(props: Props) {
         </button>
         <span>{props.identityLabel ?? "Simulation workspace"}</span>
       </header>
-      <div className="hospital-overview">
-        <div>
-          <small>Hospital operations</small>
-          <h1>Care activity</h1>
-          <time>{date(props.view.now)}</time>
-        </div>
-        <dl>
-          <div>
-            <dt>Staffed spaces</dt>
-            <dd>{props.view.staffing.staffedSpaces}</dd>
-          </div>
-          <div>
-            <dt>Waiting</dt>
-            <dd>{props.view.staffing.waiting}</dd>
-          </div>
-          <div>
-            <dt>Urgent records loaded</dt>
-            <dd>{operational.filter((r) => r.priority === "urgent").length}</dd>
-          </div>
-          <div>
-            <dt>Investigations loaded</dt>
-            <dd>
-              {
-                operational.filter((r) =>
-                  ["test", "report", "observation", "genomic-test"].includes(r.kind),
-                ).length
-              }
-            </dd>
-          </div>
-        </dl>
+      <div className="hospital-contextbar">
+        <b>Millbank · Clinical workspace</b>
+        <span>Northbank General</span>
+        <span>{props.view.staffing.staffedSpaces} staffed spaces · {props.view.staffing.waiting} waiting</span>
+        <time>{date(props.view.now)}</time>
       </div>
       <div className="hospital-tools">
         <PatientFinder
@@ -1208,70 +1171,53 @@ function HospitalWorkspace(props: Props) {
         <main className="hospital-board">
           {section === "Hospital operations" ? (
             <>
-              <div className="hospital-lanes">
-                {groups.map((group) => (
-                  <section className="hospital-lane" key={group.title}>
-                    <header>
-                      <h2>
-                        {group.title} <span>{group.rows.length}</span>
-                      </h2>
-                      <small>{group.subtitle}</small>
-                    </header>
-                    {group.rows.slice(0, limit).map((r) => (
-                      <button
-                        className={
-                          "hospital-case " +
-                          (r.priority === "urgent" ? "urgent " : "") +
-                          (recordId === r.id && drawerOpen ? "selected" : "")
-                        }
-                        key={r.id}
-                        onClick={() => openRecord(r)}
-                      >
-                        <span className="hospital-case-meta">
-                          <span>{r.kind}</span>
-                          <b>{r.priority}</b>
-                        </span>
-                        <strong>
-                          {props.patients.find((p) => p.id === r.patientId)?.name ??
-                            r.patientId ??
-                            "Service record"}
-                        </strong>
-                        <p>{r.title}</p>
-                        <small>
-                          {r.status} · {r.owner}
-                        </small>
-                        <span className="hospital-case-footer">
-                          {r.dueAt ? "Due " + date(r.dueAt) : "Created " + date(r.createdAt)}
-                          <span>Open →</span>
-                        </span>
-                      </button>
-                    ))}
-                    {!group.rows.length && (
-                      <p className="ehr-empty">No open records in this view.</p>
-                    )}
-                    {group.rows.length > limit && (
-                      <button onClick={() => setLimit(limit + 30)}>Show 30 more</button>
-                    )}
-                  </section>
+              <nav className="hospital-list-tabs" aria-label="Activity lists">
+                {["All activity", ...groups.map((group) => group.title)].map((name) => (
+                  <button
+                    key={name}
+                    className={activityGroup === name ? "active" : ""}
+                    onClick={() => { setActivityGroup(name); setLimit(30); }}
+                  >
+                    {name}
+                    <span>{name === "All activity" ? visible.length : groups.find((group) => group.title === name)?.rows.length}</span>
+                  </button>
                 ))}
+              </nav>
+              <div className="ehr-section-heading">
+                <h2>Patient activity <small>Open a record to enter the patient chart</small></h2>
+                <span>{urgentOnly ? "Urgent only" : "All priorities"}</span>
               </div>
-              <section className="hospital-activity">
-                <header>
-                  <h2>Recent hospital activity</h2>
-                  <button onClick={() => setSection("All records")}>View all records →</button>
-                </header>
-                {[...props.rows]
-                  .filter((r) => r.kind !== "ehr-record")
-                  .sort((a, b) => b.createdAt - a.createdAt)
-                  .slice(0, 6)
-                  .map((r) => (
-                    <button key={r.id} onClick={() => openRecord(r)}>
-                      <time>{date(r.createdAt)}</time>
-                      <span>{r.title}</span>
-                      <small>{r.status}</small>
-                    </button>
-                  ))}
-              </section>
+              <div className="ehr-table-wrap">
+                <table className="ehr-table hospital-activity-table">
+                  <thead>
+                    <tr>
+                      <th>Priority</th><th>Patient / identifier</th><th>Activity</th>
+                      <th>Type</th><th>Status</th><th>Service</th><th>Due / created</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityRows.slice(0, limit).map((r) => (
+                      <tr key={r.id}>
+                        <td><span className={r.priority === "urgent" ? "ehr-urgent" : "ehr-routine"}>{r.priority}</span></td>
+                        <td>
+                          <button className="ehr-record-link" onClick={() => openRecord(r)}>
+                            {props.patients.find((p) => p.id === r.patientId)?.name ?? r.patientId ?? "Service record"}
+                          </button>
+                          <small>{r.patientId ?? "Hospital"}</small>
+                        </td>
+                        <td><button className="ehr-record-link" onClick={() => openRecord(r)}>{r.title}</button></td>
+                        <td>{r.kind}</td><td>{r.status}</td><td>{r.owner}</td>
+                        <td>{date(r.dueAt ?? r.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {!activityRows.length && <p className="ehr-empty">No open records in this view. Find a patient above to open their chart.</p>}
+              <div className="ehr-pagination">
+                <span>{Math.min(limit, activityRows.length)} records shown</span>
+                {activityRows.length > limit && <button onClick={() => setLimit(limit + 30)}>Show 30 more</button>}
+              </div>
             </>
           ) : (
             <Journal
@@ -1286,16 +1232,20 @@ function HospitalWorkspace(props: Props) {
         </main>
         {drawerOpen && (patient || record) && (
           <aside className="hospital-encounter" aria-label="Patient encounter">
-            <header>
-              <div>
-                <small>{patient?.id ?? record?.id} · simulation</small>
-                <h2>{patient?.name ?? record?.patientId ?? "Service activity"}</h2>
-                <p>{patient?.conditions.join(", ") || record?.kind || "No problems recorded"}</p>
+            <div className="hospital-chart-title">
+              <button aria-label="Close encounter" onClick={() => setDrawerOpen(false)}>← Return to patient list</button>
+              <b>Patient chart</b>
+              <span>{props.identityLabel ?? "Simulation workspace"}</span>
+            </div>
+            <Banner patient={patient} rows={allRows} />
+            {patient && (
+              <div className="ehr-toolbar hospital-chart-actions">
+                {operations.filter((x) => x.type !== "create_referral").map((x) => (
+                  <button key={x.type} disabled={props.pending} onClick={() => setOperation(x)}>{x.label}</button>
+                ))}
+                <span>{patient.conditions.join(", ") || "No problems recorded"}</span>
               </div>
-              <button aria-label="Close encounter" onClick={() => setDrawerOpen(false)}>
-                ×
-              </button>
-            </header>
+            )}
             <nav aria-label="Encounter sections">
               {(patient
                 ? [
@@ -1311,6 +1261,7 @@ function HospitalWorkspace(props: Props) {
               ).map((name) => (
                 <button
                   className={drawerTab === name ? "active" : ""}
+                  aria-current={drawerTab === name ? "page" : undefined}
                   key={name}
                   onClick={() => setDrawerTab(name)}
                 >
@@ -1333,7 +1284,7 @@ function HospitalWorkspace(props: Props) {
                   />
                 ) : (
                   <p className="ehr-empty">
-                    Choose an activity card or open this patient's journal.
+                    Open a record from this patient's journal to view its details.
                   </p>
                 )
               ) : drawerTab === "Handover" && patient ? (
@@ -1375,20 +1326,6 @@ function HospitalWorkspace(props: Props) {
                 />
               )}
             </div>
-            {patient && (
-              <footer>
-                <small>Create for {patient.name}</small>
-                <div>
-                  {operations
-                    .filter((x) => x.type !== "create_referral")
-                    .map((x) => (
-                      <button key={x.type} disabled={props.pending} onClick={() => setOperation(x)}>
-                        {x.label}
-                      </button>
-                    ))}
-                </div>
-              </footer>
-            )}
           </aside>
         )}
       </div>
