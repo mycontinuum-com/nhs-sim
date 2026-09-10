@@ -12,7 +12,7 @@
     13px Arial,
     Helvetica,
     sans-serif;
-  isolation: isolate;
+  isolation: auto;
 }
 .immersive-ehr * {
   box-sizing: border-box;
@@ -553,6 +553,8 @@
   padding: 20px;
 }
 .ehr-dialog {
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
   width: min(500px, 100%);
   border: 1px solid #91a8bc;
   background: #f7f9fc;
@@ -1187,4 +1189,28 @@
   .practice-record-tree { flex-basis: 112px; }
   .systemtwo .practice-record-tree button { padding-left: 10px; }
   .practice-window-title { flex-wrap: wrap; }
+}
+
+@media (min-width: 901px) and (min-height: 601px) {
+  .immersive-ehr {
+    height: calc(100dvh - var(--workspace-status-height));
+    min-height: 0;
+  }
+  .immersive-ehr > * { flex-shrink: 0; }
+  .systemtwo .ehr-body, .hospital-stage {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .systemtwo .ehr-main { min-height: 0; }
+  .systemtwo .ehr-content, .practice-record-tree { overflow: auto; }
+  .systemtwo .ehr-summary-disclosure { max-height: 35%; overflow: auto; flex-shrink: 0; }
+  .hospital-board { height: 100%; min-height: 0; overflow: auto; }
+  .hospital-encounter { height: 100%; min-height: 0; }
+  .hospital-encounter > * { flex-shrink: 0; }
+  .hospital-chart-layout { min-height: 0; flex-shrink: 1; }
+  .hospital-workflow-nav { overflow-y: auto; }
+  .hospital-chart-document { display: flex; flex-direction: column; min-height: 0; }
+  .hospital-document-tabs { flex-shrink: 0; }
+  .hospital-encounter-content { min-height: 0; overflow: auto; flex: 1; }
 }

@@ -122,10 +122,14 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   );
   const [team, setTeam] = useState("");
   const [keyInput, setKeyInput] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
   const [world, setWorld] = useState("default");
   const [operatorToken, setOperatorToken] = useState("");
   const [place, setPlace] = useState<string | null>(null);
   const isMap = siteId === "control";
+  const [tourStep, setTourStep] = useState<number | null>(() =>
+    siteId !== "control" && sessionStorage.getItem("sim-key") && sessionStorage.getItem("sim-tour-world") ? 0 : null,
+  );
   const [explorePlan, setExplorePlan] = useState(
     () => isMap && new URLSearchParams(location.search).get("explore") === "plan",
   );
@@ -145,36 +149,18 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
         : SystemWorkspace;
   const planToggleRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const statusRef = useRef<HTMLElement>(null);
+  const tourRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    if (!drawer) return;
-    const previous = document.activeElement;
-    const dialog = dialogRef.current;
-    dialog?.querySelector<HTMLElement>("button, input")?.focus();
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDrawer(null);
-      if (event.key !== "Tab" || !dialog) return;
-      const items = Array.from(
-        dialog.querySelectorAll<HTMLElement>(
-          "button:not(:disabled), input:not(:disabled), a[href], summary, select, textarea",
-        ),
-      ).filter((item) => item.getClientRects().length > 0);
-      const first = items[0],
-        last = items.at(-1);
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      }
-      if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first?.focus();
-      }
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-      if (previous instanceof HTMLElement) previous.focus();
-    };
-  }, [drawer]);
+    const status = statusRef.current;
+    const app = status?.parentElement;
+    if (!status || !app) return;
+    const measure = () => app.style.setProperty("--workspace-status-height", `${status.getBoundingClientRect().height}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(status);
+    return () => observer.disconnect();
+  }, [isMap]);
   async function api<T>(path: string, data?: unknown, credential = key): Promise<T> {
     const response = await fetch(path, {
       method: data === undefined ? "GET" : "POST",
@@ -304,13 +290,85 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     onError: (error) => setNotice(error.message),
   });
   const issue = useMutation({
-    mutationFn: () => api<{ apiKey: string; world: string }>("/api/keys", { teamName: team }),
-    onSuccess: (result) => {
-      saveKey(result.apiKey);
-      location.assign(destination);
+    mutationFn: async (request: { kind: "create"; teamName: string } | { kind: "connect"; apiKey: string }): Promise<{ kind: "created"; apiKey: string; world: string } | { kind: "connected"; apiKey: string }> => {
+      if (request.kind === "create") {
+        const result = await api<{ apiKey: string; world: string }>("/api/keys", { teamName: request.teamName });
+        return { kind: "created", ...result };
+      }
+      try {
+        await api<Clock>("/api/clock", undefined, request.apiKey);
+      } catch {
+        throw new Error("Unable to connect. Check your team key and try again.");
+      }
+      return { kind: "connected", apiKey: request.apiKey };
     },
-    onError: (error) => setNotice(error.message),
+    onSuccess: (result) => {
+      sessionStorage.setItem("sim-key", result.apiKey);
+      if (result.kind === "created") {
+        sessionStorage.setItem("sim-tour-world", result.world);
+        setCopyStatus("");
+      } else {
+        sessionStorage.removeItem("sim-tour-world");
+        location.assign(destination);
+      }
+    },
   });
+  const readyTeam = issue.isSuccess && issue.data.kind === "created" ? issue.data : null;
+  function closeControls() {
+    if (drawer === "team" && readyTeam) location.assign(destination);
+    else setDrawer(null);
+  }
+  useEffect(() => {
+    if (!drawer) return;
+    const previous = document.activeElement;
+    const dialog = dialogRef.current;
+    dialog?.querySelector<HTMLElement>("button, input")?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeControls();
+      if (event.key !== "Tab" || !dialog) return;
+      const items = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          "button:not(:disabled), input:not(:disabled), a[href], summary, select, textarea",
+        ),
+      ).filter((item) => item.getClientRects().length > 0);
+      const first = items[0],
+        last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      }
+      if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      if (previous instanceof HTMLElement) previous.focus();
+    };
+  }, [drawer, readyTeam, destination]);
+  async function copyKey(value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyStatus("API key copied.");
+    } catch {
+      setCopyStatus("Copy unavailable. Reveal the key and copy it manually.");
+    }
+  }
+  function finishTour() {
+    sessionStorage.removeItem("sim-tour-world");
+    setTourStep(null);
+  }
+  useEffect(() => {
+    if (tourStep === null || drawer || !view.data || isMap) return;
+    const selectors = ["[data-tour=team]", "[data-tour=simulation]", ".ehr-finder input, .care-search input, .home-resident-button"];
+    const target = document.querySelector<HTMLElement>(selectors[tourStep] ?? "[data-tour=team]");
+    target?.classList.add("tour-highlight");
+    target?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    tourRef.current?.focus();
+    return () => target?.classList.remove("tour-highlight");
+  }, [tourStep, drawer, view.data?.id, isMap]);
   const act = (type: Action["type"], resource: Resource, target?: SiteId) => {
     const embedded = handovers.data?.resources.some((item) => item.id === resource.id);
     const actor =
@@ -507,7 +565,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
           ) : (
             <p className="loading">Opening the patient record…</p>
           )}
-          <footer className="workspace-status">
+          <footer ref={statusRef} className="workspace-status" aria-label="Workspace controls">
             <a href="/control/?explore=plan">Explore the plan</a>
             <a href="/control/">Neighbourhood</a>
             <span>
@@ -515,10 +573,10 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                 ? new Date(clock.data.now).toLocaleString("en-GB", { timeZone: "UTC" }) + " UTC"
                 : "Synthetic workspace"}
             </span>
-            <button onClick={() => setDrawer("simulation")}>
+            <button data-tour="simulation" onClick={() => setDrawer("simulation")}>
               {clock.data ? (clock.data.paused ? "Paused" : "Running") : "Connect"} · Simulation controls
             </button>
-            <button onClick={() => setDrawer("team")}>Team & API key</button>
+            <button data-tour="team" onClick={() => setDrawer("team")}>Team & API key</button>
             <a href="/docs/">Handbook</a>
             <span className="synthetic-label">SIMULATION</span>
           </footer>
@@ -554,8 +612,23 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
           </button>
         </div>
       )}
+      {tourStep !== null && key && view.data && !isMap && !drawer && (
+        <section ref={tourRef} tabIndex={-1} className="workspace-tour" role="dialog" aria-label="Workspace tour" onKeyDown={(event) => { if (event.key === "Escape") finishTour(); }}>
+          <span className="eyebrow">QUICK TOUR · {tourStep + 1} OF 3</span>
+          <h2>{["Your key is always here", "Control simulation time", "Choose a patient"][tourStep]}</h2>
+          <p>{[
+            "Use Team & API key in the bottom bar whenever you need to copy your key, connect an agent or share this world with a teammate.",
+            "Simulation controls stay in the bottom bar. Pause or advance time to see results arrive and follow the activity trail.",
+            "Use the patient search or resident selector to open another person's record. Each portal uses your team's shared synthetic world.",
+          ][tourStep]}</p>
+          <div className="control-row">
+            <button onClick={finishTour}>Skip tour</button>
+            <button className="primary" onClick={() => tourStep === 2 ? finishTour() : setTourStep(tourStep + 1)}>{tourStep === 2 ? "Done" : "Next"}</button>
+          </div>
+        </section>
+      )}
       {drawer && (
-        <div className="dialog-scrim" onClick={() => setDrawer(null)}>
+        <div className="dialog-scrim" onClick={closeControls}>
           <section
             ref={dialogRef}
             className="world-dialog"
@@ -564,17 +637,28 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
             aria-label={drawer + " controls"}
             onClick={(event) => event.stopPropagation()}
           >
-            <button className="close" onClick={() => setDrawer(null)} aria-label="Close controls">
+            <button className="close" onClick={closeControls} aria-label="Close controls">
               ×
             </button>
             {drawer === "team" && (
               <>
                 <span className="eyebrow">YOUR TEAM WORLD</span>
-                <h2>{key ? "Team access" : "Start exploring"}</h2>
-                {key ? (
+                <h2>{readyTeam ? "Your team is ready" : key ? "Team access" : "Start exploring"}</h2>
+                {readyTeam ? (
+                  <>
+                    <p><strong>{team.trim()}</strong> now has a synthetic world. Copy the API key to connect your agent or invite teammates into the same world.</p>
+                    <button className="primary" onClick={() => copyKey(readyTeam.apiKey)}>Copy API key</button>
+                    <p role="status">{copyStatus}</p>
+                    <details key="new-team-key"><summary>Reveal API key</summary><code className="api-key">{readyTeam.apiKey}</code></details>
+                    <p>You can find it again in <strong>Team &amp; API key</strong> in the bottom bar. A short tour will show you where.</p>
+                    <button className="primary" onClick={() => location.assign(destination)}>Enter workspace</button>
+                  </>
+                ) : key ? (
                   <>
                     <p>Your key connects the portals and your agent to the same isolated world.</p>
-                    <details>
+                    <button onClick={() => copyKey(key)}>Copy API key</button>
+                    <p role="status">{copyStatus}</p>
+                    <details key="connected-team-key">
                       <summary>Reveal API key</summary>
                       <code className="api-key">{key}</code>
                     </details>
@@ -592,7 +676,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                     <form
                       onSubmit={(event) => {
                         event.preventDefault();
-                        issue.mutate();
+                        issue.mutate({ kind: "create", teamName: team.trim() });
                       }}
                     >
                       <label>
@@ -606,17 +690,17 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                           onChange={(event) => setTeam(event.target.value)}
                         />
                       </label>
-                      <button className="primary" disabled={issue.isPending}>
-                        Create team and enter
+                      <button className="primary" disabled={issue.isPending || issue.isSuccess}>
+                        {issue.isPending && issue.variables.kind === "create" ? "Creating your team…" : issue.isSuccess ? "Opening workspace…" : "Create team"}
                       </button>
+                      <p>You can reveal and copy your API key from Team &amp; API key once inside.</p>
                     </form>
                     <details>
                       <summary>Use an existing team key</summary>
                       <form
                         onSubmit={(event) => {
                           event.preventDefault();
-                          saveKey(keyInput);
-                          location.assign(destination);
+                          issue.mutate({ kind: "connect", apiKey: keyInput.trim() });
                         }}
                       >
                         <label>
@@ -628,9 +712,10 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                             onChange={(event) => setKeyInput(event.target.value)}
                           />
                         </label>
-                        <button>Connect</button>
+                        <button disabled={issue.isPending || issue.isSuccess}>{issue.isPending && issue.variables.kind === "connect" ? "Connecting…" : issue.isSuccess ? "Opening workspace…" : "Connect"}</button>
                       </form>
                     </details>
+                    {issue.error && <p role="alert">{issue.error.message}</p>}
                   </>
                 )}
               </>
