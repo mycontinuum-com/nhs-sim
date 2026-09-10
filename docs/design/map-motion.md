@@ -1,6 +1,6 @@
 # Map motion
 
-The neighbourhood uses a Veo 3.1 video generated from the existing fictional map. Small vehicles move through the streets while the buildings and camera stay fixed. The selected take uses a short prompt specifying slow traffic and a compact white van. Review included quarter-second frames of the central junction to reject the earlier car-to-ambulance and car-to-bus transformations. The parked-vehicle version was rejected because it lacked moving traffic.
+The neighbourhood uses the original Veo 3.1 animation of the fictional map, with moving traffic, pedestrians and an emergency vehicle. This version was restored by request after comparing later generations. The original vehicle morphing remains part of the selected clip.
 
 Each location has an eased camera move over the animated map and an exact reversed clip. Direct Veo camera generations changed landmarks, so these moves use ffmpeg to preserve the map. The camera eases in and out with zero velocity and acceleration at both ends. The final close-up stays behind the phone or desktop until you leave. Both zoom-in and return take 0.7 seconds and can be skipped. Background motion pauses while a launcher or another dialog is open, or the tab is hidden. Reduced-motion users get the static map and immediate navigation.
 
@@ -10,9 +10,9 @@ Requires Python, ffmpeg, AWS CLI authenticated with the default profile, and `go
 
 ```sh
 python scripts/generate-map-video.py prepare
-python scripts/generate-map-video.py submit neighbourhood-simple-traffic-9
-python scripts/generate-map-video.py poll neighbourhood-simple-traffic-9
-python scripts/render-map-video.py neighbourhood-simple-traffic-9
+python scripts/generate-map-video.py submit neighbourhood-active-loop
+python scripts/generate-map-video.py poll neighbourhood-active-loop
+python scripts/render-map-video.py neighbourhood-active-loop
 ```
 
 Submission creates a paid generation. Existing operation records prevent duplicate submissions. Poll until the result reports downloaded. Working files and operation records stay in ignored `.verification/veo/`. Use a new `neighbourhood-` name for a deliberate new generation.
