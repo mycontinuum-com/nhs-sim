@@ -44,14 +44,14 @@ Open `/control/` to enter the map, then choose a workplace. The map leaves the s
 | --- | --- |
 | `/control/` | Neighbourhood map and simulation controls |
 | `/gp/` | SystemTwo at Riverside Practice, a fictional primary-care EPR |
-| `/hospital/` | Millbank EPR at Northbank General, a fictional secondary-care EPR |
+| `/hospital/` | Millenni-ish EPR at Northbank General, a fictional secondary-care EPR |
 | `/pharmacy/` | Dispensary prescription queue and dispensing bench |
 | `/community/` | Neighbourhood Care visit board |
 | `/wearables/` | At home wearable dashboard |
 | `/docs/` | Participant handbook, API contracts and organiser guide |
 | `/cis2/` | Staff identity emulator |
 
-SystemTwo and Millbank demonstrate two different ways of working with the same synthetic population. Pharmacy and community have dedicated workplaces. At home shows stored synthetic wearable history. Diagnostics and referrals remain supporting APIs. The browser-only letter transfer remains at `/browser/legacy` as an integration exercise.
+SystemTwo and Millenni-ish demonstrate two different ways of working with the same synthetic population. Pharmacy and community have dedicated workplaces. At home shows stored synthetic wearable history. Diagnostics and referrals remain supporting APIs. The browser-only letter transfer remains at `/browser/legacy` as an integration exercise.
 
 The interfaces are fictional interpretations of EPR categories. They do not reproduce vendor branding or claim compatibility with SystmOne or Cerner.
 
@@ -132,7 +132,7 @@ Proof is written to the ignored `.verification/evidence/` directory. See `AGENTS
 
 ## Hackathon scope
 
-Start with discharge follow-up, a rejected referral, or a community visit. Use SystemTwo and Millbank to inspect the patient and confirm the records your integration changes. Supporting services retain their own ownership and visibility rules.
+Start with discharge follow-up, a rejected referral, or a community visit. Use SystemTwo and Millenni-ish to inspect the patient and confirm the records your integration changes. Supporting services retain their own ownership and visibility rules.
 
 Rule agents run without internet or credentials. Their actions use simulation time, so pausing pauses their effects. Optional LLM proposals require `OPENAI_API_KEY` and `OPENAI_MODEL`, and an explicit operator request. They are not automatically executed and may only propose tasks.
 

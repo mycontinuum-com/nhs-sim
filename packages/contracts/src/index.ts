@@ -48,7 +48,7 @@ export const sites = [
   },
   {
     id: "hospital",
-    name: "Millbank EPR",
+    name: "Millenni-ish EPR",
     subtitle: "Northbank General · secondary care",
     color: "#63516f",
     kind: "clinical",
@@ -166,6 +166,8 @@ export type World = {
 export const actionSchema = z
   .object({
     type: z.enum([
+      "register_attendance",
+      "update_attendance",
       "connect_device",
       "create_task",
       "create_referral",
@@ -207,6 +209,10 @@ export const actionSchema = z
     sourceProblemKey: z.string().min(1).max(600).optional(),
     startsAt: z.number().int().nonnegative().max(8640000000000000).optional(),
     durationMinutes: z.number().int().min(5).max(120).optional(),
+    hospitalCommand: z.enum(["assign", "assess", "refer", "admit", "discharge"]).optional(),
+    acuity: z.enum(["1", "2", "3", "4", "5"]).optional(),
+    location: z.string().trim().min(1).max(100).optional(),
+    disposition: z.string().trim().min(1).max(500).optional(),
     clinician: z.string().trim().min(1).max(100).optional(),
     mode: z.enum(["in-person", "telephone", "video", "online"]).optional(),
   })

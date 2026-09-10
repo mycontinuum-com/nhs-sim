@@ -8,7 +8,7 @@ These are implemented **simulation contracts**, not assertions of NHS wire compa
 
 ## Workplaces and supporting services
 
-`GET /api/catalogue` lists the published workplaces and adapters. `/control/` is the map, `/gp/` is SystemTwo, and `/hospital/` is Millbank EPR. API service IDs are `gp`, `hospital`, `community`, `pharmacy`, `diagnostics`, `referrals`, and `wearables`. Dedicated supporting workplaces are `/pharmacy/`, `/community/`, and `/wearables/`. `/browser/legacy` remains an HTML integration exercise.
+`GET /api/catalogue` lists the published workplaces and adapters. `/control/` is the map, `/gp/` is SystemTwo, and `/hospital/` is Millenni-ish EPR. API service IDs are `gp`, `hospital`, `community`, `pharmacy`, `diagnostics`, `referrals`, and `wearables`. Dedicated supporting workplaces are `/pharmacy/`, `/community/`, and `/wearables/`. `/browser/legacy` remains an HTML integration exercise.
 
 ## Stable team contract
 
@@ -169,3 +169,13 @@ No live NHS credentials or public sandbox calls are required at runtime.
 Add `?limit=200&offset=0` to `GET /api/sites/{site}/view` to read up to 200 visible resources. `limit` accepts 1 through 500. The response includes `resourceTotal`, `resourceOffset`, and `resourceLimit`. Without `limit`, the endpoint returns all visible resources.
 
 Add `?patient=SIM-000001` to read that patient's visible records plus service resources without a patient. The portal uses this query when you select a patient.
+
+## Hospital patient flow
+
+`GET /api/sites/hospital/attendances` returns this team's hospital attendances, their patients and the current simulation time. It is independent of chart selection. Millenni-ish uses these records for A&E tracking, the medical take, the inpatient census and discharged attendances.
+
+Send `register_attendance` to `/api/sites/hospital/actions` with `patientId`, `title` (presenting complaint), `acuity` (`"1"` through `"5"`) and `location`. `clinician` is optional at registration. A patient can have one active attendance and can return after discharge.
+
+Send `update_attendance` with `resourceId`, `expectedVersion` and `hospitalCommand`. Commands are `assign`, `assess`, `refer`, `admit` and `discharge`. Assignment accepts `clinician`, `location` and `acuity`. Assessment requires a clinician; admission requires a location; discharge requires a `disposition`. The normal sequence is waiting → assessing → take → inpatient → discharged. Discharge is also available earlier for patients leaving A&E. Hospital locations are recorded destinations, not reservations against the separate bed-capacity adapter.
+
+All updates carry team attribution and use simulation timestamps. Current mean wait covers patients still awaiting assessment. Mean assessment wait covers assessed patients who arrived on the current simulation date. Assessment wait stops increasing when assessment starts. The four-hour counter includes patients still in A&E or awaiting medical take. These are synthetic operational measures, not clinical guidance.

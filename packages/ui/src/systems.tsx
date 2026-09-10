@@ -1,3 +1,4 @@
+import { HospitalTracking } from "./hospital-tracking.tsx";
 import { RecordAttribution } from "./record-attribution.tsx";
 import React, { useEffect, useRef, useState } from "react";
 import { z } from "zod";
@@ -59,7 +60,7 @@ const date = (time: number | string) =>
   });
 const finished = (r: Resource) => ["completed", "collected", "cancelled"].includes(r.status);
 const nextAction = (r: Resource): { type: Action["type"]; label: string } | undefined => {
-  if (["ehr-record", "problem", "allergy"].includes(r.kind)) return;
+  if (["ehr-record", "problem", "allergy", "hospital-attendance"].includes(r.kind)) return;
   if (r.kind === "prescription") {
     if (r.status === "approved") return { type: "dispense", label: "Dispense" };
     if (r.status === "dispensed") return { type: "collect", label: "Confirm collection" };
@@ -1034,8 +1035,6 @@ function HospitalWorkspace(props: Props) {
   const [recordId, setRecordId] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(Boolean(props.selectedPatient));
   const [urgentOnly, setUrgentOnly] = useState(false);
-  const [activityGroup, setActivityGroup] = useState("All activity");
-  const [limit, setLimit] = useState(30);
   const [operation, setOperation] = useState<Operation | null>(null);
   const allRows = [
     ...props.rows,
@@ -1046,54 +1045,6 @@ function HospitalWorkspace(props: Props) {
   const patient = props.patients.find((p) => p.id === props.selectedPatient);
   const patientRows = allRows.filter((r) => r.patientId === patient?.id);
   const record = allRows.find((r) => r.id === recordId && (!r.patientId || r.patientId === props.selectedPatient));
-  const operational = props.rows.filter(
-    (r) => !["ehr-record", "problem", "allergy", "staff", "capacity", "robot"].includes(r.kind) && !finished(r),
-  );
-  const search = props.patientSearch.trim().toLowerCase();
-  const visible = operational.filter(
-    (r) =>
-      (!urgentOnly || r.priority === "urgent") &&
-      (!search ||
-        [r.title, r.patientId ?? "", props.patients.find((p) => p.id === r.patientId)?.name ?? ""]
-          .join(" ")
-          .toLowerCase()
-          .includes(search)),
-  );
-  const groups = [
-    {
-      title: "Active care",
-      subtitle: "Encounters, referrals & tasks",
-      rows: visible.filter(
-        (r) =>
-          ![
-            "test",
-            "report",
-            "observation",
-            "genomic-test",
-            "discharge",
-            "document",
-            "handover",
-            "prescription",
-            "visit",
-          ].includes(r.kind),
-      ),
-    },
-    {
-      title: "Investigations",
-      subtitle: "Requests & results",
-      rows: visible.filter((r) =>
-        ["test", "report", "observation", "genomic-test"].includes(r.kind),
-      ),
-    },
-    {
-      title: "Discharge & onward care",
-      subtitle: "Documents & transitions between services",
-      rows: visible.filter((r) =>
-        ["discharge", "document", "handover", "prescription", "visit"].includes(r.kind),
-      ),
-    },
-  ];
-  const activityRows = activityGroup === "All activity" ? visible : groups.find((group) => group.title === activityGroup)?.rows ?? [];
   const openRecord = (r: Resource) => {
     props.selectPatient(r.patientId ?? "");
     setRecordId(r.id);
@@ -1106,8 +1057,8 @@ function HospitalWorkspace(props: Props) {
         <div className="hospital-brand">
           <span aria-hidden="true">▦</span>
           <div>
-            <strong>Millbank</strong>
-            <small>Hospital record · SIMULATION</small>
+            <strong>Millenni-ish</strong>
+            <small>Cernerish · SIMULATION</small>
           </div>
         </div>
         <nav aria-label="Hospital workspace">
@@ -1129,7 +1080,7 @@ function HospitalWorkspace(props: Props) {
         <span>{props.identityLabel ?? "Simulation workspace"}</span>
       </header>
       <div className="hospital-contextbar">
-        <b>Millbank · Clinical workspace</b>
+        <b>Millenni-ish · Clinical workspace</b>
         <span>Northbank General</span>
         <span>{props.view.staffing.staffedSpaces} staffed spaces · {props.view.staffing.waiting} waiting</span>
         <time>{date(props.view.now)}</time>
@@ -1150,7 +1101,6 @@ function HospitalWorkspace(props: Props) {
             checked={urgentOnly}
             onChange={(e) => {
               setUrgentOnly(e.target.checked);
-              setLimit(30);
             }}
           />{" "}
           Urgent only
@@ -1164,55 +1114,7 @@ function HospitalWorkspace(props: Props) {
       >
         <main className="hospital-board">
           {section === "Hospital operations" ? (
-            <>
-              <nav className="hospital-list-tabs" aria-label="Activity lists">
-                {["All activity", ...groups.map((group) => group.title)].map((name) => (
-                  <button
-                    key={name}
-                    className={activityGroup === name ? "active" : ""}
-                    onClick={() => { setActivityGroup(name); setLimit(30); }}
-                  >
-                    {name}
-                    <span>{name === "All activity" ? visible.length : groups.find((group) => group.title === name)?.rows.length}</span>
-                  </button>
-                ))}
-              </nav>
-              <div className="ehr-section-heading">
-                <h2>Patient activity <small>Open a record to enter the patient chart</small></h2>
-                <span>{urgentOnly ? "Urgent only" : "All priorities"}</span>
-              </div>
-              <div className="ehr-table-wrap">
-                <table className="ehr-table hospital-activity-table">
-                  <thead>
-                    <tr>
-                      <th>Priority</th><th>Patient / identifier</th><th>Activity</th>
-                      <th>Type</th><th>Status</th><th>Service</th><th>Due / created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {activityRows.slice(0, limit).map((r) => (
-                      <tr key={r.id}>
-                        <td><span className={r.priority === "urgent" ? "ehr-urgent" : "ehr-routine"}>{r.priority}</span></td>
-                        <td>
-                          <button className="ehr-record-link" onClick={() => openRecord(r)}>
-                            {props.patients.find((p) => p.id === r.patientId)?.name ?? r.patientId ?? "Service record"}
-                          </button>
-                          <small>{r.patientId ?? "Hospital"}</small>
-                        </td>
-                        <td><button className="ehr-record-link" onClick={() => openRecord(r)}>{r.title}</button></td>
-                        <td>{r.kind}</td><td>{r.status}</td><td>{r.owner}</td>
-                        <td>{date(r.dueAt ?? r.createdAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {!activityRows.length && <p className="ehr-empty">No open records in this view. Find a patient above to open their chart.</p>}
-              <div className="ehr-pagination">
-                <span>{Math.min(limit, activityRows.length)} records shown</span>
-                {activityRows.length > limit && <button onClick={() => setLimit(limit + 30)}>Show 30 more</button>}
-              </div>
-            </>
+            <HospitalTracking api={props.api} worldId={props.view.id} urgentOnly={urgentOnly} openPatient={(id) => { props.selectPatient(id); setRecordId(""); setDrawerTab("Summary"); setDrawerOpen(true); }} />
           ) : (
             <Journal
               rows={props.rows.filter((r) => !urgentOnly || r.priority === "urgent")}
@@ -1335,7 +1237,7 @@ function HospitalWorkspace(props: Props) {
       <footer className="hospital-status">
         <span>{props.pending ? "Saving changes…" : "Connected to simulation"}</span>
         <span>
-          {operational.length} open records loaded · {props.view.staffing.doctors} doctors ·{" "}
+          {props.rows.length} clinical records loaded · {props.view.staffing.doctors} doctors ·{" "}
           {props.view.staffing.nurses} nurses
         </span>
       </footer>

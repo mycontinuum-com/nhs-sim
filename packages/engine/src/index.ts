@@ -1,3 +1,5 @@
+import { seedHospitalAttendances } from "./hospital-seed.ts";
+import { hospitalAttendanceSchema } from "../../contracts/src/hospital.ts";
 import { produce, current, isDraft, original, setAutoFreeze } from "immer";
 setAutoFreeze(false);
 import {
@@ -460,6 +462,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     { at: START + 30 * minute, type: "service-demand" },
     { at: START + 24 * 60 * minute, type: "screening" },
   );
+  seedHospitalAttendances(w);
   populateHistories(w);
   for (const record of w.resources) {
     const created: RecordChange = {
@@ -657,7 +660,49 @@ export class Engine {
         schedule_visit: ["visit", "community"],
         dispatch_robot: ["robot-job", "robotics"],
       };
-      if (a.type === "connect_device") {
+      if (a.type === "register_attendance" || a.type === "update_attendance") {
+        if (site !== "hospital" && site !== "control") throw new SimError("Hospital access required", 403);
+        if (a.type === "register_attendance") {
+          if (r || !a.patientId || !a.title || !a.acuity || !a.location) throw new SimError("Patient, complaint, acuity and location are required");
+          if (resourceSnapshot(w).some((item) => item.kind === "hospital-attendance" && item.patientId === a.patientId && item.status !== "discharged")) throw new SimError("Patient already has an active hospital attendance", 409);
+          r = this.add(w, "hospital-attendance", a.title, "hospital", a.patientId);
+          r.data = hospitalAttendanceSchema.parse({ stage: "waiting", arrivalAt: w.now, presentingComplaint: a.title, acuity: a.acuity, location: a.location, clinician: a.clinician ?? "Unassigned" });
+        } else {
+          if (!r || r.kind !== "hospital-attendance" || a.expectedVersion === undefined) throw new SimError("Versioned hospital attendance required");
+          const previous = hospitalAttendanceSchema.parse(r.data);
+          if (previous.stage === "discharged") throw new SimError("Attendance is already discharged", 409);
+          const updated = { ...previous, clinician: a.clinician ?? previous.clinician, location: a.location ?? previous.location, acuity: a.acuity ?? previous.acuity };
+          switch (a.hospitalCommand) {
+            case "assign":
+              if (!a.clinician && !a.location && !a.acuity) throw new SimError("Choose a clinician, location or acuity");
+              r.data = updated;
+              break;
+            case "assess":
+              if (previous.stage !== "waiting") throw new SimError("Only waiting patients can start assessment", 409);
+              if (updated.clinician === "Unassigned") throw new SimError("Assign a clinician before assessment", 409);
+              r.data = { ...updated, stage: "assessing", assessmentAt: w.now };
+              break;
+            case "refer":
+              if (previous.stage !== "assessing") throw new SimError("Assessment must start before referral to take", 409);
+              r.data = { ...updated, stage: "take", referredAt: w.now };
+              break;
+            case "admit":
+              if (previous.stage !== "take" || !a.location) throw new SimError("Choose an inpatient location for a patient on the take list", 409);
+              r.data = { ...updated, stage: "inpatient", admittedAt: w.now };
+              break;
+            case "discharge":
+              if (!a.disposition) throw new SimError("Discharge destination or outcome is required");
+              r.data = { ...updated, stage: "discharged", dischargedAt: w.now, assessmentAt: "assessmentAt" in previous ? previous.assessmentAt : null, disposition: a.disposition };
+              break;
+            default: throw new SimError("Hospital command required");
+          }
+          r.data = hospitalAttendanceSchema.parse(r.data);
+          r.version++;
+        }
+        const attendance = hospitalAttendanceSchema.parse(r.data);
+        r.status = attendance.stage;
+        r.priority = ["1", "2"].includes(attendance.acuity) ? "urgent" : "routine";
+      } else if (a.type === "connect_device") {
         if (site !== "wearables" && site !== "control")
           throw new SimError("Connect home devices through the home workspace", 403);
         const existing = w.resources.find((item) => item.kind === "device" && item.owner === "wearables" && item.patientId === a.patientId && item.status === "active" && (item.data.metric === "steps" || item.title === "Home activity watch"));
@@ -823,7 +868,7 @@ export class Engine {
         }
       } else {
         if (!r) throw new SimError("resourceId required");
-        if (["problem", "allergy"].includes(r.kind) && a.type !== "share_record")
+        if (["problem", "allergy", "hospital-attendance"].includes(r.kind) && a.type !== "share_record")
           throw new SimError(`Use the ${r.kind} editor to change this record`, 409);
         if (a.type === "share_record") {
           if (r.data.planLab === "digital")
@@ -939,7 +984,7 @@ export class Engine {
       nurses,
       staffedSpaces: Math.min(doctors * 2, nurses * 2),
       waiting: resources.filter(
-        (r) => ["encounter", "handover"].includes(r.kind) && r.status === "waiting",
+        (r) => ["encounter", "handover", "hospital-attendance"].includes(r.kind) && r.status === "waiting",
       ).length,
     };
   }
@@ -982,7 +1027,7 @@ export class Engine {
       resourceSnapshot(w).forEach((record, index) => {
         if (targets.has(record.id)) targetIndices.set(record.id, index);
         if (record.kind === "staff" || record.kind === "bed" ||
-          (["encounter", "handover"].includes(record.kind) && record.status === "waiting"))
+          (["encounter", "handover", "hospital-attendance"].includes(record.kind) && record.status === "waiting"))
           flowIndices.push(index);
       });
     }
@@ -1026,11 +1071,16 @@ export class Engine {
             const patient = w.patients[w.rng % w.patients.length];
             const item = this.add(
               w,
-              i === 0 ? "handover" : "encounter",
+              i === 0 ? "handover" : "hospital-attendance",
               i === 0 ? "New ambulance handover" : "New A&E arrival",
               i === 0 ? "ambulance" : "hospital",
               patient.id,
             );
+            if (i > 0) {
+              const existingAttendance = resourceSnapshot(w).find((r) => r.id !== item.id && r.kind === "hospital-attendance" && r.patientId === patient.id && r.status !== "discharged");
+              if (existingAttendance) { w.resources.pop(); continue; }
+              item.data = hospitalAttendanceSchema.parse({ stage: "waiting", arrivalAt: w.now, presentingComplaint: "New A&E arrival", acuity: "3", location: "Waiting room", clinician: "Unassigned" });
+            }
             flowIndices.push(w.resources.length - 1);
             item.status = "waiting";
             item.visibleTo = ["ambulance", "hospital"];
@@ -1046,7 +1096,7 @@ export class Engine {
             (x) => x.kind === "bed" && x.status === "available",
           ).length;
           const waiting = resources.filter(
-            (x) => x.kind === "encounter" && x.status === "waiting",
+            (x) => ["encounter", "hospital-attendance"].includes(x.kind) && x.status === "waiting",
           ).length;
           if (waiting > openBeds) {
             const item = this.add(
@@ -1206,13 +1256,16 @@ export class Engine {
         }
         if (enabled)
           for (let i = 0; i < 8; i++) {
+            const patientId = w.patients[(i + 12) % w.patients.length].id;
+            if (resourceSnapshot(w).some((r) => r.kind === "hospital-attendance" && r.patientId === patientId && r.status !== "discharged")) continue;
             const item = this.add(
               w,
-              "encounter",
+              "hospital-attendance",
               "Winter-pressure A&E arrival",
               "hospital",
-              w.patients[(i + 12) % w.patients.length].id,
+              patientId,
             );
+            item.data = hospitalAttendanceSchema.parse({ stage: "waiting", arrivalAt: w.now, presentingComplaint: item.title, acuity: "3", location: "Waiting room", clinician: "Unassigned" });
             item.status = "waiting";
             item.visibleTo = ["hospital", "ambulance", "beds"];
             this.event(w, "emergency.arrived", "scenario", item.title, item);

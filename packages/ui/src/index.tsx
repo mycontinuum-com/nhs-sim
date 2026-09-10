@@ -50,11 +50,11 @@ const places = [
     id: "hospital",
     title: "Northbank General",
     label: "Secondary care",
-    description: "Work the ward list and coordinate discharge in Millbank EPR.",
+    description: "Work the ward list and coordinate discharge in Millenni-ish EPR.",
     href: "/hospital/",
     x: 75,
     y: 39,
-    system: "Millbank EPR",
+    system: "Millenni-ish EPR",
   },
   {
     id: "community",

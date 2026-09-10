@@ -1,3 +1,4 @@
+import { upgradeHospitalWorld } from "../../../packages/engine/src/hospital-seed.ts";
 import pg from "pg";
 import { migrateMedicationHistory } from "./medication-migration.ts";
 import { Engine, SimError } from "../../../packages/engine/src/index.ts";
@@ -47,9 +48,11 @@ export class Store {
       await migrateMedicationHistory(client);
       const loaded = await this.persistence.load(client);
       if (!loaded) throw new Error("Row storage did not initialize");
-      this.engine.state = loaded;
+      this.engine.state = { ...loaded, worlds: Object.fromEntries(Object.entries(loaded.worlds).map(([id, world]) => [id, upgradeHospitalWorld(world)])) };
+      const upgraded = await this.persistence.write(client, loaded, this.engine.state);
       this.keys = (await client.query("SELECT hash,team,world,scopes FROM team_keys")).rows;
       await client.query("COMMIT");
+      upgraded();
     } catch (error) {
       await client.query("ROLLBACK");
       await client.query("SELECT pg_advisory_unlock(7812026)");
@@ -141,11 +144,14 @@ export class Store {
         () => {
           this.engine.create(world);
           const baseline = this.persistence.baseline("default");
-          this.engine.transaction(world, (target) => {
-            target.patients = baseline.patients;
-            target.resources = baseline.resources;
-            target.nextId = Math.max(target.nextId, this.engine.require("default").nextId);
-          });
+          const target = this.engine.require(world);
+          this.engine.save(upgradeHospitalWorld({
+            ...target,
+            patients: baseline.patients,
+            resources: baseline.resources,
+            counters: { ...target.counters, hospitalAttendanceVersion: 0 },
+            nextId: Math.max(target.nextId, this.engine.require("default").nextId),
+          }));
           this.persistence.attachPopulation(world, "default");
         },
         world,
