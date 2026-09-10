@@ -1,3 +1,4 @@
+import { freeze, original } from "immer";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { resolve, extname } from "node:path";
@@ -10,6 +11,10 @@ import {
   scenarios,
   type SiteId,
 } from "../../../packages/contracts/src/index.ts";
+import {
+  generatePopulationBatch,
+  POPULATION_BATCH_VERSION,
+} from "../../../packages/engine/src/population-batch.ts";
 import { SimError } from "../../../packages/engine/src/index.ts";
 import {
   catalogue,
@@ -136,6 +141,82 @@ const server = createServer(async (req, res) => {
       if (!admin) throw new SimError("Operator token required", 403);
       return authenticated();
     };
+    if (path === "/api/control/population" && method === "POST") {
+      const id = operator();
+      const input = z
+        .object({
+          target: z.number().int().min(8).max(50000),
+          batchSize: z.number().int().min(1).max(1000).default(500),
+        })
+        .parse(await json(req));
+      return send(
+        res,
+        200,
+        await store.run(
+          () =>
+            store.engine.transaction(id, (w) => {
+              let manifest = w.resources.find((r) => r.id === "population-import");
+              if (!manifest) {
+                manifest = {
+                  id: "population-import",
+                  kind: "population-import",
+                  title: "Synthetic population import",
+                  owner: "control",
+                  visibleTo: ["control"],
+                  status: "in-progress",
+                  priority: "routine",
+                  createdAt: w.now,
+                  version: 1,
+                  data: { generator: POPULATION_BATCH_VERSION, seed: w.seed, now: w.now },
+                };
+                w.resources.push(manifest);
+              }
+              if (manifest.data.generator !== POPULATION_BATCH_VERSION)
+                throw new SimError("Import generator version differs", 409);
+              const remaining = Math.max(0, input.target - w.patients.length);
+              if (remaining) {
+                const start =
+                  (original(w)?.patients ?? w.patients).reduce(
+                    (maximum, p) => Math.max(maximum, Number(p.id.slice(4)) || 0),
+                    0,
+                  ) + 1;
+                const batch = generatePopulationBatch({
+                  seed: Number(manifest.data.seed),
+                  now: Number(manifest.data.now),
+                  start,
+                  count: Math.min(input.batchSize, remaining),
+                });
+                for (const row of [...batch.patients, ...batch.resources]) freeze(row, true);
+                w.patients.push(...batch.patients);
+                w.resources.push(...batch.resources);
+                manifest.version++;
+              }
+              manifest.status = w.patients.length >= input.target ? "completed" : "in-progress";
+              manifest.data.target = input.target;
+              return {
+                world: id,
+                population: w.patients.length,
+                resources: w.resources.length,
+                target: input.target,
+                complete: w.patients.length >= input.target,
+                generator: POPULATION_BATCH_VERSION,
+              };
+            }),
+          id,
+        ),
+      );
+    }
+    if (path === "/api/control/population/publish" && method === "POST") {
+      const id = operator();
+      await store.publishPopulation(id);
+      return send(res, 200, { world: id, published: true });
+    }
+    if (path === "/api/control/population/attach" && method === "POST") {
+      const id = operator();
+      const input = z.object({ source: z.string().default("default") }).parse(await json(req));
+      await store.run(() => store.attachPopulation(id, input.source), id);
+      return send(res, 200, { world: id, population: store.engine.require(id).patients.length });
+    }
     if (path === "/api/session" && method === "POST") {
       authenticated();
       const id = randomBytes(24).toString("hex"),
@@ -249,12 +330,14 @@ const server = createServer(async (req, res) => {
       return send(
         res,
         200,
-        await store.run(() => {
-          const agent = store.engine.require(id).agents.find((a) => a.id === input.id);
-          if (!agent) throw new SimError("Unknown agent", 404);
-          agent.enabled = input.enabled;
-          return agent;
-        }),
+        await store.run(() =>
+          store.engine.transaction(id, (w) => {
+            const agent = w.agents.find((a) => a.id === input.id);
+            if (!agent) throw new SimError("Unknown agent", 404);
+            agent.enabled = input.enabled;
+            return agent;
+          }),
+        ),
       );
     }
     if (path === "/api/control/model-propose" && method === "POST") {
@@ -334,16 +417,10 @@ const server = createServer(async (req, res) => {
         if (new Date(start).toISOString().slice(0, 10) !== date)
           throw new SimError("A valid date is required");
         const world = store.engine.require(id);
-        const appointments = store.engine
-          .view(id, site)
-          .resources.filter(
-            (r) =>
-              r.kind === "appointment" &&
-              r.owner === site &&
-              typeof r.data.startsAt === "number" &&
-              r.data.startsAt >= start &&
-              r.data.startsAt < start + 86400000,
-          )
+        const appointments = (
+          await store.readResources(id, site, undefined, 0, 500, "appointment", date)
+        ).resources
+          .filter((r) => r.owner === site)
           .sort((a, b) => Number(a.data.startsAt) - Number(b.data.startsAt));
         const patients = world.patients
           .filter((p) => appointments.some((r) => r.patientId === p.id))
@@ -361,20 +438,35 @@ const server = createServer(async (req, res) => {
           (limit !== undefined && (!Number.isInteger(limit) || limit < 1 || limit > 500))
         )
           throw new SimError("Invalid resource page; limit must be 1–500 and offset nonnegative");
+        const w = store.engine.require(id);
         return send(res, 200, {
-          ...store.engine.view(
+          id: w.id,
+          now: w.now,
+          speed: w.speed,
+          paused: w.paused,
+          population: w.patients.length,
+          counters: w.counters,
+          ...(await store.readResources(
             id,
             site,
             url.searchParams.get("patient") ?? undefined,
-            limit === undefined ? undefined : { offset, limit },
-          ),
-          staffing: store.engine.staffing(store.engine.require(id)),
+            offset,
+            limit ?? 500,
+          )),
+          staffing: store.engine.staffing(w),
+          faults: w.faults,
+          events: store.engine.events(id, site),
+          ...(site === "control" ? { agents: w.agents } : {}),
         });
       }
       if (match[2] === "patients") {
         const offset = Number(url.searchParams.get("offset") ?? 0);
         if (!Number.isInteger(offset) || offset < 0) throw new SimError("Invalid offset");
-        return send(res, 200, store.engine.patients(id, url.searchParams.get("q") ?? "", offset));
+        return send(
+          res,
+          200,
+          await store.readPatients(id, url.searchParams.get("q") ?? "", offset),
+        );
       }
       if (match[2] === "actions" && method === "POST") {
         const action = await json(req);

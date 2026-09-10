@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "kind": "published-aggregate-calibration",
+  "retrievedAt": "2026-09-10",
+  "source": {
+    "publisher": "NHS England",
+    "title": "Appointments in General Practice, May 2025",
+    "publicationDate": "2025-06-26",
+    "url": "https://digital.nhs.uk/data-and-information/publications/statistical/appointments-in-general-practice/may-2025",
+    "downloadUrl": "https://files.digital.nhs.uk/74/89E3D3/National_Overview.csv",
+    "sha256": "e6c659665d73c5696e456eac0759dece0d35758c65715141c5d66a188b5646fb",
+    "license": "Open Government Licence v3.0",
+    "licenseUrl": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+    "termsUrl": "https://digital.nhs.uk/about-nhs-digital/terms-and-conditions",
+    "attribution": "Contains information from NHS England, licenced under the current version of the Open Government Licence"
+  },
+  "population": {
+    "geography": "England",
+    "periodStart": "2025-05-01",
+    "periodEnd": "2025-05-31",
+    "unit": "recorded appointments",
+    "denominator": 29114064,
+    "aggregateRows": 1755,
+    "filter": {
+      "APPOINTMENT_MONTH": "MAY2025"
+    },
+    "coverage": "Appointments recorded in GP practice appointment systems; excludes separately published PCN appointment-book and NIMS vaccination counts. Not unique patients or all GP workload."
+  },
+  "sampling": {
+    "method": "independent categorical marginals weighted by count",
+    "measured": [
+      "appointmentMode",
+      "appointmentStatus",
+      "healthcareProfessionalType",
+      "serviceSetting"
+    ],
+    "authoredDefaults": [
+      "How many encounters a synthetic patient has",
+      "Patient age and clinical conditions",
+      "Assignment of a marginal to a patient",
+      "Dates outside May 2025",
+      "Mappings from source categories to simulator services"
+    ],
+    "limitations": [
+      "The four marginals do not preserve observed joint associations.",
+      "Appointment proportions are not population or disease prevalence.",
+      "Unknown and unmapped categories are retained.",
+      "This is a fixed historical calibration, not a current activity estimate."
+    ]
+  },
+  "distributions": {
+    "appointmentMode": {
+      "sourceColumn": "APPT_MODE",
+      "denominator": 29114064,
+      "categories": [
+        {
+          "value": "Face-to-Face",
+          "count": 18488598
+        },
+        {
+          "value": "Home Visit",
+          "count": 344458
+        },
+        {
+          "value": "Telephone",
+          "count": 7326425
+        },
+        {
+          "value": "Unknown",
+          "count": 680361
+        },
+        {
+          "value": "Video Conference/Online",
+          "count": 2274222
+        }
+      ]
+    },
+    "appointmentStatus": {
+      "sourceColumn": "APPT_STATUS",
+      "denominator": 29114064,
+      "categories": [
+        {
+          "value": "Attended",
+          "count": 26196644
+        },
+        {
+          "value": "DNA",
+          "count": 1204897
+        },
+        {
+          "value": "Unknown",
+          "count": 1712523
+        }
+      ]
+    },
+    "healthcareProfessionalType": {
+      "sourceColumn": "HCP_TYPE",
+      "denominator": 29114064,
+      "categories": [
+        {
+          "value": "GP",
+          "count": 13154741
+        },
+        {
+          "value": "Other Practice staff",
+          "count": 15311061
+        },
+        {
+          "value": "Unknown",
+          "count": 648262
+        }
+      ]
+    },
+    "serviceSetting": {
+      "sourceColumn": "SERVICE_SETTING",
+      "denominator": 29114064,
+      "categories": [
+        {
+          "value": "Extended Access Provision",
+          "count": 338923
+        },
+        {
+          "value": "General Practice",
+          "count": 26312368
+        },
+        {
+          "value": "Other",
+          "count": 396081
+        },
+        {
+          "value": "Primary Care Network",
+          "count": 1614645
+        },
+        {
+          "value": "Unmapped",
+          "count": 452047
+        }
+      ]
+    }
+  }
+}

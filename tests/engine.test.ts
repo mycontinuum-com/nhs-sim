@@ -9,7 +9,7 @@ test("home dashboard receives stored history and new readings as time advances",
   const engine = new Engine();
   const world = engine.require("default");
   const readings = () =>
-    world.resources.filter(
+    engine.require("default").resources.filter(
       (r) => r.owner === "wearables" && r.kind === "observation" && r.patientId === "SIM-000006",
     );
   assert.equal(readings().length, 22);
@@ -40,7 +40,10 @@ test("focused EHRs can hand over to community and hospital services", () => {
   assert.equal(visit.owner, "community");
   assert.equal(visit.status, "scheduled");
   engine.clock("default", { advanceMinutes: 90 });
-  assert.equal(visit.status, "completed");
+  assert.equal(
+    engine.require("default").resources.find((resource) => resource.id === visit.id)?.status,
+    "completed",
+  );
   const referral = engine.action(
     "default",
     "gp",

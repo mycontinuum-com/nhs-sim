@@ -1,3 +1,5 @@
+import { produce, current, isDraft, original, setAutoFreeze } from "immer";
+setAutoFreeze(false);
 import {
   actionSchema,
   type Action,
@@ -7,6 +9,10 @@ import {
   type World,
 } from "../../contracts/src/index.ts";
 import { populateHistories } from "./population.ts";
+
+function resourceSnapshot(w: World) {
+  return isDraft(w.resources) ? current(w.resources) : w.resources;
+}
 
 export class SimError extends Error {
   status: number;
@@ -484,18 +490,27 @@ export class Engine {
     return w;
   }
   save(w: World) {
-    this.state.worlds[w.id] = w;
+    this.state = { ...this.state, worlds: { ...this.state.worlds, [w.id]: w } };
   }
   worlds(): string[] {
     return Object.keys(this.state.worlds);
   }
   transaction<T>(id: string, fn: (w: World) => T): T {
-    const before = structuredClone(this.state);
+    if (isDraft(this.state)) return fn(this.require(id));
+    const before = this.state;
+    let result: T;
     try {
-      return fn(this.require(id));
-    } catch (e) {
+      const next = produce(before, (draft) => {
+        this.state = draft;
+        const value = fn(this.require(id));
+        result =
+          value !== null && typeof value === "object" && isDraft(value) ? current(value) : value;
+      });
+      this.state = next;
+      return result!;
+    } catch (error) {
       this.state = before;
-      throw e;
+      throw error;
     }
   }
   event(w: World, type: string, actor: string, detail: string, r?: Resource) {
@@ -542,7 +557,9 @@ export class Engine {
   }
   patients(id: string, q = "", offset = 0, limit = 30) {
     const all = this.require(id).patients.filter((p) =>
-      (p.id + " " + p.name + " " + p.conditions.join(" ") + " " + p.needs.join(" ")).toLowerCase().includes(q.toLowerCase()),
+      (p.id + " " + p.name + " " + p.conditions.join(" ") + " " + p.needs.join(" "))
+        .toLowerCase()
+        .includes(q.toLowerCase()),
     );
     return { total: all.length, items: all.slice(offset, offset + Math.min(limit, 100)) };
   }
@@ -583,7 +600,7 @@ export class Engine {
           return receipt.result;
         }
       }
-      if (a.patientId && !w.patients.some((p) => p.id === a.patientId))
+      if (a.patientId && !(original(w)?.patients ?? w.patients).some((p) => p.id === a.patientId))
         throw new SimError("Unknown patient", 404);
       if (
         w.faults["cyber-readonly"] &&
@@ -592,7 +609,10 @@ export class Engine {
         throw new SimError("Service is in cyber incident read-only mode", 423);
       let r: Resource | undefined;
       if (a.resourceId) {
-        r = w.resources.find((x) => x.id === a.resourceId);
+        const index = (original(w)?.resources ?? w.resources).findIndex(
+          (x) => x.id === a.resourceId,
+        );
+        r = index < 0 ? undefined : w.resources[index];
         if (!r) throw new SimError("Unknown resource", 404);
         if (site !== "control" && !r.visibleTo.includes(site))
           throw new SimError("Record not visible to this service", 403);
@@ -647,7 +667,7 @@ export class Engine {
           let startsAt = a.startsAt ?? Math.ceil(w.now / (15 * minute)) * 15 * minute;
           if (startsAt < w.now)
             throw new SimError("Choose an appointment at or after the simulation time", 409);
-          const bookings = w.resources.filter(
+          const bookings = (original(w)?.resources ?? w.resources).filter(
             (item) =>
               item.kind === "appointment" &&
               item.owner === owner &&
@@ -797,12 +817,17 @@ export class Engine {
       }
       w.counters.actions++;
       this.event(w, a.type, actor, r!.title, r);
-      if (key) this.state.receipts[id + ":" + key] = { fingerprint, result: structuredClone(r!) };
+      if (key)
+        this.state.receipts[id + ":" + key] = {
+          fingerprint,
+          result: structuredClone(isDraft(r) ? current(r!) : r!),
+        };
       return r!;
     });
   }
   staffing(w: World) {
-    const on = w.resources.filter(
+    const resources = resourceSnapshot(w);
+    const on = resources.filter(
       (r) => r.kind === "staff" && r.status === "available" && r.data.allocated,
     );
     const doctors = on.filter((r) => r.data.role === "doctor").length;
@@ -811,7 +836,7 @@ export class Engine {
       doctors,
       nurses,
       staffedSpaces: Math.min(doctors * 2, nurses * 2),
-      waiting: w.resources.filter(
+      waiting: resources.filter(
         (r) => ["encounter", "handover"].includes(r.kind) && r.status === "waiting",
       ).length,
     };
@@ -847,15 +872,24 @@ export class Engine {
       if (++processed > 20000) throw new SimError("Event budget exceeded; use smaller step");
       w.scheduled.shift();
       w.now = job.at;
-      const r = w.resources.find((x) => x.id === job.resourceId);
+      const resourceIndex = job.resourceId
+        ? resourceSnapshot(w).findIndex((x) => x.id === job.resourceId)
+        : -1;
+      const r = resourceIndex < 0 ? undefined : w.resources[resourceIndex];
       const enabled = (id: string) => w.agents.some((a) => a.id === id && a.enabled);
       if (job.type === "acute") {
         if (enabled("acute-flow")) {
           const capacity = Math.floor(this.staffing(w).staffedSpaces / 2);
-          const queue = w.resources
-            .filter((x) => ["encounter", "handover"].includes(x.kind) && x.status === "waiting")
-            .sort((a, b) => a.createdAt - b.createdAt);
-          for (const item of queue.slice(0, capacity)) {
+          const resources = resourceSnapshot(w);
+          const queue = resources
+            .flatMap((item, index) =>
+              ["encounter", "handover"].includes(item.kind) && item.status === "waiting"
+                ? [index]
+                : [],
+            )
+            .sort((a, b) => resources[a].createdAt - resources[b].createdAt);
+          for (const index of queue.slice(0, capacity)) {
+            const item = w.resources[index];
             item.status = "completed";
             item.version++;
             item.data.waitMinutes = Math.round((w.now - item.createdAt) / minute);
@@ -887,10 +921,11 @@ export class Engine {
       }
       if (job.type === "bed-pressure") {
         if (enabled("bed-flow")) {
-          const openBeds = w.resources.filter(
+          const resources = resourceSnapshot(w);
+          const openBeds = resources.filter(
             (x) => x.kind === "bed" && x.status === "available",
           ).length;
-          const waiting = w.resources.filter(
+          const waiting = resources.filter(
             (x) => x.kind === "encounter" && x.status === "waiting",
           ).length;
           if (waiting > openBeds) {
@@ -998,9 +1033,11 @@ export class Engine {
         r.version++;
         w.counters.completed++;
         if (job.type === "delivery") {
-          w.resources.find((x) => x.id === "robot-1")!.status = "available";
+          const index = resourceSnapshot(w).findIndex((x) => x.id === "robot-1");
+          w.resources[index].status = "available";
         } else {
-          const cap = w.resources.find((x) => x.id === "capacity-community")!;
+          const index = resourceSnapshot(w).findIndex((x) => x.id === "capacity-community");
+          const cap = w.resources[index];
           cap.data.remaining = Math.min(Number(cap.data.total), Number(cap.data.remaining) + 1);
         }
         this.event(w, job.type + ".completed", "logistics", r.title, r);

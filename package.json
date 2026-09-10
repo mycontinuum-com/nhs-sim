@@ -29,6 +29,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-router": "^1.0.0",
+    "immer": "10.1.1",
     "jose": "^6.0.0",
     "pg": "^8.23.0",
     "react": "^19.0.0",

@@ -315,7 +315,7 @@ export function AppointmentBook({
                 <td>
                   <span>{r.status}</span>
                   <div className="gp-book-actions">
-                    {!["completed", "cancelled"].includes(r.status) && (
+                    {["booked", "arrived", "scheduled", "open"].includes(r.status) && (
                       <>
                         {r.status !== "arrived" && (
                           <button

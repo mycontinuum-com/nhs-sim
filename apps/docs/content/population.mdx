@@ -1,0 +1,34 @@
+---
+title: The synthetic population
+hide_table_of_contents: true
+---
+
+# The synthetic population
+
+The large population is generated in reproducible batches. Each new person has a fictional identity, age-appropriate circumstances, conditions, contact preferences, a structured GP record, three to eight dated consultations and a historical appointment. The original authored patients and team work remain available.
+
+## Public data and fictional stories
+
+Historical appointment categories use published NHS England counts from [Appointments in General Practice, May 2025](https://digital.nhs.uk/data-and-information/publications/statistical/appointments-in-general-practice/may-2025). The source contains 29,114,064 recorded appointments, not unique patients. It describes England in that month and is not a current population estimate.
+
+We sample contact mode, attendance, professional type and service setting independently. Unknown source categories remain unknown. The relationship between these categories, a person's health conditions and their appointment date is authored for the simulation. It is not an observed relationship in the source data.
+
+Clinical histories use synthetic templates. Aggregate production EHR collection sizes shape record length; no production patient narratives or identifiers are copied. The generator is not a validated prevalence or treatment-outcome model.
+
+Contains information from NHS England, licenced under the [Open Government Licence v3.0](https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/).
+
+## Explore a person
+
+<a href="/gp/">Open SystemTwo</a> and search by name, patient ID, condition or care need. Open **Consultations** to read the dated narrative. Use the journal and coded history for structured records. The appointment book can show historical appointments by date; missed and unknown historical entries have no live arrival controls.
+
+## Shared population, separate team changes
+
+A published population is stored once. New teams refer to that baseline and store their own changes separately. A consultation saved by one team does not alter another team's record. Older worlds can attach the baseline while preserving their existing patients and resources.
+
+## Reproduce or resume an import
+
+Operators can run `scripts/seed-population.mjs --target 50000 --world default` with `OPERATOR_TOKEN` supplied in the environment. The command adds at most 500 people per request and reports progress. Re-running resumes from the world's existing population count. The manifest fixes the generator version, seed and generation clock.
+
+The operator publishes the resulting baseline with `POST /api/control/population/publish?world=default`. To attach it to an existing world, use `POST /api/control/population/attach?world=TEAM_WORLD` with body `{"source":"default"}`. These endpoints require an operator token.
+
+The legacy database snapshot is retained during migration. Patient records, resources, events and receipts are persisted as separate rows. Imports and ordinary changes commit atomically.
