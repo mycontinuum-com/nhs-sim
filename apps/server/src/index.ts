@@ -413,7 +413,7 @@ const server = createServer(async (req, res) => {
       }
       throw new SimError("Unsupported mock operation", 405);
     }
-    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace)$/);
+    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents)$/);
     if (match) {
       const id = authenticated(),
         site = match[1] as SiteId;
@@ -424,6 +424,14 @@ const server = createServer(async (req, res) => {
         });
       if (site === "control" && !admin) throw new SimError("Operator only", 403);
       if (!admin && !key!.scopes.includes(site)) throw new SimError("Key lacks service scope", 403);
+      if (match[2] === "documents") {
+        if (method !== "GET") throw new SimError("Method not allowed", 405);
+        if (site !== "gp" && site !== "hospital") throw new SimError("Clinical document workspace required", 404);
+        const world = store.engine.require(id);
+        const resources = world.resources.filter(r => r.kind === "discharge-summary" && r.visibleTo.includes(site));
+        const patientIds = new Set(resources.map(r => r.patientId));
+        return send(res, 200, { resources, patients: world.patients.filter(p => patientIds.has(p.id)) });
+      }
       if (match[2] === "pharmacy-workspace") {
         if (method !== "GET") throw new SimError("Method not allowed", 405);
         if (site !== "pharmacy") throw new SimError("Pharmacy workspace required", 404);

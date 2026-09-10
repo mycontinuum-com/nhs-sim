@@ -1,3 +1,6 @@
+import { ProductBrand } from "./product-brand.tsx";
+import { DocumentWorkspace } from "./document-workspace.tsx";
+import { dischargeDocumentSchema, dischargeSectionLabels, dischargeSectionsSchema } from "../../contracts/src/documents.ts";
 import { HospitalTracking } from "./hospital-tracking.tsx";
 import { RecordAttribution } from "./record-attribution.tsx";
 import React, { useEffect, useRef, useState } from "react";
@@ -343,6 +346,7 @@ function Detail({
   close,
   siteId,
 }: { record: Resource; close: () => void } & Pick<Props, "act" | "pending" | "siteId">) {
+  const letter = record.kind === "discharge-summary" ? dischargeDocumentSchema.safeParse(record.data) : null;
   const fields = Object.entries(record.data).filter(([, value]) =>
     ["string", "number", "boolean"].includes(typeof value),
   );
@@ -360,6 +364,7 @@ function Detail({
         </button>
       </header>
       <RecordAttribution record={record} history />
+      {letter?.success && <article className="document-letter">{dischargeSectionsSchema.keyof().options.map(key => <section key={key}><h3>{dischargeSectionLabels[key]}</h3><p>{letter.data.sections[key] || "Not entered"}</p></section>)}</article>}
       <dl>
         <dt>Service</dt>
         <dd>{record.owner}</dd>
@@ -372,11 +377,11 @@ function Detail({
         {fields.map(([key, value]) => (
           <React.Fragment key={key}>
             <dt>{key.replace(/([A-Z])/g, " $1")}</dt>
-            <dd>{String(value)}</dd>
+            <dd>{key.endsWith("At") && typeof value === "number" ? new Date(value).toLocaleString("en-GB", { timeZone: "UTC" }) + " UTC" : String(value)}</dd>
           </React.Fragment>
         ))}
       </dl>
-      <footer>
+      {record.kind === "discharge-summary" ? <p>Process this letter in {siteId === "gp" ? "DocuMañana" : "Discharge summaries"}.</p> : <footer>
         <ActionButton record={record} act={act} pending={pending} siteId={siteId} />
         <button
           disabled={pending || record.visibleTo.includes(siteId === "gp" ? "hospital" : "gp")}
@@ -384,7 +389,7 @@ function Detail({
         >
           Share with {siteId === "gp" ? "hospital" : "GP"}
         </button>
-      </footer>
+      </footer>}
     </section>
   );
 }
@@ -493,7 +498,7 @@ function Journal({
         r.kind !== "ehr-record" &&
         (tab !== "Results" || ["test", "report", "observation"].includes(r.kind)) &&
         (tab !== "Documents" ||
-          ["document", "discharge", "handover", "referral"].includes(r.kind)) &&
+          ["document", "discharge", "discharge-summary", "handover", "referral"].includes(r.kind)) &&
         (tab !== "Tasks" || ["task", "visit", "appointment", "prescription"].includes(r.kind)) &&
         r.title.toLowerCase().includes(filter.toLowerCase()),
     )
@@ -879,22 +884,23 @@ function PracticeWorkspace(props: Props) {
     { label: "Results", icon: "results", run: () => navigate("Results") },
     { label: "Medication", icon: "medicine", run: () => navigate("Medication") },
     { label: "Tasks", icon: "task", run: () => navigate("Tasks") },
+    { label: "DocuMañana", icon: "note", run: () => navigate("DocuMañana") },
     { label: "Care coordination", icon: "transfer", run: () => navigate("Care coordination") },
   ] satisfies { label: string; icon: DesktopIconName; run: () => void }[];
   const recordGroups = [
     { name: "Record", sections: ["Journal", "Consultations", "Documents", "Coded history"] },
     { name: "Clinical", sections: ["Problems", "Allergies", "Medication", "Results"] },
-    { name: "Workflow", sections: ["Appointment book", "Tasks", "Care coordination"] },
+    { name: "Workflow", sections: ["Appointment book", "Tasks", "DocuMañana", "Care coordination"] },
   ];
   return (
     <section className="system-ui immersive-ehr systemtwo">
-      <header className="practice-window-title"><strong>SystemTwo</strong><span>Riverside Practice · {props.identityLabel ?? "Simulation workspace"}</span><button onClick={() => props.exitToMap ? props.exitToMap() : location.assign("/control/")}>Neighbourhood map</button><small>SIMULATION</small></header>
+      <header className="practice-window-title"><ProductBrand product="gp" compact /><span>Riverside Practice · {props.identityLabel ?? "Simulation workspace"}</span><button onClick={() => props.exitToMap ? props.exitToMap() : location.assign("/control/")}>Neighbourhood map</button><small>SIMULATION</small></header>
       <nav ref={menuBar} className="practice-menubar" aria-label="Practice menu" onKeyDown={(event) => { if (event.key === "Escape") setMenu(""); }}>
         {[
           { name: "Patient", items: [{ label: "Find patient", run: findPatient }, { label: "Practice home", run: () => navigate("Home") }, { label: "Patient journal", run: () => navigate("Journal") }] },
           { name: "Appointments", items: [{ label: "Appointment book", run: () => navigate("Appointment book") }] },
           { name: "Clinical tools", items: shortcuts.filter((item) => ["Consultations", "Problems", "Medication", "Results"].includes(item.label)) },
-          { name: "Workflow", items: [{ label: "Task list", run: () => navigate("Tasks") }, { label: "Pathology / radiology inbox", run: () => navigate("Results") }, { label: "Document management", run: () => navigate("Documents") }, { label: "Care coordination", run: () => navigate("Care coordination") }] },
+          { name: "Workflow", items: [{ label: "Task list", run: () => navigate("Tasks") }, { label: "Pathology / radiology inbox", run: () => navigate("Results") }, { label: "DocuMañana · Document management", run: () => navigate("DocuMañana") }, { label: "Care coordination", run: () => navigate("Care coordination") }] },
         ].map((group) => <div className="practice-menu" key={group.name}>
           <button aria-expanded={menu === group.name} onClick={() => setMenu(menu === group.name ? "" : group.name)}>{group.name}</button>
           {menu === group.name && <div className="practice-menu-items">{group.items.map((item) => <button key={item.label} onClick={item.run}>{item.label}</button>)}</div>}
@@ -922,6 +928,8 @@ function PracticeWorkspace(props: Props) {
                 <section className="practice-shortcuts"><h2>Riverside Practice</h2><p>Clinical workspace</p><div>{shortcuts.map((shortcut) => <button key={shortcut.label} onClick={shortcut.run}><DesktopIcon name={shortcut.icon} />{shortcut.label}</button>)}</div></section>
                 <section className="practice-recent"><h2>Open a patient record</h2><p>Search the directory or select a patient below.</p>{props.patients.slice(0, 8).map((person) => <button key={person.id} onClick={() => { props.selectPatient(person.id); navigate("Journal"); }}><b>{person.name}</b><span>{person.id} · {date(person.birthDate)}</span></button>)}</section>
               </div>
+            ) : tab === "DocuMañana" ? (
+              <DocumentWorkspace api={props.api} worldId={props.view.id} mode="gp" selectedPatient={props.selectedPatient} patients={props.patients} />
             ) : tab === "Appointment book" ? (
               <AppointmentBook
                 now={props.view.now}
@@ -1018,7 +1026,7 @@ function HospitalSummary({ patient, rows, openSection, select }: { patient: Pati
   const sections = [
     { title: "Results & investigations", destination: "Results", records: rows.filter((record) => ["test", "report", "observation", "genomic-test"].includes(record.kind)) },
     { title: "Current care activity", destination: "Journal", records: rows.filter((record) => ["encounter", "task", "referral", "visit"].includes(record.kind) && !finished(record)) },
-    { title: "Documents & handover", destination: "Handover", records: rows.filter((record) => ["document", "discharge", "handover"].includes(record.kind)) },
+    { title: "Documents & handover", destination: "Handover", records: rows.filter((record) => ["document", "discharge", "discharge-summary", "handover"].includes(record.kind)) },
   ];
   return <div className="hospital-summary-panels">
     <div className="hospital-summary-heading"><h2>Inpatient summary</h2><span>Shared clinical record · {patient.id}</span></div>
@@ -1055,14 +1063,10 @@ function HospitalWorkspace(props: Props) {
     <section className="system-ui immersive-ehr hospital-operations">
       <header className="hospital-masthead">
         <div className="hospital-brand">
-          <span aria-hidden="true">▦</span>
-          <div>
-            <strong>Millenni-ish</strong>
-            <small>Cernerish · SIMULATION</small>
-          </div>
+          <ProductBrand product="hospital" />
         </div>
         <nav aria-label="Hospital workspace">
-          {["Hospital operations", "All records"].map((name) => (
+          {["Hospital operations", "All records", "Discharge summaries"].map((name) => (
             <button
               key={name}
               className={section === name ? "active" : ""}
@@ -1092,7 +1096,7 @@ function HospitalWorkspace(props: Props) {
             props.selectPatient(id);
             setRecordId("");
             setDrawerTab("Summary");
-            setDrawerOpen(true);
+            setDrawerOpen(section !== "Discharge summaries");
           }}
         />
         <label>
@@ -1113,7 +1117,9 @@ function HospitalWorkspace(props: Props) {
         className={"hospital-stage" + (drawerOpen && (patient || record) ? " with-encounter" : "")}
       >
         <main className="hospital-board">
-          {section === "Hospital operations" ? (
+          {section === "Discharge summaries" ? (
+            <DocumentWorkspace api={props.api} worldId={props.view.id} mode="hospital" selectedPatient={props.selectedPatient} patients={props.patients} />
+          ) : section === "Hospital operations" ? (
             <HospitalTracking api={props.api} worldId={props.view.id} urgentOnly={urgentOnly} openPatient={(id) => { props.selectPatient(id); setRecordId(""); setDrawerTab("Summary"); setDrawerOpen(true); }} />
           ) : (
             <Journal
@@ -1136,6 +1142,7 @@ function HospitalWorkspace(props: Props) {
             <Banner patient={patient} rows={allRows} />
             {patient && (
               <div className="ehr-toolbar hospital-chart-actions">
+                <button onClick={() => { setSection("Discharge summaries"); setDrawerOpen(false); }}>Write discharge summary</button>
                 {operations.filter((x) => x.type !== "create_referral").map((x) => (
                   <button key={x.type} disabled={props.pending} onClick={() => setOperation(x)}>{x.label}</button>
                 ))}

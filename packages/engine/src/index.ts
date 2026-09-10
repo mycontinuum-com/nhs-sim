@@ -1,3 +1,5 @@
+import { seedDocuments } from "./document-seed.ts";
+import { dischargeDocumentSchema } from "../../contracts/src/documents.ts";
 import { seedPharmacy } from "./pharmacy-seed.ts";
 import { pharmacyProductSchema, pharmacyReferralSchema, supplierQuoteSchema, purchaseOrderSchema } from "../../contracts/src/pharmacy.ts";
 import { seedHospitalAttendances } from "./hospital-seed.ts";
@@ -466,6 +468,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
   );
   seedHospitalAttendances(w);
   seedPharmacy(w);
+  seedDocuments(w);
   populateHistories(w);
   for (const record of w.resources) {
     const created: RecordChange = {
@@ -663,7 +666,49 @@ export class Engine {
         schedule_visit: ["visit", "community"],
         dispatch_robot: ["robot-job", "robotics"],
       };
-      if (["place_pharmacy_order", "receive_pharmacy_order", "receive_pharmacy_referral", "update_pharmacy_referral", "receive_stock", "update_stock_price", "link_prescription_stock"].includes(a.type)) {
+      if (a.type === "save_discharge_summary" || a.type === "process_document") {
+        if (a.type === "save_discharge_summary") {
+          if (site !== "hospital") throw new SimError("Hospital authors discharge summaries", 403);
+          if (!a.dischargeSections || !a.title) throw new SimError("Title and discharge sections required");
+          if (r) {
+            if (r.kind !== "discharge-summary" || a.expectedVersion === undefined || dischargeDocumentSchema.parse(r.data).stage !== "draft") throw new SimError("Only a versioned draft can be edited", 409);
+            if (a.patientId && a.patientId !== r.patientId) throw new SimError("A document cannot change patient", 409);
+            r.version++;
+          } else {
+            if (!a.patientId) throw new SimError("Patient required");
+            r = this.add(w, "discharge-summary", a.title, "hospital", a.patientId);
+          }
+          r.title = a.title;
+          r.status = "draft";
+          r.visibleTo = ["hospital"];
+          r.data = dischargeDocumentSchema.parse({ stage: "draft", sections: a.dischargeSections, assignee: "" });
+        } else {
+          if (!r || r.kind !== "discharge-summary" || a.expectedVersion === undefined) throw new SimError("Versioned discharge document required", 409);
+          const doc = dischargeDocumentSchema.parse(r.data);
+          if (a.documentCommand === "send") {
+            if (site !== "hospital") throw new SimError("Only hospital can send this letter", 403);
+            if (doc.stage !== "draft") throw new SimError("Letter already sent", 409);
+            if (Object.values(doc.sections).some(value => !value.trim())) throw new SimError("Complete every section before sending; explicitly record none or not known where appropriate");
+            r.data = { ...doc, stage: "sent", sentAt: w.now, sentBy: actor };
+            r.visibleTo = ["hospital", "gp"];
+          } else {
+            if (site !== "gp") throw new SimError("GP document processing required", 403);
+            if (doc.stage === "draft" || doc.stage === "filed") throw new SimError("Document is not awaiting processing", 409);
+            if (a.documentCommand === "assign") {
+              if (!a.clinician) throw new SimError("Assignee required");
+              r.data = { ...doc, assignee: a.clinician };
+            } else if (a.documentCommand === "review") {
+              if (doc.stage !== "sent" || !a.text) throw new SimError("An unreviewed letter and review note are required", 409);
+              r.data = { ...doc, stage: "reviewed", reviewedAt: w.now, reviewedBy: actor, reviewNote: a.text };
+            } else if (a.documentCommand === "file") {
+              if (doc.stage !== "reviewed" || !a.text) throw new SimError("Review the letter and enter a filing outcome first", 409);
+              r.data = { ...doc, stage: "filed", filedAt: w.now, filedBy: actor, filingNote: a.text };
+            } else throw new SimError("Document command required");
+          }
+          r.status = String(r.data.stage);
+          r.version++;
+        }
+      } else if (["place_pharmacy_order", "receive_pharmacy_order", "receive_pharmacy_referral", "update_pharmacy_referral", "receive_stock", "update_stock_price", "link_prescription_stock"].includes(a.type)) {
         if (site !== "pharmacy" && site !== "control" && !(a.type === "receive_pharmacy_referral" && ["gp", "hospital", "referrals", "patient"].includes(site))) throw new SimError("Pharmacy access required", 403);
         if (a.type === "place_pharmacy_order") {
           if (!r || r.kind !== "pharmacy-quote" || a.expectedVersion === undefined || !a.quantity) throw new SimError("Versioned supplier quote and quantity in packs required");
@@ -932,6 +977,7 @@ export class Engine {
         }
       } else {
         if (!r) throw new SimError("resourceId required");
+        if (r.kind === "discharge-summary") throw new SimError("Use the document workflow to process this letter", 409);
         if (["problem", "allergy", "hospital-attendance", "pharmacy-product", "pharmacy-referral", "pharmacy-movement", "pharmacy-order", "pharmacy-quote"].includes(r.kind) && a.type !== "share_record")
           throw new SimError(`Use the ${r.kind} editor to change this record`, 409);
         if (a.type === "share_record") {

@@ -1,3 +1,4 @@
+import { dischargeSectionsSchema } from "./documents.ts";
 import { pharmacyPathways } from "./pharmacy.ts";
 import { z } from "zod";
 
@@ -56,21 +57,21 @@ export const sites = [
   },
   {
     id: "pharmacy",
-    name: "Dispensary",
+    name: "ProScrip-ish",
     subtitle: "High Street Pharmacy",
     color: "#11675e",
     kind: "clinical",
   },
   {
     id: "community",
-    name: "Neighbourhood Care",
+    name: "CareBnB",
     subtitle: "Community visiting team",
     color: "#976039",
     kind: "clinical",
   },
   {
     id: "wearables",
-    name: "At home",
+    name: "Witherings",
     subtitle: "Personal health journal",
     color: "#6d71cb",
     kind: "consumer",
@@ -179,6 +180,8 @@ export type World = {
 export const actionSchema = z
   .object({
     type: z.enum([
+      "save_discharge_summary",
+      "process_document",
       "place_pharmacy_order",
       "receive_pharmacy_order",
       "receive_pharmacy_referral",
@@ -213,6 +216,8 @@ export const actionSchema = z
       "restore_staff",
       "allocate_shift",
     ]),
+    dischargeSections: dischargeSectionsSchema.optional(),
+    documentCommand: z.enum(["send", "assign", "review", "file"]).optional(),
     patientId: z.string().optional(),
     resourceId: z.string().optional(),
     title: z.string().min(1).max(500).optional(),

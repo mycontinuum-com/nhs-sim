@@ -1,3 +1,4 @@
+import { ProductBrand } from "./product-brand.tsx";
 import React, { useState, type ComponentProps } from "react";
 import { z } from "zod";
 import type { SystemWorkspace } from "./systems.tsx";
@@ -115,7 +116,7 @@ export function HomeWorkspace(props: Props) {
           ← Neighbourhood
         </button>
         <a className="home-wordmark" href="/wearables/">
-          <span aria-hidden="true">⌂</span> At home
+          <ProductBrand product="wearables" />
         </a>
         <span className="home-synthetic">Synthetic world</span>
       </header>

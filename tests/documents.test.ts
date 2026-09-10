@@ -1,0 +1,47 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { Engine } from "../packages/engine/src/index.ts";
+import { emptyDischargeSections } from "../packages/contracts/src/documents.ts";
+import { upgradeDocumentWorld } from "../packages/engine/src/document-seed.ts";
+test("Discharge letters preserve the sent text and require attributed GP review before filing", () => {
+  const e = new Engine();
+  const sections = { reason: "Observation", course: "Stable fictional course", diagnoses: "No new diagnosis", medicationChanges: "None", results: "None pending", followUp: "Not known", gpActions: "Review handover" };
+  let r = e.action("default", "hospital", { type: "save_discharge_summary", patientId: "SIM-000020", title: "QA discharge", dischargeSections: sections }, "Hospital team", "draft-key");
+  assert.deepEqual(r.visibleTo, ["hospital"]);
+  assert.equal(e.action("default", "hospital", { type: "save_discharge_summary", patientId: "SIM-000020", title: "QA discharge", dischargeSections: sections }, "Hospital team", "draft-key").id, r.id);
+  const command = (site: "gp" | "hospital", command: string, text = "Recorded outcome") => e.action("default", site, { type: "process_document", resourceId: r.id, expectedVersion: r.version, documentCommand: command, text }, site + " team");
+  assert.throws(() => command("gp", "review"), /not visible/);
+  r = command("hospital", "send");
+  assert.deepEqual(r.visibleTo, ["hospital", "gp"]);
+  assert.throws(() => command("hospital", "send"), /already sent/);
+  assert.throws(() => command("gp", "file"), /Review the letter/);
+  assert.throws(() => e.action("default", "hospital", { type: "save_discharge_summary", resourceId: r.id, expectedVersion: r.version, title: "Rewritten", dischargeSections: sections }, "Hospital"), /Only a versioned draft/);
+  assert.throws(() => e.action("default", "gp", { type: "share_record", resourceId: r.id, target: "community" }, "GP"), /document workflow/);
+  r = e.action("default", "gp", { type: "process_document", resourceId: r.id, expectedVersion: r.version, documentCommand: "assign", clinician: "Duty GP" }, "Reception");
+  assert.equal(r.data.assignee, "Duty GP");
+  r = command("gp", "review", "Actions checked");
+  r = command("gp", "file", "Filed without new tasks");
+  assert.equal(r.status, "filed");
+  assert.deepEqual(r.data.sections, sections);
+  assert.equal(r.data.sentBy, "hospital team");
+  assert.equal(r.data.reviewedBy, "gp team");
+  assert.equal(r.provenance?.created?.actor.name, "Hospital team");
+  assert.equal(r.provenance?.changes.at(-1)?.action, "process_document");
+});
+test("Incomplete drafts cannot be sent and seeded inbox migration is additive and idempotent", () => {
+  const e = new Engine();
+  const r = e.action("default", "hospital", { type: "save_discharge_summary", patientId: "SIM-000001", title: "Incomplete", dischargeSections: emptyDischargeSections }, "Hospital");
+  assert.throws(() => e.action("default", "hospital", { type: "process_document", resourceId: r.id, expectedVersion: r.version, documentCommand: "send" }, "Hospital"), /Complete every section/);
+  const world = e.require("default");
+  const upgraded = upgradeDocumentWorld({ ...world, counters: { ...world.counters, documentVersion: 0 } });
+  assert.equal(upgraded.resources.length, world.resources.length);
+  assert.equal(upgradeDocumentWorld(upgraded), upgraded);
+});
+test("Document mutations reject stale versions, other teams and non-clinical services", () => {
+  const e = new Engine();
+  e.create("other");
+  const r = e.action("default", "hospital", { type: "save_discharge_summary", patientId: "SIM-000001", title: "Private draft", dischargeSections: emptyDischargeSections }, "Hospital");
+  assert.throws(() => e.action("default", "hospital", { type: "save_discharge_summary", resourceId: r.id, expectedVersion: r.version + 1, title: "Stale", dischargeSections: emptyDischargeSections }, "Hospital"), /Stale/);
+  assert.throws(() => e.action("other", "hospital", { type: "process_document", resourceId: r.id, expectedVersion: r.version, documentCommand: "send" }, "Other team"), /Unknown resource/);
+  assert.throws(() => e.action("default", "pharmacy", { type: "save_discharge_summary", patientId: "SIM-000001", title: "Wrong service", dischargeSections: emptyDischargeSections }, "Pharmacy"), /Hospital authors/);
+});

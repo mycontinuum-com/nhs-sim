@@ -1,3 +1,4 @@
+import { ProductBrand } from "./product-brand.tsx";
 import { RecordAttribution } from "./record-attribution.tsx";
 import React, { useState } from "react";
 import type { Action, Patient, Resource, SiteId } from "../../contracts/src/index.ts";
@@ -277,15 +278,7 @@ export function CareWorkspace(props: Props) {
   return (
     <div className={`care-workspace ${pharmacy ? "care-pharmacy" : "care-community"}`}>
       <header className="care-header">
-        <div className="care-brand">
-          <span className="care-brand-mark" aria-hidden="true">
-            {pharmacy ? "+" : "⌂"}
-          </span>
-          <div>
-            <strong>{pharmacy ? "High Street Pharmacy" : "Neighbourhood nursing"}</strong>
-            <small>{pharmacy ? "Dispensary workspace" : "Community care workspace"}</small>
-          </div>
-        </div>
+        <ProductBrand product={pharmacy ? "pharmacy" : "community"} />
         <span className="care-simulation">SIMULATION · SYNTHETIC PEOPLE</span>
         <button
           className="care-map-button"

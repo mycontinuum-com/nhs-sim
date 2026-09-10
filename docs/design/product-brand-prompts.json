@@ -1,0 +1,61 @@
+{
+  "mode": "Built-in image generation",
+  "assets": [
+    {
+      "id": "systemtwo",
+      "name": "SystemTwo",
+      "concept": "a cheeky pair of interlocking number TWO tiles, one medical record folder, late-1990s Windows clinical software aesthetic, pale blue and navy",
+      "source": "/Users/souradip/.codex/generated_images/01a08b55-d78c-7181-80c3-db29383a0bb7/exec-e0cbd80f-b7f7-4867-9635-252f59ede7e5.png",
+      "path": "apps/control/public/brands/systemtwo.png",
+      "prompt": "Use case: logo-brand. Asset type: transparent app logo mark for fictional healthcare hackathon software called SystemTwo. Primary request: a cheeky pair of interlocking number TWO tiles, one medical record folder, late-1990s Windows clinical software aesthetic, pale blue and navy. A distinctive tasteful witty logo mark with crisp vector-like edges, bold simple silhouette, restrained details readable at 48px, no actual vendor logos. Center one logo in a square canvas with modest clear padding. Transparent background with genuine alpha, no checkerboard baked in, no mockup, no surrounding frame, no text or letters. This is a fictional parody simulation identity."
+    },
+    {
+      "id": "millenni-ish",
+      "name": "Cernerish Millenni-ish",
+      "concept": "a teal orbit surrounding a slightly wonky millennium clock with hospital cross, polished early-2000s enterprise EPR aesthetic, teal navy silver",
+      "source": "/Users/souradip/.codex/generated_images/01a08b55-d78c-7181-80c3-db29383a0bb7/exec-eb660377-0188-422c-bcbf-b36575cc6cfe.png",
+      "path": "apps/control/public/brands/millenni-ish.png",
+      "prompt": "Use case: logo-brand. Asset type: transparent app logo mark for fictional healthcare hackathon software called Cernerish Millenni-ish. Primary request: a teal orbit surrounding a slightly wonky millennium clock with hospital cross, polished early-2000s enterprise EPR aesthetic, teal navy silver. A distinctive tasteful witty logo mark with crisp vector-like edges, bold simple silhouette, restrained details readable at 48px, no actual vendor logos. Center one logo in a square canvas with modest clear padding. Transparent background with genuine alpha, no checkerboard baked in, no mockup, no surrounding frame, no text or letters. This is a fictional parody simulation identity."
+    },
+    {
+      "id": "proscrip-ish",
+      "name": "ProScrip-ish",
+      "concept": "a charming prescription paper slip with a capsule-shaped tick wearing tiny reading glasses, professional pharmacy software aesthetic, forest green cream",
+      "source": "/Users/souradip/.codex/generated_images/01a08b55-d78c-7181-80c3-db29383a0bb7/exec-1ac680bc-1f1e-4cfd-9d30-e625fcadc59d.png",
+      "path": "apps/control/public/brands/proscrip-ish.png",
+      "prompt": "Use case: logo-brand. Asset type: transparent app logo mark for fictional healthcare hackathon software called ProScrip-ish. Primary request: a charming prescription paper slip with a capsule-shaped tick wearing tiny reading glasses, professional pharmacy software aesthetic, forest green cream. A distinctive tasteful witty logo mark with crisp vector-like edges, bold simple silhouette, restrained details readable at 48px, no actual vendor logos. Center one logo in a square canvas with modest clear padding. Transparent background with genuine alpha, no checkerboard baked in, no mockup, no surrounding frame, no text or letters. This is a fictional parody simulation identity."
+    },
+    {
+      "id": "carebnb",
+      "name": "CareBnB",
+      "concept": "a warm house-shaped medical bag with a door and small caring hand, community nursing visits, terracotta and muted teal",
+      "source": "/Users/souradip/.codex/generated_images/01a08b55-d78c-7181-80c3-db29383a0bb7/exec-2c059759-270c-4be5-873e-34c2ed4ad1d7.png",
+      "path": "apps/control/public/brands/carebnb.png",
+      "prompt": "Use case: logo-brand. Asset type: transparent app logo mark for fictional healthcare hackathon software called CareBnB. Primary request: a warm house-shaped medical bag with a door and small caring hand, community nursing visits, terracotta and muted teal. A distinctive tasteful witty logo mark with crisp vector-like edges, bold simple silhouette, restrained details readable at 48px, no actual vendor logos. Center one logo in a square canvas with modest clear padding. Transparent background with genuine alpha, no checkerboard baked in, no mockup, no surrounding frame, no text or letters. This is a fictional parody simulation identity."
+    },
+    {
+      "id": "witherings",
+      "name": "Witherings",
+      "concept": "a minimalist gently drooping leaf shaped like a pulse curve with a tiny smartwatch loop, consumer wearable health aesthetic, lilac and deep plum",
+      "source": "/Users/souradip/.codex/generated_images/01a08b55-d78c-7181-80c3-db29383a0bb7/exec-3a4c7fe2-823b-4513-832b-e9a53b5e7784.png",
+      "path": "apps/control/public/brands/witherings.png",
+      "prompt": "Use case: logo-brand. Asset type: transparent app logo mark for fictional healthcare hackathon software called Witherings. Primary request: a minimalist gently drooping leaf shaped like a pulse curve with a tiny smartwatch loop, consumer wearable health aesthetic, lilac and deep plum. A distinctive tasteful witty logo mark with crisp vector-like edges, bold simple silhouette, restrained details readable at 48px, no actual vendor logos. Center one logo in a square canvas with modest clear padding. Transparent background with genuine alpha, no checkerboard baked in, no mockup, no surrounding frame, no text or letters. This is a fictional parody simulation identity."
+    },
+    {
+      "id": "documanana",
+      "name": "DocuMañana",
+      "concept": "a sleepy anthropomorphic stack of paper files carrying a tiny coffee cup, witty GP document-management software identity, amber and indigo",
+      "source": "/Users/souradip/.codex/generated_images/01a08b55-d78c-7181-80c3-db29383a0bb7/exec-c35d1e3d-d1ff-4ac8-a2df-8a5e97250f50.png",
+      "path": "apps/control/public/brands/documanana.png",
+      "prompt": "Use case: logo-brand. Asset type: transparent app logo mark for fictional healthcare hackathon software called DocuMañana. Primary request: a sleepy anthropomorphic stack of paper files carrying a tiny coffee cup, witty GP document-management software identity, amber and indigo. A distinctive tasteful witty logo mark with crisp vector-like edges, bold simple silhouette, restrained details readable at 48px, no actual vendor logos. Center one logo in a square canvas with modest clear padding. Transparent background with genuine alpha, no checkerboard baked in, no mockup, no surrounding frame, no text or letters. This is a fictional parody simulation identity."
+    },
+    {
+      "id": "cistoo",
+      "name": "CIS-too",
+      "concept": "two friendly overlapping smartcards with a keyhole and little theatrical eyebrow, health identity emulator, royal purple and cyan",
+      "source": "/Users/souradip/.codex/generated_images/01a08b55-d78c-7181-80c3-db29383a0bb7/exec-664bbdd9-4f87-4ea8-bfe6-c70409a12a8e.png",
+      "path": "apps/control/public/brands/cistoo.png",
+      "prompt": "Use case: logo-brand. Asset type: transparent app logo mark for fictional healthcare hackathon software called CIS-too. Primary request: two friendly overlapping smartcards with a keyhole and little theatrical eyebrow, health identity emulator, royal purple and cyan. A distinctive tasteful witty logo mark with crisp vector-like edges, bold simple silhouette, restrained details readable at 48px, no actual vendor logos. Center one logo in a square canvas with modest clear padding. Transparent background with genuine alpha, no checkerboard baked in, no mockup, no surrounding frame, no text or letters. This is a fictional parody simulation identity."
+    }
+  ]
+}

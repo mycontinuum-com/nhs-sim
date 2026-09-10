@@ -1,0 +1,33 @@
+---
+title: DocuMañana and discharge letters
+sidebar_position: 7
+---
+
+DocuMañana is the GP practice's simulated document inbox. Hospital teams write discharge summaries in their discharge correspondence workspace and explicitly send them to the GP practice in the same team world.
+
+## Hospital handover
+
+Select any patient in the hospital directory, then open **Discharge summaries**. Choose **New discharge summary** and enter the reason for admission, hospital course, diagnoses, medication changes, results, follow-up arrangements and requested GP actions.
+
+**Save draft** keeps the letter available only to the hospital. You can return to edit it. **Send to GP practice** requires every section to contain text. Where information is absent, record that explicitly. Sending locks the clinical text and makes the letter available in DocuMañana. The original author and sending team remain visible.
+
+## GP document processing
+
+Open **DocuMañana** and select an incoming letter. Read the complete letter and its authorship history. You can assign it to a named clinician or team.
+
+Enter a review note and choose **Confirm reviewed**. Then enter the filing outcome and choose **File to patient history**. Filing requires a recorded review. Filed letters remain accessible in the **filed** queue, including the original hospital text and the GP review and filing notes. Assignment records responsibility; it does not impersonate a clinician or change access permissions.
+
+These actions do not automatically prescribe medication, create diagnoses, arrange follow-up or send messages outside the simulation. Teams must carry out any additional simulated actions separately.
+
+## Agent API
+
+Use your team API key with the existing authenticated site action endpoints. Documents are shared only within that team's world.
+
+- `GET /api/sites/hospital/documents` returns hospital drafts and sent letters with patient names.
+- `GET /api/sites/gp/documents` returns delivered letters and their processing status.
+- `POST /api/sites/hospital/actions` with `type: "save_discharge_summary"`, `patientId`, `title` and `dischargeSections` creates a draft. The sections object contains `reason`, `course`, `diagnoses`, `medicationChanges`, `results`, `followUp` and `gpActions`.
+- To update a draft, include its `resourceId` and `expectedVersion`.
+- Send through the hospital action endpoint using `type: "process_document"`, `documentCommand: "send"`, `resourceId` and `expectedVersion`.
+- The GP action endpoint accepts document commands `assign` (with `clinician`), `review` (with `text`) and `file` (with `text`). Each requires `resourceId` and `expectedVersion`.
+
+Use a fresh idempotency key for each operation and reuse it when retrying the identical request. Stale resource versions and invalid stage changes return an error without changing the letter.

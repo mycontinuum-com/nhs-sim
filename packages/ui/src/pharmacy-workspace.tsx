@@ -1,3 +1,4 @@
+import { ProductBrand } from "./product-brand.tsx";
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Action, Patient, Resource } from "../../contracts/src/index.ts";
@@ -85,13 +86,7 @@ export function PharmacyWorkspace(props: Props) {
   return (
     <div className="pharmacy-workspace">
       <header className="rx-header">
-        <div className="rx-brand">
-          <span>✚</span>
-          <div>
-            <b>Counterpart</b>
-            <small>HIGH STREET PHARMACY · SIMULATION</small>
-          </div>
-        </div>
+        <ProductBrand product="pharmacy" />
         <div className="rx-header-right">
           <span>{data.data ? date(data.data.now) : "Opening dispensary…"}</span>
           <a href="/docs/pharmacy/">Pharmacy guide ↗</a>
@@ -458,7 +453,7 @@ export function PharmacyWorkspace(props: Props) {
                 team's world with its author.
               </p>
               <div className="rx-paper">
-                <b>COUNTERPART / DAILY CHECK</b>
+                <b>PROSCRIP-ISH / DAILY CHECK</b>
                 <p>Receive → Review → Approve → Dispense → Collect</p>
                 <small>Synthetic prescriptions and prices · Not for real dispensing</small>
               </div>

@@ -65,7 +65,7 @@ const places = [
     href: "/community/",
     x: 49,
     y: 64,
-    system: "Neighbourhood Care",
+    system: "CareBnB",
   },
   {
     id: "pharmacy",
@@ -76,7 +76,7 @@ const places = [
     href: "/pharmacy/",
     x: 37,
     y: 79,
-    system: "Dispensary",
+    system: "ProScrip-ish",
   },
   {
     id: "home",
@@ -87,7 +87,7 @@ const places = [
     href: "/wearables/",
     x: 17,
     y: 73,
-    system: "At home",
+    system: "Witherings",
   },
   {
     id: "identity",
