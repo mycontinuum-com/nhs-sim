@@ -1,3 +1,4 @@
+import { RecordAttribution } from "./record-attribution.tsx";
 import React, { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Action, Patient, Resource, SiteId } from "../../contracts/src/index.ts";
@@ -171,13 +172,12 @@ export function Consultations({
               <span>
                 {stamp(r.createdAt)} · {r.status} · {String(r.data.mode ?? r.owner)}
               </span>
+              <RecordAttribution record={r} />
             </summary>
             <p className="gp-note-text">
               {String(r.data.text ?? r.data.summary ?? "No narrative recorded for this contact.")}
             </p>
-            <small>
-              {String(r.data.author ?? "Simulation history")} · Version {r.version}
-            </small>
+            <RecordAttribution record={r} history summary={false} />
             {r.kind === "consultation" && r.owner === siteId && (
               <button
                 disabled={save.isPending}

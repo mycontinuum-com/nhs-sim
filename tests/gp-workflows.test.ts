@@ -55,7 +55,7 @@ test("GP consultation draft survives reload, saves and edits with version checks
   );
   assert.equal(saved.version, 2);
   assert.equal(saved.status, "saved");
-  assert.equal(saved.data.author, "Dr Editor");
+  assert.equal(saved.data.author, "Dr Fictional");
   const before = JSON.stringify(restored.state);
   assert.throws(
     () =>

@@ -1,3 +1,4 @@
+import { RecordAttribution } from "./record-attribution.tsx";
 import React, { useState } from "react";
 import { z } from "zod";
 import { AppointmentBook, Consultations, type WorkflowApi } from "./gp-workflows.tsx";
@@ -345,6 +346,7 @@ function Detail({
           ×
         </button>
       </header>
+      <RecordAttribution record={record} history />
       <dl>
         <dt>Service</dt>
         <dd>{record.owner}</dd>
@@ -505,6 +507,7 @@ function Journal({
                   <button className="ehr-record-link" onClick={() => select(r.id)}>
                     {r.title}
                   </button>
+                  <RecordAttribution record={r} />
                 </td>
                 <td>
                   <span>{r.owner}</span>
@@ -584,6 +587,7 @@ function Handover({
                   <button className="ehr-text-button" onClick={() => select(r.id)}>
                     {r.title}
                   </button>
+                  <RecordAttribution record={r} />
                   <small>
                     {r.owner} · {r.status}
                   </small>
@@ -761,6 +765,7 @@ function CareCoordination({
                   <button className="ehr-record-link" onClick={() => select(r.id)}>
                     {r.title}
                   </button>
+                  <RecordAttribution record={r} />
                   <small>
                     {r.owner} · {r.id}
                   </small>

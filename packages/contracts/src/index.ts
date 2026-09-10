@@ -97,6 +97,17 @@ export type Patient = {
   goals: string[];
   synthetic: true;
 };
+export type RecordActor =
+  | { kind: "team"; name: string }
+  | { kind: "operator"; name: string }
+  | { kind: "simulation"; name: string };
+export type RecordChange = {
+  actor: RecordActor;
+  source: SiteId;
+  action: string;
+  time: number;
+  version: number;
+};
 export type Resource = {
   id: string;
   patientId?: string;
@@ -110,6 +121,7 @@ export type Resource = {
   dueAt?: number;
   data: Record<string, unknown>;
   version: number;
+  provenance?: { created: RecordChange | null; changes: RecordChange[] };
 };
 export type SimEvent = {
   id: string;

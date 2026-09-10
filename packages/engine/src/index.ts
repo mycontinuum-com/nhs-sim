@@ -4,6 +4,8 @@ import {
   actionSchema,
   type Action,
   type Resource,
+  type RecordActor,
+  type RecordChange,
   type SimEvent,
   type SiteId,
   type World,
@@ -457,6 +459,13 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     { at: START + 24 * 60 * minute, type: "screening" },
   );
   populateHistories(w);
+  for (const record of w.resources) {
+    const created: RecordChange = {
+      actor: { kind: "simulation", name: "Synthetic seed" },
+      source: record.owner, action: "seed", time: record.createdAt, version: record.version,
+    };
+    record.provenance = { created, changes: [] };
+  }
   return w;
 }
 export class Engine {
@@ -513,7 +522,15 @@ export class Engine {
       throw error;
     }
   }
-  event(w: World, type: string, actor: string, detail: string, r?: Resource) {
+  event(w: World, type: string, actor: string, detail: string, r?: Resource, automatic = true) {
+    if (r && automatic) {
+      const change: RecordChange = {
+        actor: { kind: "simulation", name: actor }, source: r.owner,
+        action: type, time: w.now, version: r.version,
+      };
+      r.provenance ??= { created: null, changes: [] };
+      r.provenance.changes.push(change);
+    }
     const event: SimEvent = {
       id: "e-" + w.nextId++,
       time: w.now,
@@ -585,13 +602,21 @@ export class Engine {
       data,
       version: 1,
     };
+    r.provenance = {
+      created: { actor: { kind: "simulation", name: "Simulator" }, source: owner,
+        action: "create_record", time: w.now, version: 1 },
+      changes: [],
+    };
     w.resources.push(r);
     return r;
   }
-  action(id: string, site: SiteId, input: unknown, actor: string, key?: string) {
+  action(id: string, site: SiteId, input: unknown, identity: string | RecordActor, key?: string) {
+    const attribution: RecordActor = typeof identity === "string"
+      ? { kind: "team", name: identity } : identity;
+    const actor = attribution.name;
     const a = actionSchema.parse(input);
     return this.transaction(id, (w) => {
-      const fingerprint = JSON.stringify({ site, actor, a });
+      const fingerprint = JSON.stringify({ site, actor: attribution, a });
       if (key) {
         const receipt = this.state.receipts[id + ":" + key];
         if (receipt) {
@@ -619,6 +644,7 @@ export class Engine {
         if (a.expectedVersion !== undefined && r.version !== a.expectedVersion)
           throw new SimError("Stale resource version", 409);
       }
+      const existingId = r?.id;
       const create: Partial<Record<Action["type"], [string, SiteId]>> = {
         create_task: ["task", site],
         create_referral: ["referral", "referrals"],
@@ -644,7 +670,7 @@ export class Engine {
         r.data = {
           ...r.data,
           text: a.text,
-          author: actor,
+          author: r.data.author ?? actor,
           mode: a.mode ?? r.data.mode ?? "in-person",
           recordedAt: w.now,
         };
@@ -744,7 +770,7 @@ export class Engine {
           if (a.type === "report_absence") r.status = "absent";
           if (a.type === "restore_staff") r.status = "available";
           if (a.type === "allocate_shift") r.data.allocated = !r.data.allocated;
-          this.event(w, "staffing.changed", actor, "A&E staffed capacity recalculated", r);
+          this.event(w, "staffing.changed", actor, "A&E staffed capacity recalculated", r, false);
         } else {
           if (
             site !== "control" &&
@@ -816,7 +842,15 @@ export class Engine {
         r.version++;
       }
       w.counters.actions++;
-      this.event(w, a.type, actor, r!.title, r);
+      const change: RecordChange = {
+        actor: attribution, source: site, action: a.type, time: w.now, version: r!.version,
+      };
+      if (r!.id !== existingId) r!.provenance = { created: change, changes: [change] };
+      else {
+        r!.provenance ??= { created: null, changes: [] };
+        r!.provenance.changes.push(change);
+      }
+      this.event(w, a.type, actor, r!.title, r, false);
       if (key)
         this.state.receipts[id + ":" + key] = {
           fingerprint,

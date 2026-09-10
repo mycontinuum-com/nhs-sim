@@ -243,7 +243,7 @@ const server = createServer(async (req, res) => {
             id,
             "legacy",
             { type: "share_record", resourceId: form.get("resourceId"), target: "gp" },
-            key?.team ?? "operator",
+            key ? { kind: "team", name: key.team } : { kind: "operator", name: "Operator" },
           ),
         );
         res.writeHead(303, { Location: "/browser/legacy" });
@@ -385,7 +385,7 @@ const server = createServer(async (req, res) => {
               id,
               api.site as SiteId,
               action,
-              key?.team ?? "operator",
+              key ? { kind: "team", name: key.team } : { kind: "operator", name: "Operator" },
               req.headers["idempotency-key"] as string | undefined,
             ),
           ),
@@ -478,7 +478,7 @@ const server = createServer(async (req, res) => {
               id,
               site,
               action,
-              key?.team ?? "operator",
+              key ? { kind: "team", name: key.team } : { kind: "operator", name: "Operator" },
               req.headers["idempotency-key"] as string | undefined,
             ),
           ),

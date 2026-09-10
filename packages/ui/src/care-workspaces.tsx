@@ -1,3 +1,4 @@
+import { RecordAttribution } from "./record-attribution.tsx";
 import React, { useState } from "react";
 import type { Action, Patient, Resource, SiteId } from "../../contracts/src/index.ts";
 import "./care-workspaces.css";
@@ -677,6 +678,7 @@ export function CareWorkspace(props: Props) {
                   </p>
                 </div>
               )}
+              <RecordAttribution record={selected} history />
               {typeof selected.data.note === "string" && (
                 <p className="care-muted">{selected.data.note}</p>
               )}

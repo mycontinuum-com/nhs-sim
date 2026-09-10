@@ -18,6 +18,11 @@ if (process.env.SMOKE_RESTORE === "1") {
     restored.data.resources.find((r) => r.id === previous.resourceId)?.status,
     "available",
   );
+  const notes = await call("/api/sites/gp/view?patient=SIM-000003", {
+    headers: { Authorization: "Bearer " + previous.key },
+  });
+  assert.deepEqual(notes.data.resources.find((r) => r.id === previous.noteId)?.provenance,
+    previous.provenance, "consultation attribution survives process restart");
   console.log("PASS: team key, world clock and resource state survive application restart");
   process.exit(0);
 }
@@ -126,6 +131,25 @@ assert.ok(
   "legacy form transfers document to GP",
 );
 mkdirSync(".data", { recursive: true });
+const note = { type: "save_consultation", patientId: "SIM-000003", title: "Attribution smoke proof",
+  text: "Fictional test note", consultationStatus: "saved", author: "Forged team",
+  provenance: { created: { actor: { kind: "team", name: "Forged team" } } } };
+const created = await call("/api/sites/gp/actions", {
+  method: "POST", headers, body: JSON.stringify(note),
+});
+assert.equal(created.status, 200);
+assert.deepEqual(created.data.provenance.created.actor, { kind: "team", name: "Smoke test" });
+const edit = { ...note, resourceId: created.data.id, expectedVersion: 1, text: "Updated fictional note" };
+const edited = await call("/api/sites/gp/actions", {
+  method: "POST", headers: { ...headers, "Idempotency-Key": "attribution-edit" }, body: JSON.stringify(edit),
+});
+assert.equal(edited.status, 200);
+assert.equal(edited.data.provenance.changes.length, 2);
+assert.deepEqual(edited.data.provenance.created, created.data.provenance.created);
+const retry = await call("/api/sites/gp/actions", {
+  method: "POST", headers: { ...headers, "Idempotency-Key": "attribution-edit" }, body: JSON.stringify(edit),
+});
+assert.deepEqual(retry.data.provenance, edited.data.provenance);
 writeFileSync(
   ".data/smoke-state.json",
   JSON.stringify({
@@ -133,6 +157,8 @@ writeFileSync(
     world: view.data.id,
     now: view.data.now,
     resourceId: order.data.id,
+    noteId: created.data.id,
+    provenance: edited.data.provenance,
   }),
 );
 console.log(
