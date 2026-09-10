@@ -1,3 +1,4 @@
+import { attributeSyntheticRecord } from "./synthetic-attribution.ts";
 import { generateMedicationHistory, generateAllergyHistory } from "./medication-history.ts";
 import type { Patient, Resource } from "../../contracts/src/index.ts";
 import profile from "./ehr-profile.json" with { type: "json" };
@@ -557,5 +558,6 @@ export function generatePopulationBatch(input: BatchInput): {
       });
     }
   }
+  resources.forEach(attributeSyntheticRecord);
   return { patients, resources, version: POPULATION_BATCH_VERSION };
 }

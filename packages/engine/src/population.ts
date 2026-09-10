@@ -1,3 +1,4 @@
+import { attributeSyntheticRecord } from "./synthetic-attribution.ts";
 import { generateMedicationHistory, generateAllergyHistory } from "./medication-history.ts";
 import type { Patient, World } from "../../contracts/src/index.ts";
 import profile from "./ehr-profile.json" with { type: "json" };
@@ -58,6 +59,7 @@ function random(seed: number) {
 }
 
 export function populateHistories(world: World) {
+  const initialResources = world.resources.length;
   const draw = random(world.seed);
   for (const [index, patient] of world.patients.entries()) {
     if (index >= stories.length) {
@@ -209,6 +211,7 @@ export function populateHistories(world: World) {
     }
   }
   enrichPatientStories(world);
+  world.resources.slice(initialResources).forEach(attributeSyntheticRecord);
 }
 
 function addHistory(
@@ -688,6 +691,7 @@ const stories: LifeStory[] = [
 ];
 
 export function enrichPatientStories(world: World) {
+  const initialResources = world.resources.length;
   for (const [index, story] of stories.entries()) {
     if (
       world.resources.some(
@@ -808,4 +812,5 @@ export function enrichPatientStories(world: World) {
       );
     }
   }
+  world.resources.slice(initialResources).forEach(attributeSyntheticRecord);
 }

@@ -1,3 +1,4 @@
+import { migrateRecordAttribution } from "./attribution-migration.ts";
 import { upgradeHospitalWorld } from "../../../packages/engine/src/hospital-seed.ts";
 import pg from "pg";
 import { migrateMedicationHistory } from "./medication-migration.ts";
@@ -46,6 +47,7 @@ export class Store {
         await this.persistence.write(client, null, this.engine.state);
       }
       await migrateMedicationHistory(client);
+      await migrateRecordAttribution(client);
       const loaded = await this.persistence.load(client);
       if (!loaded) throw new Error("Row storage did not initialize");
       this.engine.state = { ...loaded, worlds: Object.fromEntries(Object.entries(loaded.worlds).map(([id, world]) => [id, upgradeHospitalWorld(world)])) };

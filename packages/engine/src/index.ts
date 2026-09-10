@@ -469,7 +469,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
       actor: { kind: "simulation", name: "Synthetic seed" },
       source: record.owner, action: "seed", time: record.createdAt, version: record.version,
     };
-    record.provenance = { created, changes: [] };
+    record.provenance ??= { created, changes: [] };
   }
   return w;
 }

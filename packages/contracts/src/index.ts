@@ -121,7 +121,7 @@ export type Resource = {
   dueAt?: number;
   data: Record<string, unknown>;
   version: number;
-  provenance?: { created: RecordChange | null; changes: RecordChange[] };
+  provenance?: { created: RecordChange | null; changes: RecordChange[]; recovery?: { migration: string; basis: "synthetic-history" | "simulation-generator" | "recorded-change" | "team-event" | "unavailable" } };
 };
 export type SimEvent = {
   id: string;

@@ -13,11 +13,13 @@ function Change({ change }: { change: RecordChange }) {
 export function RecordAttribution({ record, history = false, summary = true }: { record: Resource; history?: boolean; summary?: boolean }) {
   const created = record.provenance?.created;
   const changes = record.provenance?.changes ?? [];
+  const recovery = record.provenance?.recovery;
   const latest = changes.at(-1);
   return <div className="record-attribution">
-    {summary && <div>{created ? <>Created by <Change change={created} /></> : "Original author not recorded"}</div>}
+    {summary && <div>{created ? <>Created by <Change change={created} /></> : recovery?.basis === "unavailable" ? "Legacy record · original author unavailable" : "Original author not recorded"}</div>}
     {summary && latest && (!created || latest.version !== created.version || latest.actor.name !== created.actor.name) &&
       <div>Last changed by <Change change={latest} /></div>}
+    {history && recovery && <small>{recovery.basis === "unavailable" ? "No reliable creation evidence survives for this legacy record. Later changes retain their recorded authors." : recovery.basis === "simulation-generator" ? "Authorship restored from a known simulator-generated arrival record. The actor is an automated simulation process." : recovery.basis === "synthetic-history" ? "Authorship restored from generated synthetic history. This is a fictional author, not a participant team." : "Authorship restored from recorded creation evidence."}</small>}
     {history && changes.length > 0 && <details>
       <summary>Activity history · {changes.length}</summary>
       <ol>{changes.map((change, index) => <li key={index}>
