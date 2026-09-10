@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { setTimeout } from "node:timers/promises";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 const base = process.env.TEST_ORIGIN ?? "http://localhost:8080";
 const call = async (path, options = {}) => {
@@ -147,10 +148,13 @@ assert.equal(step.status, 200);
 assert.equal(step.data.paused, true, "one click pauses and advances a running clock");
 assert.ok(step.data.events.some((event) => event.actor === "Smoke test" && event.type.startsWith("clock.")),
   "team clock actions appear in the activity trail");
+// Team creation is limited to one request per IP every two seconds.
+await setTimeout(2100);
 const otherTeam = await call("/api/keys", {
   method: "POST", headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ teamName: "Clock isolation" }),
 });
+assert.equal(otherTeam.status, 201, "create the second team before checking clock isolation");
 const otherClock = await call("/api/clock", { headers: { Authorization: "Bearer " + otherTeam.data.apiKey } });
 assert.equal(otherClock.status, 200);
 assert.ok(!otherClock.data.events.some((event) => event.resourceId === order.data.id || event.actor === "Smoke test"),
