@@ -65,74 +65,107 @@ a {
   color: var(--brand);
 }
 .app {
-  display: grid;
-  grid-template-columns: 245px 1fr;
   min-height: 100vh;
 }
-aside {
-  background: #10293e;
-  color: #fff;
-  padding: 24px 16px;
+.app-bar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  min-height: 72px;
+  padding: 12px 32px;
+  background: #fff;
+  border-bottom: 1px solid #d8e2e9;
+  position: relative;
+  z-index: 20;
 }
 .wordmark {
-  font-size: 27px;
+  color: #15364b;
+  font-size: 24px;
   font-weight: 850;
-  color: #fff;
-  text-decoration: none;
   letter-spacing: -1px;
-  padding: 0 10px 20px;
+  text-decoration: none;
+  white-space: nowrap;
 }
 .wordmark span {
-  color: #68d1d1;
+  color: #147d7b;
 }
-.wordmark small {
-  display: block;
-  font-size: 12px;
-  letter-spacing: 1.5px;
-  color: #aec5d5;
+.system-picker {
+  position: relative;
 }
-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+.system-picker > summary {
+  cursor: pointer;
+  padding: 9px 13px;
+  border: 1px solid #d8e2e9;
+  border-radius: 6px;
+  list-style: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.system-picker > summary span {
+  margin-left: 20px;
+}
+.system-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 0;
+  width: min(660px, calc(100vw - 48px));
+  max-height: 70vh;
+  overflow: auto;
+  padding: 24px;
+  background: white;
+  border: 1px solid #d8e2e9;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px #16384e24;
+}
+.system-menu nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 24px;
 }
 .nav-group {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin: 0 0 12px;
+  gap: 3px;
 }
 .nav-group > small {
-  padding: 0 10px 4px;
-  color: #7fa2b8;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
+  color: #617383;
+  font-weight: 700;
+  padding: 0 10px 6px;
 }
-nav a {
-  padding: 9px 10px;
+.system-menu nav a {
+  padding: 8px 10px;
   text-decoration: none;
-  color: #c3d2dd;
+  color: #23445a;
   font-size: 14px;
   border-radius: 4px;
 }
-nav a.active {
-  background: #fff;
-  color: #17324d;
-  font-weight: 700;
+.system-menu nav a.active,
+.system-menu nav a:hover {
+  background: #edf5f5;
+  color: #0c6664;
 }
-nav a:hover {
-  background: #274457;
-  color: white;
+.docs-link {
+  color: #23445a;
+  font-size: 14px;
+  text-underline-offset: 4px;
 }
-footer {
-  margin-top: auto;
-  padding: 32px 10px 0;
+.environment-label {
+  margin-left: auto;
   font-size: 12px;
-  color: #c4d3df;
+  color: #617383;
+}
+.clock-disclosure {
+  margin-bottom: 20px;
+}
+.clock-disclosure > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: #526d80;
+  padding: 8px 0;
+}
+.clock-disclosure .clock {
+  margin-top: 8px;
 }
 main {
   min-width: 0;
@@ -395,7 +428,12 @@ iframe {
   position: absolute;
   inset: 0;
   content: "";
-  background: linear-gradient(90deg, rgba(4, 22, 38, 0.92) 0%, rgba(4, 22, 38, 0.5) 44%, transparent 72%);
+  background: linear-gradient(
+    90deg,
+    rgba(4, 22, 38, 0.92) 0%,
+    rgba(4, 22, 38, 0.5) 44%,
+    transparent 72%
+  );
 }
 .control-visual img {
   position: absolute;
@@ -611,9 +649,6 @@ iframe {
   color: #4f2780;
 }
 @media (max-width: 1000px) {
-  .app {
-    grid-template-columns: 190px 1fr;
-  }
   .metrics {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -647,28 +682,27 @@ iframe {
   .app {
     display: block;
   }
-  aside {
-    padding: 12px;
+  .app-bar {
+    gap: 12px;
+    padding: 12px 18px;
+    flex-wrap: wrap;
   }
-  nav {
-    flex-direction: row;
-    overflow: auto;
+  .system-picker {
+    position: static;
   }
-  .nav-group {
-    flex-direction: row;
-    margin: 0;
+  .system-menu {
+    left: 18px;
+    top: 100%;
+    width: calc(100vw - 36px);
   }
-  .nav-group > small {
+  .system-menu nav {
+    grid-template-columns: 1fr;
+  }
+  .environment-label {
     display: none;
   }
-  nav a {
-    white-space: nowrap;
-  }
-  .wordmark {
-    padding-bottom: 10px;
-  }
-  footer {
-    display: none;
+  .docs-link {
+    margin-left: auto;
   }
   .section-heading {
     align-items: stretch;
@@ -697,4 +731,22 @@ iframe {
     min-height: 300px;
     padding: 24px;
   }
+}
+
+.resource-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+  color: #526d80;
+  font-size: 12px;
+}
+.resource-pagination span {
+  flex: 1;
+  min-width: 220px;
+}
+.resource-pagination button {
+  font-size: 12px;
+  padding: 6px 10px;
 }

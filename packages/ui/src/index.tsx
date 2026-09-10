@@ -80,6 +80,9 @@ type View = {
   paused: boolean;
   population: number;
   resources: Resource[];
+  resourceTotal?: number;
+  resourceOffset?: number;
+  resourceLimit?: number;
   events: SimEvent[];
   agents?: { id: string; enabled: boolean }[];
   counters: Record<string, number>;
@@ -369,6 +372,8 @@ function Workbench({ siteId }: { siteId: SiteId }) {
   const [title, setTitle] = useState(""),
     [actionType, setActionType] = useState<Action["type"]>("create_task");
   const [notice, setNotice] = useState("");
+  const [systemSearch, setSystemSearch] = useState("");
+  const [resourceOffset, setResourceOffset] = useState(0);
   const suffix = siteId === "control" ? "?world=" + encodeURIComponent(world) : "";
   async function api<T>(path: string, data?: unknown): Promise<T> {
     const response = await fetch(path, {
@@ -397,19 +402,29 @@ function Workbench({ siteId }: { siteId: SiteId }) {
       ),
   });
   const view = useQuery({
-    queryKey: ["view", siteId, key, world],
-    queryFn: () => api<View>("/api/sites/" + siteId + "/view" + suffix),
+    queryKey: ["view", siteId, key, world, patient, resourceOffset],
+    queryFn: () =>
+      api<View>(
+        "/api/sites/" +
+          siteId +
+          "/view" +
+          suffix +
+          (suffix ? "&" : "?") +
+          (patient
+            ? "patient=" + encodeURIComponent(patient)
+            : "limit=200&offset=" + resourceOffset),
+      ),
     enabled: !!key && siteId !== "legacy",
     refetchInterval: 2000,
   });
   const patients = useQuery({
-    queryKey: ["patients", siteId, key, search, world],
+    queryKey: ["patients", siteId, key, search, patient, world],
     queryFn: () =>
       api<{ items: Patient[]; total: number }>(
         "/api/sites/" +
           (siteId === "legacy" ? "gp" : siteId) +
           "/patients?q=" +
-          encodeURIComponent(search) +
+          encodeURIComponent(patient || search) +
           (siteId === "control" ? "&world=" + encodeURIComponent(world) : ""),
       ),
     enabled: !!key && siteId !== "legacy",
@@ -430,6 +445,7 @@ function Workbench({ siteId }: { siteId: SiteId }) {
       setNotice(
         "Team world created, paused and ready. Open any clinical site. Keep a copy of your key before closing this session.",
       );
+      if (siteId === "control") location.assign("/gp/");
     },
     onError: (e) => setNotice(e.message),
   });
@@ -450,41 +466,67 @@ function Workbench({ siteId }: { siteId: SiteId }) {
       }
       style={{ "--brand": site.color } as CSSProperties}
     >
-      <aside>
+      <div className="app-bar">
         <a className="wordmark" href="/control/">
           NHS<span>SIM</span>
-          <small>NEIGHBOURHOOD LAB</small>
         </a>
-        <nav aria-label="Connected systems">
-          {navigation.map((group) => (
-            <div className="nav-group" key={group.label}>
-              <small>{group.label}</small>
-              {group.ids.map((id) => {
-                const s = sites.find((site) => site.id === id)!;
+        <details className="system-picker">
+          <summary>
+            {site.name} <span aria-hidden="true">⌄</span>
+          </summary>
+          <div className="system-menu">
+            <label>
+              Find a service
+              <input
+                value={systemSearch}
+                onChange={(e) => setSystemSearch(e.target.value)}
+                placeholder="Search systems…"
+              />
+            </label>
+            <nav aria-label="Connected systems">
+              {navigation.map((group) => {
+                const matches = sites.filter(
+                  (s) =>
+                    group.ids.some((id) => id === s.id) &&
+                    (s.name + " " + s.subtitle).toLowerCase().includes(systemSearch.toLowerCase()),
+                );
                 return (
-                  <a
-                    key={s.id}
-                    href={"/" + s.id + "/" + (patient ? "?patient=" + patient : "")}
-                    className={s.id === siteId ? "active" : ""}
-                  >
-                    {s.name}
-                  </a>
+                  matches.length > 0 && (
+                    <div className="nav-group" key={group.label}>
+                      <small>{group.label}</small>
+                      {matches.map((s) => (
+                        <a
+                          key={s.id}
+                          href={
+                            "/" +
+                            s.id +
+                            "/" +
+                            (patient ? "?patient=" + encodeURIComponent(patient) : "")
+                          }
+                          className={s.id === siteId ? "active" : ""}
+                          aria-current={s.id === siteId ? "page" : undefined}
+                        >
+                          {s.name}
+                        </a>
+                      ))}
+                    </div>
+                  )
                 );
               })}
-            </div>
-          ))}
-        </nav>
-        <footer>
-          Fictional organisations.
-          <br />
-          Synthetic people. Real workflows.
-          <br />
-          <strong>Not for clinical use.</strong>
-        </footer>
-      </aside>
+              {!sites.some((s) =>
+                (s.name + " " + s.subtitle).toLowerCase().includes(systemSearch.toLowerCase()),
+              ) && <p>No matching services.</p>}
+            </nav>
+          </div>
+        </details>
+        <a className="docs-link" href="/docs/">
+          Documentation
+        </a>
+        <span className="environment-label">Synthetic environment</span>
+      </div>
       <main>
         <div className="simulation-banner">
-          SIMULATED ENVIRONMENT · NO REAL PATIENT DATA · ALL PRODUCT NAMES ARE FICTIONAL PARODIES
+          Fictional people and organisations · Simulation only
         </div>
         <header>
           <div>
@@ -511,7 +553,7 @@ function Workbench({ siteId }: { siteId: SiteId }) {
                 <br />
                 Every service in motion.
               </strong>
-              <span>Pause it. Break it. Build something that closes the loop.</span>
+              <span>Test an agent across referrals, results and care handovers.</span>
             </div>
           </section>
         )}
@@ -519,8 +561,8 @@ function Workbench({ siteId }: { siteId: SiteId }) {
           <section className="panel access">
             <h2>Enter the neighbourhood</h2>
             <p>
-              Write your team name to receive a key and an isolated, seeded world. No approval
-              queue. No sales call.
+              Create an isolated synthetic neighbourhood for your team. Use your API key to connect
+              an agent and explore the same records in each service.
             </p>
             <form
               onSubmit={(e) => {
@@ -570,7 +612,10 @@ function Workbench({ siteId }: { siteId: SiteId }) {
         )}
         {tab === "apis" ? (
           <section className="panel">
-            <h2>Developer desk</h2>
+            <h2>Connect your agent</h2>
+            <p>
+              <a href="/docs/">Open the developer guide</a> for setup, workflows and API reference.
+            </p>
             <p>
               Every endpoint lives on this origin. Send <code>Authorization: Bearer YOUR_KEY</code>.
               Your key selects your team's world. NHS adapters are simplified local mocks, not
@@ -582,16 +627,19 @@ function Workbench({ siteId }: { siteId: SiteId }) {
                 <code className="key">{key}</code>
               </details>
             )}
-            <div className="api-grid">
-              {catalogue.data?.apis.map((a) => (
-                <article key={a.id}>
-                  <h3>{a.name}</h3>
-                  <p>{a.description}</p>
-                  <code>GET /api/nhs/{a.id}</code>
-                  <p>Scope: {a.site}</p>
-                </article>
-              ))}
-            </div>
+            <details>
+              <summary>Browse available adapters</summary>
+              <div className="api-grid">
+                {catalogue.data?.apis.map((a) => (
+                  <article key={a.id}>
+                    <h3>{a.name}</h3>
+                    <p>{a.description}</p>
+                    <code>GET /api/nhs/{a.id}</code>
+                    <p>Scope: {a.site}</p>
+                  </article>
+                ))}
+              </div>
+            </details>
             <h3>Legacy integration request</h3>
             <button
               onClick={async () => {
@@ -636,42 +684,73 @@ function Workbench({ siteId }: { siteId: SiteId }) {
             )}
             {view.data && (
               <>
-                <section className="clock">
-                  <div>
-                    <small>SIMULATION TIME · UTC</small>
-                    <strong>
-                      {new Date(view.data.now).toISOString().replace("T", " ").slice(0, 19)}
-                    </strong>
-                    <span>
-                      {view.data.paused ? "Paused" : "Running"} · {view.data.speed}×
-                    </span>
-                  </div>
-                  <button
-                    disabled={mutation.isPending}
-                    onClick={() => clock({ paused: !view.data!.paused })}
-                  >
-                    {view.data.paused ? "▶ Run" : "Ⅱ Pause"}
-                  </button>
-                  <label>
-                    Speed
-                    <select
-                      value={view.data.speed}
-                      onChange={(e) => clock({ speed: Number(e.target.value) })}
+                <details
+                  className="clock-disclosure"
+                  open={siteId === "control" ? true : undefined}
+                >
+                  <summary>
+                    Simulation clock · {view.data.paused ? "Paused" : "Running"} ·{" "}
+                    {new Date(view.data.now).toISOString().slice(11, 16)} UTC
+                  </summary>
+                  <section className="clock">
+                    <div>
+                      <small>SIMULATION TIME · UTC</small>
+                      <strong>
+                        {new Date(view.data.now).toISOString().replace("T", " ").slice(0, 19)}
+                      </strong>
+                      <span>
+                        {view.data.paused ? "Paused" : "Running"} · {view.data.speed}×
+                      </span>
+                    </div>
+                    <button
+                      disabled={mutation.isPending}
+                      onClick={() => clock({ paused: !view.data!.paused })}
                     >
-                      {[1, 10, 60, 300, 3600].map((v) => (
-                        <option key={v} value={v}>
-                          {v}×
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    disabled={!view.data.paused || mutation.isPending}
-                    onClick={() => clock({ advanceMinutes: 60 })}
-                  >
-                    Step 1 hour
-                  </button>
-                </section>
+                      {view.data.paused ? "▶ Run" : "Ⅱ Pause"}
+                    </button>
+                    <label>
+                      Speed
+                      <select
+                        value={view.data.speed}
+                        onChange={(e) => clock({ speed: Number(e.target.value) })}
+                      >
+                        {[1, 10, 60, 300, 3600].map((v) => (
+                          <option key={v} value={v}>
+                            {v}×
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      disabled={!view.data.paused || mutation.isPending}
+                      onClick={() => clock({ advanceMinutes: 60 })}
+                    >
+                      Step 1 hour
+                    </button>
+                  </section>
+                </details>
+                {!patient && view.data.resourceTotal !== undefined && (
+                  <div className="resource-pagination">
+                    <span>
+                      {view.data.resourceTotal === 0
+                        ? "No records"
+                        : `Records ${(view.data.resourceOffset ?? resourceOffset) + 1}–${Math.min((view.data.resourceOffset ?? resourceOffset) + view.data.resources.length, view.data.resourceTotal)} of ${view.data.resourceTotal.toLocaleString()}`}{" "}
+                      · Search for a patient to open their full record.
+                    </span>
+                    <button
+                      disabled={resourceOffset === 0}
+                      onClick={() => setResourceOffset(Math.max(0, resourceOffset - 200))}
+                    >
+                      Previous records
+                    </button>
+                    <button
+                      disabled={resourceOffset + 200 >= view.data.resourceTotal}
+                      onClick={() => setResourceOffset(resourceOffset + 200)}
+                    >
+                      Next records
+                    </button>
+                  </div>
+                )}
                 {siteId === "control" && (
                   <section className="metrics">
                     <article>
@@ -705,6 +784,8 @@ function Workbench({ siteId }: { siteId: SiteId }) {
                     rows={rows}
                     patients={patients.data?.items ?? []}
                     selectedPatient={patient}
+                    patientSearch={search}
+                    searchPatients={setSearch}
                     selectPatient={setPatient}
                     act={act}
                     create={(type, patientId, actionTitle, target) =>

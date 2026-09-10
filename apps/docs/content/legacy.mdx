@@ -1,0 +1,23 @@
+---
+title: Transfer a legacy record
+---
+
+# Transfer a legacy record
+
+The legacy EPR exposes its documents through HTML. `/api/sites/legacy/view` deliberately returns HTTP 501.
+
+## Establish a browser session
+
+Obtain a normal [team key](./quickstart.mdx). In the <a href="/legacy/">legacy portal</a>, use that key and open the browser workflow.
+
+For an automation client, call `POST /api/session` with the team's Bearer key. Retain the returned HttpOnly, SameSite cookie in the browser session, then open `/browser/legacy` on the same origin.
+
+## Transfer the document
+
+Inspect the HTML table. Submit the **Send copy to GP** form for the chosen letter. Submit the form's actual hidden CSRF field and resource identifier. The successful form response redirects with HTTP 303.
+
+## Verify the transfer
+
+Read `/api/sites/gp/view` with the same team key. Find the transferred resource by its identifier. The document is now visible in GP.
+
+The transfer changes visibility in your team's world. It does not create a real NHS message or contact a patient.

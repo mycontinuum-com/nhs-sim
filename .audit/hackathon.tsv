@@ -1,0 +1,8 @@
+ts	phase	decision	why	evidence	result
+2026-09-10T10:51:03Z	frame	Selected compact workspaces and a separate Docusaurus handbook	Shared UI owns the system navigation; docs need independent page routing	packages/ui/src/index.tsx	open
+2026-09-10T10:51:03Z	data	Production discovery awaits AWS session refresh	Both default and serenity-prod-read credentials are expired	.audit/hackathon-plan.md	INCONCLUSIVE
+2026-09-10T10:58:54Z	data	Read 50 EHR objects in memory and retained only rounded count histograms	Mix independent collection sizes without retaining identifiers or record bundles	packages/engine/src/ehr-profile.json	VERIFIED
+2026-09-10T10:58:54Z	data	Bound generated histories to patient lifetimes	Independent review found future births and pre-birth records	tests/population.test.ts	open
+2026-09-10T11:00:11Z	verification	Generated 50000 patients with 360867 resources	Check the advertised population size before runtime validation	packages/engine/src/population.ts	1283ms and 488MB heap in local seed-only measurement; not full-load proof
+2026-09-10T11:05:48Z	verification	Final build and 22 tests passed; live order became an available diagnostic result	Prove workflows against the rebuilt PostgreSQL-backed app	.verification/evidence/2026-09-10T11-05-00.925Z-journey.json	VERIFIED
+2026-09-10T11:05:48Z	verification	All portals, adapters, docs pages, assets and 404 checks passed	Check the complete single-origin deployment	.verification/evidence/2026-09-10T11-05-05.093Z-smoke.json	VERIFIED

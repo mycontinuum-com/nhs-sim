@@ -1,0 +1,16 @@
+{
+  "name": "@nhs-sim/docs",
+  "private": true,
+  "scripts": {
+    "build": "docusaurus build --out-dir ../../dist/docs"
+  },
+  "devDependencies": {
+    "@docusaurus/core": "^3.9.2",
+    "@docusaurus/preset-classic": "^3.9.2",
+    "@mdx-js/react": "^3.1.0"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

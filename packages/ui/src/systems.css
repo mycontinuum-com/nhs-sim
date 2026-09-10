@@ -109,31 +109,9 @@
 }
 .epr-layout {
   display: grid;
-  grid-template-columns: 175px 1fr;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 430px;
   background: #eef2f5;
-}
-.module-nav {
-  display: flex;
-  padding: 8px;
-  flex-direction: column;
-  background: #123f6b;
-}
-.module-nav button {
-  display: flex;
-  gap: 8px;
-  border: 0;
-  background: transparent;
-  color: #dcecf7;
-  text-align: left;
-}
-.module-nav button.active,
-.module-nav button:hover {
-  background: #fff;
-  color: #173653;
-}
-.module-nav span {
-  width: 18px;
 }
 .clinical-grid {
   display: grid;
@@ -407,35 +385,9 @@
 }
 .practice-layout {
   display: grid;
-  grid-template-columns: 190px minmax(500px, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   min-height: 560px;
   background: #f7fafc;
-}
-.practice-layout > nav {
-  padding: 12px;
-  border-right: 1px solid #d7e2e9;
-  background: #edf5fa;
-}
-.practice-layout > nav button {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  border: 0;
-  background: transparent;
-  text-align: left;
-}
-.practice-layout > nav button.active {
-  background: #fff;
-  color: #005eb8;
-  font-weight: 800;
-}
-.practice-layout nav em {
-  margin-left: auto;
-  padding: 1px 6px;
-  border-radius: 10px;
-  background: #d9e7f1;
-  font-style: normal;
-  font-size: 10px;
 }
 .practice-layout .inbox {
   overflow: auto;
@@ -901,10 +853,6 @@
   .roster-layout {
     grid-template-columns: 1fr;
   }
-  .module-nav,
-  .practice-layout > nav {
-    display: none;
-  }
   .clinical-grid {
     grid-template-columns: 1fr;
   }
@@ -943,4 +891,70 @@
   .domain-stats {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+.patient-search-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid #d8e2e9;
+}
+.patient-search-results button {
+  text-align: left;
+}
+.patient-search-results small,
+.record-collection small,
+.record-collection time {
+  display: block;
+  color: #607688;
+  font-size: 12px;
+}
+.patient-record-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  color: #005eb8;
+  font-weight: 600;
+}
+.worklist-limit {
+  padding: 16px;
+  font-size: 13px;
+  color: #526d80;
+}
+.longitudinal-record {
+  margin: 20px 0;
+}
+.longitudinal-record > p {
+  font-size: 12px;
+  color: #607688;
+}
+.record-collection {
+  border-top: 1px solid #d8e2e9;
+}
+.record-collection summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.record-collection summary span {
+  float: right;
+  color: #607688;
+  font-variant-numeric: tabular-nums;
+}
+.record-collection ul,
+.record-collection ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.record-collection li {
+  padding: 10px 0;
+  border-top: 1px solid #edf2f5;
+  font-size: 13px;
+}
+.record-collection > p {
+  font-size: 12px;
 }

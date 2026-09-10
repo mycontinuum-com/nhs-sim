@@ -1,0 +1,35 @@
+---
+title: Run the event
+---
+
+# Run the event
+
+## Start the environment
+
+Configure `OPERATOR_TOKEN` with at least 16 characters. Launch the application and PostgreSQL with the repository's Compose configuration. Keep the operator token with organisers.
+
+Before participants arrive, run:
+
+```bash
+pnpm verify -- doctor
+pnpm smoke
+pnpm verify -- journey
+```
+
+The smoke test creates a team world, reads each advertised adapter, transfers a legacy document, and checks a delayed test result.
+
+## Prepare teams
+
+Issue one key per team. Ask teams to retain that key rather than issue another on reconnect. Test the expected number of concurrent worlds before the event. The current backend stores world snapshots in PostgreSQL JSONB.
+
+## Introduce a failure
+
+Open <a href="/control/">Simulation control</a> with the operator token. Select the team's world before changing incidents or agents. Leave deterministic agents enabled for the initial run, then introduce one incident for the team's second demonstration.
+
+Operator API endpoints accept `?world=...`. Team clock requests always affect the key's own world.
+
+## Evaluate the result
+
+Ask for the initial state, the action sequence, and the final records. Distinguish accepted requests from completed work. Keep model APIs optional so teams can run the default deterministic agents without a paid model account.
+
+[API and operator endpoint reference](./api.md)

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { z } from "zod";
 import type { Action, Patient, Resource, SiteId } from "../../contracts/src/index.ts";
 
 type View = {
@@ -13,6 +14,8 @@ type Props = {
   rows: Resource[];
   patients: Patient[];
   selectedPatient: string;
+  patientSearch: string;
+  searchPatients: (query: string) => void;
   selectPatient: (id: string) => void;
   act: (type: Action["type"], resource: Resource, target?: SiteId) => void;
   create: (type: Action["type"], patientId: string, title: string, target?: SiteId) => void;
@@ -88,6 +91,14 @@ function SystemTwo({
   const [tab, setTab] = useState("Overview");
   const patient = patients.find((p) => p.id === selectedPatient) ?? patients[0];
   const visible = rows.filter((r) => !patient || !r.patientId || r.patientId === patient.id);
+  const recordKinds: Record<string, string[]> = {
+    Observations: ["observation"],
+    Results: ["test", "report"],
+    Medications: ["prescription"],
+    "Care plan": ["care-plan", "task"],
+    Discharge: ["document", "discharge"],
+  };
+  const tabRows = visible.filter((r) => !recordKinds[tab] || recordKinds[tab].includes(r.kind));
   const [note, setNote] = useState("");
   return (
     <section className="system-ui systemtwo">
@@ -124,23 +135,6 @@ function SystemTwo({
         ))}
       </div>
       <div className="epr-layout">
-        <nav className="module-nav">
-          {[
-            "Patient overview",
-            "Clinical notes",
-            "Observations",
-            "Results",
-            "Medications",
-            "Tasks",
-            "Documents",
-            "Alerts",
-          ].map((x, i) => (
-            <button className={i === 0 ? "active" : ""} key={x}>
-              <span>{["▦", "≡", "♥", "⌁", "✚", "✓", "▤", "!"][i]}</span>
-              {x}
-            </button>
-          ))}
-        </nav>
         <div className="clinical-grid">
           <article>
             <h3>Current problems</h3>
@@ -155,33 +149,24 @@ function SystemTwo({
             ))}
           </article>
           <article>
-            <h3>
-              Latest observations <small>NEWS2</small>
-            </h3>
-            <div className="obs-grid">
-              <span>
-                <b>18</b>RR
-              </span>
-              <span className="alert">
-                <b>92%</b>SpO₂
-              </span>
-              <span>
-                <b>112/68</b>BP
-              </span>
-              <span>
-                <b>102</b>Pulse
-              </span>
-              <span className="alert">
-                <b>38.1°</b>Temp
-              </span>
-              <span>
-                <b>5</b>NEWS2
-              </span>
-            </div>
+            <h3>Latest observations</h3>
+            {visible.filter((r) => r.kind === "observation").length ? (
+              visible
+                .filter((r) => r.kind === "observation")
+                .slice(0, 3)
+                .map((r) => (
+                  <p key={r.id}>
+                    <b>{r.title}</b>
+                    <small>{r.status}</small>
+                  </p>
+                ))
+            ) : (
+              <p>No observations recorded for this patient.</p>
+            )}
           </article>
           <article className="wide">
             <h3>{tab}</h3>
-            {visible.slice(0, 6).map((r) => (
+            {tabRows.slice(0, 12).map((r) => (
               <div className="clinical-row" key={r.id}>
                 <time>{new Date(r.createdAt).toISOString().slice(11, 16)}</time>
                 <span>
@@ -194,7 +179,7 @@ function SystemTwo({
                 <RecordButton r={r} act={act} pending={pending} />
               </div>
             ))}
-            {!visible.length && <p>No records in this view.</p>}
+            {!tabRows.length && <p>No records in this view.</p>}
           </article>
           <article className="wide quick-note">
             <h3>Add clinical note</h3>
@@ -376,8 +361,126 @@ function Pingr({ rows, patients, selectedPatient, selectPatient, create, pending
   );
 }
 
+const ehrRecordSchema = z.object({
+  provenance: z.literal("ehr-collection-shape-v1"),
+  problems: z.array(
+    z.object({ term: z.string(), code: z.string(), date: z.string(), status: z.string() }),
+  ),
+  medications: z.array(
+    z.object({ term: z.string(), isCurrent: z.boolean(), issueDate: z.string() }),
+  ),
+  allergies: z.array(z.object({ term: z.string() })),
+  miscCodes: z.array(z.object({ term: z.string(), code: z.string() })),
+});
+
+function RecordCollection({
+  title,
+  entries,
+}: {
+  title: string;
+  entries: { title: string; detail: string }[];
+}) {
+  return (
+    <details className="record-collection">
+      <summary>
+        {title}
+        <span>{entries.length}</span>
+      </summary>
+      {entries.length ? (
+        <ul>
+          {entries.slice(0, 30).map((entry, index) => (
+            <li key={index}>
+              <b>{entry.title}</b>
+              <small>{entry.detail}</small>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No entries recorded.</p>
+      )}
+      {entries.length > 30 && (
+        <p>Showing the first 30 entries. The full record is available through the API.</p>
+      )}
+    </details>
+  );
+}
+
+function LongitudinalRecord({ rows, patientId }: { rows: Resource[]; patientId: string }) {
+  const resources = rows.filter((r) => r.patientId === patientId);
+  const record = resources.find((r) => r.kind === "ehr-record");
+  const parsed = ehrRecordSchema.safeParse(record?.data);
+  const timeline = resources
+    .filter((r) => r.kind !== "ehr-record")
+    .sort((a, b) => b.createdAt - a.createdAt);
+  return (
+    <section className="longitudinal-record" aria-label="Longitudinal GP record">
+      <h3>Longitudinal record</h3>
+      <p>Fictional entries and dates. Collection sizes follow the calibrated synthetic profile.</p>
+      {parsed.success ? (
+        <>
+          <RecordCollection
+            title="Problems"
+            entries={parsed.data.problems.map((entry) => ({
+              title: entry.term,
+              detail: `${entry.date} · ${entry.status} · ${entry.code}`,
+            }))}
+          />
+          <RecordCollection
+            title="Medications"
+            entries={parsed.data.medications.map((entry) => ({
+              title: entry.term,
+              detail: `${entry.issueDate} · ${entry.isCurrent ? "Current" : "Historical"}`,
+            }))}
+          />
+          <RecordCollection
+            title="Allergies"
+            entries={parsed.data.allergies.map((entry) => ({
+              title: entry.term,
+              detail: "Synthetic allergy entry",
+            }))}
+          />
+          <RecordCollection
+            title="Other coded entries"
+            entries={parsed.data.miscCodes.map((entry) => ({
+              title: entry.term,
+              detail: entry.code,
+            }))}
+          />
+        </>
+      ) : (
+        <p>
+          {record ? "This record could not be displayed." : "No structured record is available."}
+        </p>
+      )}
+      <details className="record-collection">
+        <summary>
+          Recent history<span>{timeline.length}</span>
+        </summary>
+        {timeline.length ? (
+          <ol>
+            {timeline.slice(0, 20).map((entry) => (
+              <li key={entry.id}>
+                <time>{new Date(entry.createdAt).toISOString().slice(0, 10)}</time>
+                <b>{entry.title}</b>
+                <small>
+                  {entry.kind} · {entry.status}
+                </small>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p>No events recorded.</p>
+        )}
+        {timeline.length > 20 && <p>Showing the 20 most recent events.</p>}
+      </details>
+    </section>
+  );
+}
+
 function PrimaryCare({
   siteId,
+  patientSearch,
+  searchPatients,
   rows,
   patients,
   selectedPatient,
@@ -388,9 +491,10 @@ function PrimaryCare({
   const [filter, setFilter] = useState("All");
   const filtered = rows.filter(
     (r) =>
-      filter === "All" ||
-      (filter === "Urgent" && r.priority === "urgent") ||
-      (filter === "Open" && ["open", "rejected", "waiting"].includes(r.status)),
+      !["ehr-record", "encounter", "observation"].includes(r.kind) &&
+      (filter === "All" ||
+        (filter === "Urgent" && r.priority === "urgent") ||
+        (filter === "Open" && ["open", "rejected", "waiting"].includes(r.status))),
   );
   const active = patients.find((p) => p.id === selectedPatient);
   const title =
@@ -408,30 +512,31 @@ function PrimaryCare({
           Riverside <i>Practice</i>
         </strong>
         <span>Care together, closer to home</span>
-        <input placeholder="Search patient record…" />
+        <input
+          aria-label="Search patient record"
+          placeholder="Search patient record…"
+          value={patientSearch}
+          onChange={(e) => {
+            searchPatients(e.target.value);
+            selectPatient("");
+          }}
+        />
         <span>Dr A. Cole · AC</span>
       </div>
-      <div className="practice-layout">
-        <nav>
-          <button className="active">
-            ▣ {title} <em>{filtered.length}</em>
-          </button>
-          {[
-            "Urgent",
-            "Same day",
-            "Routine",
-            "Admin",
-            "Patient contacts",
-            "Tasks",
-            "Clinical templates",
-            "Reports",
-          ].map((x, i) => (
-            <button onClick={() => ["Urgent"].includes(x) && setFilter(x)} key={x}>
-              {["!", "◷", "○", "▤", "✉", "✓", "▧", "⌁"][i]} {x}
-              {i < 4 && <em>{[2, 5, 11, 7][i]}</em>}
+      {patientSearch && !selectedPatient && (
+        <div className="patient-search-results" aria-label="Patient search results">
+          {patients.slice(0, 8).map((p) => (
+            <button key={p.id} onClick={() => selectPatient(p.id)}>
+              {p.name}
+              <small>
+                {p.id} · {p.birthDate}
+              </small>
             </button>
           ))}
-        </nav>
+          {!patients.length && <p>No matching patients.</p>}
+        </div>
+      )}
+      <div className="practice-layout">
         <div className="inbox">
           <header>
             <div>
@@ -448,7 +553,6 @@ function PrimaryCare({
                 ))}
               </div>
             </div>
-            <button>+ New request</button>
           </header>
           <table>
             <thead>
@@ -462,19 +566,25 @@ function PrimaryCare({
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r, i) => {
+              {filtered.slice(0, 200).map((r) => {
                 const p = patients.find((x) => x.id === r.patientId);
                 return (
                   <tr
                     className={selectedPatient === p?.id ? "selected" : ""}
-                    onClick={() => p && selectPatient(p.id)}
+                    onClick={() => r.patientId && selectPatient(r.patientId)}
                     key={r.id}
                   >
                     <td>
                       <span className={"priority " + r.priority}>{r.priority}</span>
                     </td>
                     <td>
-                      <b>{p?.name ?? "System"}</b>
+                      <button
+                        className="patient-record-link"
+                        onClick={() => r.patientId && selectPatient(r.patientId)}
+                        disabled={!r.patientId}
+                      >
+                        {p?.name ?? r.patientId ?? "System"}
+                      </button>
                       <small>{p ? age(p.birthDate) + "y" : ""}</small>
                     </td>
                     <td>
@@ -483,9 +593,7 @@ function PrimaryCare({
                         {r.kind} · {r.owner}
                       </small>
                     </td>
-                    <td>
-                      {i < 2 ? "10:" + (12 - i * 7).toString().padStart(2, "0") : "Yesterday"}
-                    </td>
+                    <td>{new Date(r.createdAt).toISOString().slice(0, 16).replace("T", " ")}</td>
                     <td>
                       <span className={"status " + r.status}>{r.status}</span>
                     </td>
@@ -497,11 +605,25 @@ function PrimaryCare({
               })}
             </tbody>
           </table>
+          {filtered.length > 200 && (
+            <p className="worklist-limit">
+              Showing 200 of {filtered.length.toLocaleString()} items. Search for a patient to focus
+              the worklist.
+            </p>
+          )}
+          {!filtered.length && (
+            <p className="worklist-limit">
+              No worklist items match this view. Search for a patient to open their record.
+            </p>
+          )}
         </div>
         {active && (
           <aside className="record-drawer">
-            <button onClick={() => selectPatient("")}>×</button>
+            <button aria-label="Close patient record" onClick={() => selectPatient("")}>
+              ×
+            </button>
             <PatientBanner patient={active} />
+            <LongitudinalRecord rows={rows} patientId={active.id} />
             <h3>Care navigation</h3>
             <p>{active.goals.join(" · ")}</p>
             <h3>Access needs</h3>

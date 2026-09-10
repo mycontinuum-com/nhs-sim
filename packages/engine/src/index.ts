@@ -7,6 +7,7 @@ import {
   type SiteId,
   type World,
 } from "../../contracts/src/index.ts";
+import { populateHistories } from "./population.ts";
 
 export class SimError extends Error {
   status: number;
@@ -53,7 +54,8 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     w.patients.push({
       id: "SIM-" + String(i + 1).padStart(6, "0"),
       name: i < 8 ? names[i] : names[i % 8] + " " + (i + 1),
-      birthDate: 1940 + (i % 65) + "-05-12",
+      birthDate:
+        (i < 8 ? [1952, 1984, 1992, 2004, 1991, 1943, 1968, 1978][i] : 1940 + (i % 65)) + "-05-12",
       localIds: { gp: "RIV-" + i, hospital: "NBG-" + (10000 + i), legacy: "WH-" + (90000 + i) },
       conditions: [
         ["Heart failure", "CKD"],
@@ -397,6 +399,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     { at: START + 30 * minute, type: "service-demand" },
     { at: START + 24 * 60 * minute, type: "screening" },
   );
+  populateHistories(w);
   return w;
 }
 export class Engine {
@@ -463,8 +466,13 @@ export class Engine {
       .filter((e) => site === "control" || e.visibleTo.includes(site))
       .slice(0, Math.min(limit, 500));
   }
-  view(id: string, site: SiteId, patientId?: string) {
+  view(id: string, site: SiteId, patientId?: string, page?: { offset: number; limit: number }) {
     const w = this.require(id);
+    const resources = w.resources.filter(
+      (r) =>
+        (site === "control" || r.visibleTo.includes(site)) &&
+        (!patientId || r.patientId === patientId || !r.patientId),
+    );
     return {
       id: w.id,
       now: w.now,
@@ -472,11 +480,10 @@ export class Engine {
       paused: w.paused,
       population: w.patients.length,
       counters: w.counters,
-      resources: w.resources.filter(
-        (r) =>
-          (site === "control" || r.visibleTo.includes(site)) &&
-          (!patientId || r.patientId === patientId || !r.patientId),
-      ),
+      resources: page ? resources.slice(page.offset, page.offset + page.limit) : resources,
+      resourceTotal: resources.length,
+      resourceOffset: page?.offset ?? 0,
+      resourceLimit: page?.limit ?? resources.length,
       agents: site === "control" ? w.agents : undefined,
       faults: w.faults,
       events: this.events(id, site),

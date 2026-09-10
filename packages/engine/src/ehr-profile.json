@@ -1,0 +1,29 @@
+{
+  "id": "ehr-collection-shape-v1",
+  "source": "production-ehr-collection-counts",
+  "sampling": "First eligible JSON objects in one bounded S3 listing; not population representative; objects may repeat patients.",
+  "sampleCountRoundedDown": 50,
+  "privacy": "Only allowlisted collection counts; cells below five suppressed; other counts rounded down to multiples of five. No identifiers, dates, codes or text retained. This is not a differential privacy guarantee.",
+  "collections": {
+    "problems": {
+      "1-5": 5,
+      "6-20": 15,
+      "0": 5,
+      "21+": 20
+    },
+    "medications": {
+      "1-5": 5,
+      "6-20": 5,
+      "0": 15,
+      "21+": 20
+    },
+    "allergies": {
+      "0": 20,
+      "1-5": 25
+    },
+    "miscCodes": {
+      "6-20": 5,
+      "21+": 35
+    }
+  }
+}

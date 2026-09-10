@@ -343,11 +343,27 @@ const server = createServer(async (req, res) => {
         });
       if (site === "control" && !admin) throw new SimError("Operator only", 403);
       if (!admin && !key!.scopes.includes(site)) throw new SimError("Key lacks service scope", 403);
-      if (match[2] === "view")
+      if (match[2] === "view") {
+        const limit = url.searchParams.has("limit")
+          ? Number(url.searchParams.get("limit"))
+          : undefined;
+        const offset = Number(url.searchParams.get("offset") ?? 0);
+        if (
+          !Number.isInteger(offset) ||
+          offset < 0 ||
+          (limit !== undefined && (!Number.isInteger(limit) || limit < 1 || limit > 500))
+        )
+          throw new SimError("Invalid resource page; limit must be 1–500 and offset nonnegative");
         return send(res, 200, {
-          ...store.engine.view(id, site, url.searchParams.get("patient") ?? undefined),
+          ...store.engine.view(
+            id,
+            site,
+            url.searchParams.get("patient") ?? undefined,
+            limit === undefined ? undefined : { offset, limit },
+          ),
           staffing: store.engine.staffing(store.engine.require(id)),
         });
+      }
       if (match[2] === "patients") {
         const offset = Number(url.searchParams.get("offset") ?? 0);
         if (!Number.isInteger(offset) || offset < 0) throw new SimError("Invalid offset");
@@ -378,16 +394,27 @@ const server = createServer(async (req, res) => {
       return res.end();
     }
     const site = path.split("/")[1];
-    if (!sites.some((s) => s.id === site)) throw new SimError("Unknown site", 404);
-    const relative = decodeURIComponent(path).slice(1);
-    let file = resolve(staticRoot, relative);
-    if (!file.startsWith(staticRoot + "/")) throw new SimError("Invalid path", 400);
-    if (!extname(file)) file = resolve(staticRoot, site, "index.html");
+    const isDocs = site === "docs";
+    if (!isDocs && !sites.some((s) => s.id === site)) throw new SimError("Unknown site", 404);
+    if (path === "/docs") {
+      res.writeHead(302, { Location: "/docs/" });
+      return res.end();
+    }
+    const root = isDocs ? resolve("dist/docs") : staticRoot;
+    const relative = decodeURIComponent(path).slice(isDocs ? "/docs/".length : 1);
+    let file = resolve(root, relative);
+    if (file !== root && !file.startsWith(root + "/")) throw new SimError("Invalid path", 400);
+    if (!extname(file))
+      file = isDocs ? resolve(file, "index.html") : resolve(root, site, "index.html");
     let contents: Buffer;
+    let status = 200;
     try {
       contents = await readFile(file);
     } catch {
-      throw new SimError("Asset not found", 404);
+      if (!isDocs) throw new SimError("Asset not found", 404);
+      file = resolve(root, "404.html");
+      contents = await readFile(file);
+      status = 404;
     }
     const mime: Record<string, string> = {
       ".html": "text/html",
@@ -397,7 +424,7 @@ const server = createServer(async (req, res) => {
       ".png": "image/png",
       ".json": "application/json",
     };
-    res.writeHead(200, {
+    res.writeHead(status, {
       "Content-Type": mime[extname(file)] ?? "application/octet-stream",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "same-origin",

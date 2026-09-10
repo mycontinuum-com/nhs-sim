@@ -1,0 +1,32 @@
+:root {
+  --ifm-color-primary: #126354;
+  --ifm-color-primary-dark: #10594c;
+  --ifm-color-primary-darker: #0f5447;
+  --ifm-color-primary-darkest: #0d453b;
+  --ifm-color-primary-light: #146d5c;
+  --ifm-color-primary-lighter: #157260;
+  --ifm-color-primary-lightest: #17816d;
+  --ifm-background-color: #f8f8f3;
+  --ifm-font-color-base: #233a35;
+  --ifm-font-family-base: 'Avenir Next', 'Segoe UI', sans-serif;
+  --ifm-heading-font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+  --ifm-code-font-size: 88%;
+  --ifm-navbar-shadow: none;
+  --ifm-global-radius: 8px;
+  --ifm-line-height-base: 1.75;
+}
+.navbar { border-bottom: 1px solid #dbe2db; background: #f8f8f3; }
+.navbar__title { font-size: 1rem; letter-spacing: -.025em; }
+.markdown h1 { max-width: 850px; font-size: clamp(2.4rem, 5vw, 4rem); letter-spacing: -.06em; line-height: 1.1; margin-bottom: 1.5rem; }
+.markdown h2 { font-size: 1.55rem; letter-spacing: -.035em; margin-top: 2.75rem; }
+.markdown { padding-top: 2rem; padding-bottom: 3rem; }
+.markdown p, .markdown li { max-width: 76ch; }
+.markdown table { font-size: .9rem; }
+.table-of-contents { font-size: .8rem; border-color: #dbe2db; }
+.footer { background: #edf0e9; color: #52605a; font-size: .85rem; padding: 1.5rem; }
+.handbook-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin: 2rem 0; }
+.handbook-grid a { display: block; border: 1px solid #cfdad1; padding: 1.6rem; border-radius: 10px; color: #233a35; text-decoration: none; }
+.handbook-grid a:hover { border-color: #126354; background: #eef2e9; }
+.handbook-grid strong { display: block; font-size: 1.2rem; margin-bottom: .5rem; }
+.handbook-grid span { color: #53645b; font-size: .95rem; }
+@media (max-width: 650px) { .handbook-grid { grid-template-columns: 1fr; } .markdown { padding-top: 1rem; } }

@@ -31,6 +31,17 @@ for (const site of catalogue.sites) {
   assert.ok(assets.length > 0);
   for (const [, asset] of assets) assert.equal((await fetch(base + asset)).status, 200, asset);
 }
+for (const path of ["/docs/", "/docs/quickstart/", "/docs/api/", "/docs/data/"]) {
+  const response = await fetch(base + path);
+  assert.equal(response.status, 200, path);
+  const html = await response.text();
+  assert.ok(html.includes("NHS-SIM"), path);
+  const assets = [...html.matchAll(/(?:src|href)="([^" ]+\.(?:js|css))"/g)];
+  assert.ok(assets.length > 0, path + " has built assets");
+  for (const [, asset] of assets)
+    assert.equal((await fetch(new URL(asset, base + path))).status, 200, asset);
+}
+assert.equal((await fetch(base + "/docs/missing-page/")).status, 404);
 const issued = await call("/api/keys", {
   method: "POST",
   headers: { "Content-Type": "application/json" },

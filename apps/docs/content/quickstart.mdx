@@ -1,0 +1,58 @@
+---
+title: Make your first API call
+---
+
+# Make your first API call
+
+Create a team world and add a GP task for a fictional patient. These commands use `curl` and `jq`.
+
+## Create a team world
+
+Set the origin to the address your organiser gave you. For a local instance:
+
+```bash
+export SIM_ORIGIN=http://localhost:8080
+```
+
+Create your key once:
+
+```bash
+export SIM_KEY=$(curl --fail --silent "$SIM_ORIGIN/api/keys" \
+  -H 'Content-Type: application/json' \
+  -d '{"teamName":"Example builders"}' | jq -r '.apiKey')
+```
+
+Share this key within your team. Each request to create a key creates a new world, even with the same team name. Keep the original key to return to your work.
+
+## Read a patient
+
+```bash
+curl --fail --silent "$SIM_ORIGIN/api/sites/gp/patients?q=SIM-000001" \
+  -H "Authorization: Bearer $SIM_KEY" | jq
+```
+
+The response contains `items` and `total`. The patient has a fictional identity and a `SIM-` identifier.
+
+## Add a task
+
+```bash
+curl --fail --silent "$SIM_ORIGIN/api/sites/gp/actions" \
+  -H "Authorization: Bearer $SIM_KEY" \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: first-gp-task' \
+  -d '{"type":"create_task","patientId":"SIM-000001","title":"Check discharge follow-up"}' | jq
+```
+
+The response is the created resource, including its `id` and `status`. Repeating this request with the same idempotency key and payload returns the same result.
+
+## Check the result
+
+```bash
+curl --fail --silent "$SIM_ORIGIN/api/sites/gp/view" \
+  -H "Authorization: Bearer $SIM_KEY" \
+  | jq '.resources[] | select(.title == "Check discharge follow-up")'
+```
+
+Open <a href="/gp/">Riverside Practice</a> and use the same team key to inspect the task in the portal.
+
+[Choose a challenge](./challenges.md) or read the [action reference](./api.md).
