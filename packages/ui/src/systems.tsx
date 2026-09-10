@@ -817,15 +817,29 @@ function CareCoordination({
     </section>
   );
 }
+type DesktopIconName = "search" | "calendar" | "note" | "medical" | "results" | "medicine" | "task" | "transfer" | "home";
+function DesktopIcon({ name }: { name: DesktopIconName }) {
+  return <svg className="desktop-icon" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="#52616d" strokeWidth="1.2">
+    {name === "search" ? <><circle cx="12" cy="12" r="8" fill="#e4f6ef"/><path d="m18 18 10 10" stroke="#303b38" strokeWidth="5"/><path d="m8 7 6-1" stroke="white" strokeWidth="2"/></> :
+      name === "medicine" ? <><path d="M10 6h12v5l3 4v13H7V15l3-4Z" fill="#b8d8da"/><path d="M9 3h14v5H9Z" fill="#8a959c"/><path d="M7 17h18v8H7Z" fill="#fffce5"/><path d="M12 21h8" stroke="#469594"/></> :
+      name === "home" ? <><path d="m3 15 13-12 13 12" fill="#bc6f62"/><path d="M7 14v15h18V14" fill="#e8dfbf"/><path d="M13 29V19h7v10" fill="#889fb3"/></> :
+      name === "transfer" ? <><path d="M3 8h22l-5-5m5 5-5 5" stroke="#34875c" strokeWidth="3"/><path d="M29 24H7l5-5m-5 5 5 5" stroke="#4d6a9c" strokeWidth="3"/></> :
+      name === "medical" ? <><path d="M5 7h22v22H5Z" fill="#a1d2c7"/><path d="M12 7V3h8v4"/><path d="M14 12h5v5h5v5h-5v5h-5v-5H9v-5h5Z" fill="#db4d55" stroke="white"/></> :
+      <><path d="M7 4h20v25H7Z" fill={name === "results" ? "#d0dfeb" : "#fffde8"}/><path d="M4 6h3v25h18v-2" stroke="#7e899d"/>
+        {name === "calendar" ? <><path d="M7 4h20v7H7Z" fill="#c96e6d"/><path d="M11 2v5m11-5v5" strokeWidth="2"/><path d="M11 15h12m-12 5h12m-12 5h12m-8-12v14m4-14v14" stroke="#82a4b9"/></> : <><path d="M11 11h12m-12 5h12m-12 5h10" stroke="#819bb2"/><path d={name === "task" ? "m10 22 4 4 11-14" : "m20 24 9-17-4-2-9 17Z"} fill={name === "task" ? "none" : "#e8bf58"} stroke={name === "task" ? "#3e9451" : "#977d41"} strokeWidth="2"/></>}
+      </>}
+  </svg>;
+}
+function PracticePatientStrip({ patient, rows }: { patient: Patient | undefined; rows: Resource[] }) {
+  const allergies = patient ? patientAllergies(rows, patient.id).filter((item) => item.status === "active") : [];
+  return <div className="practice-patient-strip"><strong>{patient?.name ?? "No patient open"}</strong><span>{patient?.id ?? "Select a patient using Search"}</span>{patient && <span>Born {date(patient.birthDate)}</span>}<span className="practice-allergies">Allergies: {patient ? allergies.map((item) => item.term).join(", ") || "None recorded" : "—"}</span><small>Synthetic patient</small></div>;
+}
 function PracticeWorkspace(props: Props) {
-  const hospital = props.siteId === "hospital";
   const careService = new URLSearchParams(location.search).get("care") ?? "";
   const [tab, setTab] = useState(
     ["community", "pharmacy"].includes(careService)
       ? "Care coordination"
-      : hospital
-        ? "Worklist"
-        : props.selectedPatient ? "Journal" : "Home",
+      : props.selectedPatient ? "Journal" : "Home",
   );
   const [recordId, setRecordId] = useState("");
   const [operation, setOperation] = useState<Operation | null>(null);
@@ -852,48 +866,23 @@ function PracticeWorkspace(props: Props) {
   const navigate = (name: string) => { setTab(name); setRecordId(""); setMenu(""); };
   const findPatient = () => { setMenu(""); document.getElementById("ehr-patient-search")?.focus(); };
   const shortcuts = [
-    { label: "Search", symbol: "⌕", run: findPatient },
-    { label: "Appointments", symbol: "▦", run: () => navigate("Appointment book") },
-    { label: "Consultations", symbol: "✎", run: () => navigate("Consultations") },
-    { label: "Problems", symbol: "✚", run: () => navigate("Problems") },
-    { label: "Results", symbol: "▤", run: () => navigate("Results") },
-    { label: "Medication", symbol: "℞", run: () => navigate("Medication") },
-    { label: "Tasks", symbol: "☑", run: () => navigate("Tasks") },
-    { label: "Care coordination", symbol: "⇄", run: () => navigate("Care coordination") },
+    { label: "Search", icon: "search", run: findPatient },
+    { label: "Appointments", icon: "calendar", run: () => navigate("Appointment book") },
+    { label: "Consultations", icon: "note", run: () => navigate("Consultations") },
+    { label: "Problems", icon: "medical", run: () => navigate("Problems") },
+    { label: "Results", icon: "results", run: () => navigate("Results") },
+    { label: "Medication", icon: "medicine", run: () => navigate("Medication") },
+    { label: "Tasks", icon: "task", run: () => navigate("Tasks") },
+    { label: "Care coordination", icon: "transfer", run: () => navigate("Care coordination") },
+  ] satisfies { label: string; icon: DesktopIconName; run: () => void }[];
+  const recordGroups = [
+    { name: "Record", sections: ["Journal", "Consultations", "Documents", "Coded history"] },
+    { name: "Clinical", sections: ["Problems", "Allergies", "Medication", "Results"] },
+    { name: "Workflow", sections: ["Appointment book", "Tasks", "Care coordination"] },
   ];
-  const tabs = hospital
-    ? ["Worklist", "Journal", "Results", "Medication", "Documents", "Care coordination"]
-    : [
-        "Home",
-        "Journal",
-        "Consultations",
-        "Appointment book",
-        "Problems",
-        "Allergies",
-        "Medication",
-        "Results",
-        "Documents",
-        "Tasks",
-        "Coded history",
-        "Care coordination",
-      ];
   return (
-    <section className={"system-ui immersive-ehr " + (hospital ? "millbank" : "systemtwo")}>
-      <header className="ehr-titlebar">
-        <strong>
-          {hospital ? "Millbank" : "SystemTwo"}
-          <span>{hospital ? "EPR" : "Primary care"} · SIMULATION</span>
-        </strong>
-        <button
-          onClick={() => (props.exitToMap ? props.exitToMap() : location.assign("/control/"))}
-        >
-          Neighbourhood map
-        </button>
-        <span className="ehr-location">
-          {hospital ? "Northbank General" : "Riverside Practice"}
-        </span>
-        <span className="ehr-identity">{props.identityLabel ?? "Simulation workspace"}</span>
-      </header>
+    <section className="system-ui immersive-ehr systemtwo">
+      <header className="practice-window-title"><strong>SystemTwo</strong><span>Riverside Practice · {props.identityLabel ?? "Simulation workspace"}</span><button onClick={() => props.exitToMap ? props.exitToMap() : location.assign("/control/")}>Neighbourhood map</button><small>SIMULATION</small></header>
       <nav ref={menuBar} className="practice-menubar" aria-label="Practice menu" onKeyDown={(event) => { if (event.key === "Escape") setMenu(""); }}>
         {[
           { name: "Patient", items: [{ label: "Find patient", run: findPatient }, { label: "Practice home", run: () => navigate("Home") }, { label: "Patient journal", run: () => navigate("Journal") }] },
@@ -907,46 +896,26 @@ function PracticeWorkspace(props: Props) {
         <a href="/docs/" target="_blank" rel="noreferrer">Help</a>
       </nav>
       <div className="ehr-toolbar practice-iconbar">
-        <button onClick={findPatient}><span aria-hidden="true">⌕</span>Search</button>
-        <button onClick={() => navigate("Home")}><span aria-hidden="true">▦</span>Home</button>
-        <button disabled={!patient} onClick={() => { navigate("Consultations"); if (patient) setNewNoteRequest({ id: Date.now(), patientId: patient.id }); }}><span aria-hidden="true">✎</span>New consultation</button>
-        {operations.map((operation, index) => <button key={operation.type} disabled={!patient || props.pending} onClick={() => setOperation(operation)}><span aria-hidden="true">{["☑", "▤", "℞", "↗", "⌂"][index]}</span>{operation.label}</button>)}
+        <button onClick={findPatient}><DesktopIcon name="search" />Search</button>
+        <button onClick={() => navigate("Home")}><DesktopIcon name="home" />Home</button>
+        <button disabled={!patient} onClick={() => { navigate("Consultations"); if (patient) setNewNoteRequest({ id: Date.now(), patientId: patient.id }); }}><DesktopIcon name="note" />New consultation</button>
+        {operations.map((operation) => <button key={operation.type} disabled={!patient || props.pending} onClick={() => setOperation(operation)}><DesktopIcon name={operation.type === "create_task" ? "task" : operation.type === "order_test" ? "results" : operation.type === "draft_prescription" ? "medicine" : operation.type === "create_referral" ? "transfer" : "home"} />{operation.label}</button>)}
         <time>{date(props.view.now)}</time>
       </div>
       <div className="ehr-searchbar">
         <PatientFinder {...props} selectPatient={(id) => { props.selectPatient(id); if (tab === "Home") navigate("Journal"); }} />
-        <span>
-          {hospital
-            ? "Inpatient care · shared discharge coordination"
-            : "Longitudinal record · practice correspondence"}
-        </span>
+
       </div>
-      {tab !== "Home" && <Banner patient={patient} rows={props.rows} />}
+      {tab !== "Home" && <PracticePatientStrip patient={patient} rows={props.rows} />}
       <div className="ehr-body">
         <div className="ehr-main">
-          <nav className="ehr-tabs" aria-label="Patient record sections">
-            {tabs.map((name) => (
-              <button
-                key={name}
-                aria-current={tab === name ? "page" : undefined}
-                className={tab === name ? "active" : ""}
-                onClick={() => {
-                  setTab(name);
-                  setRecordId("");
-                }}
-              >
-                {name}
-              </button>
-            ))}
-          </nav>
+          {tab !== "Home" && <nav className="practice-record-tree" aria-label="Patient record sections"><button className="practice-tree-home" onClick={() => navigate("Home")}><DesktopIcon name="home" /> Practice home</button>{recordGroups.map((group) => <details key={group.name} open><summary>{group.name}</summary>{group.sections.map((name) => <button key={name} aria-current={tab === name ? "page" : undefined} className={tab === name ? "active" : ""} onClick={() => navigate(name)}>{name}</button>)}</details>)}</nav>}
           <div className="ehr-content">
             {tab === "Home" ? (
               <div className="practice-desktop">
-                <section className="practice-shortcuts"><h2>Riverside Practice</h2><p>Clinical workspace</p><div>{shortcuts.map((shortcut) => <button key={shortcut.label} onClick={shortcut.run}><span aria-hidden="true">{shortcut.symbol}</span>{shortcut.label}</button>)}</div></section>
+                <section className="practice-shortcuts"><h2>Riverside Practice</h2><p>Clinical workspace</p><div>{shortcuts.map((shortcut) => <button key={shortcut.label} onClick={shortcut.run}><DesktopIcon name={shortcut.icon} />{shortcut.label}</button>)}</div></section>
                 <section className="practice-recent"><h2>Open a patient record</h2><p>Search the directory or select a patient below.</p>{props.patients.slice(0, 8).map((person) => <button key={person.id} onClick={() => { props.selectPatient(person.id); navigate("Journal"); }}><b>{person.name}</b><span>{person.id} · {date(person.birthDate)}</span></button>)}</section>
               </div>
-            ) : hospital && tab === "Worklist" ? (
-              <HospitalWorklist {...props} />
             ) : tab === "Appointment book" ? (
               <AppointmentBook
                 now={props.view.now}
@@ -1292,6 +1261,8 @@ function HospitalWorkspace(props: Props) {
                 </button>
               ))}
             </nav>
+            <div className="hospital-chart-document">
+            <nav className="hospital-document-tabs" aria-label="Chart views">{[{ label: "Inpatient summary", tab: "Summary" }, { label: "Results review", tab: "Results" }, { label: "Medication review", tab: "Medication" }, { label: "Discharge", tab: "Handover" }].map((item) => <button key={item.tab} className={drawerTab === item.tab ? "active" : ""} onClick={() => setDrawerTab(item.tab)}>{item.label}</button>)}</nav>
             <div className="hospital-encounter-content">
               {drawerTab === "Summary" && patient ? (
                 <HospitalSummary patient={patient} rows={patientRows} openSection={setDrawerTab} select={(id) => { setRecordId(id); setDrawerTab("Encounter"); }} />
@@ -1350,6 +1321,7 @@ function HospitalWorkspace(props: Props) {
                   }}
                 />
               )}
+            </div>
             </div>
             </div>
           </aside>

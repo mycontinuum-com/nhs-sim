@@ -996,59 +996,54 @@
 }
 
 
-.systemtwo {
-  --ehr-accent: #176b70;
-  --ehr-line: #b6c2c2;
-  --ehr-pale: #e1e8e7;
-  --ehr-ink: #203536;
-  background: #e7ebea;
-  font-family: Tahoma, Arial, sans-serif;
-}
-.systemtwo .ehr-titlebar { padding: 6px 12px; min-height: 34px; background: linear-gradient(#20777c, #16585d); gap: 15px; }
-.systemtwo .ehr-titlebar strong { font-size: 17px; }
-.systemtwo .ehr-toolbar { padding: 5px 9px; gap: 3px; flex-wrap: wrap; background: linear-gradient(#f4f5f4, #d8dedc); border-color: #aeb9b7; }
-.systemtwo .ehr-toolbar button { border-radius: 0; padding: 5px 9px; background: linear-gradient(#fff, #e3e8e6); border-color: #acb8b5; }
-.systemtwo .ehr-toolbar button:first-child { border-bottom: 2px solid #236d70; }
-.systemtwo .ehr-searchbar { padding: 5px 10px; background: #e9eeec; gap: 18px; }
-.systemtwo .ehr-finder input { padding: 5px 8px; border-radius: 0; width: 340px; }
-.systemtwo .ehr-patient-banner { padding: 9px 12px; gap: 24px; background: #fffedc; border-color: #c6c5a4; }
-.systemtwo .ehr-patient-name strong { font-size: 18px; color: #193e42; }
-.systemtwo .ehr-patient-banner small { color: #66684c; }
-.systemtwo .ehr-allergy { border-color: #d6d3ac; }
+ .systemtwo { font-family: Tahoma, Arial, sans-serif; }
 .systemtwo .ehr-body { display: flex; flex-direction: column; min-height: 560px; }
-.systemtwo .ehr-main { flex: 1; border: 0; }
-.systemtwo .ehr-tabs { padding: 5px 7px 0; gap: 2px; background: #d9e2df; border-color: #9eafaa; }
-.systemtwo .ehr-tabs button { border-radius: 0; background: #e7eeeb; color: #294b48; border-color: #a6b7b2; padding: 6px 12px; }
-.systemtwo .ehr-tabs button.active { background: #fff; border-top: 3px solid #23777b; padding-top: 4px; padding-bottom: 7px; }
-.systemtwo .ehr-section-heading { padding: 9px 3px 7px; }
-.systemtwo .ehr-table th { background: linear-gradient(#f1f3f1, #dbe3df); border-color: #bdc8c3; }
-.systemtwo .ehr-table td { padding: 5px 8px; border-color: #d5dcda; }
-.systemtwo .ehr-table tbody tr:nth-child(even) { background: #f0eef7; }
-.systemtwo .ehr-table .ehr-record-link { color: #175e67; }
-.systemtwo .ehr-statusbar { padding: 5px 10px; background: #dde5e1; border-color: #a8b9b1; }
-.ehr-summary-disclosure { border-top: 1px solid var(--ehr-line); background: #e2e9e6; }
-.ehr-summary-disclosure > summary { padding: 7px 12px; cursor: pointer; font-size: 12px; font-weight: 700; }
-.systemtwo .ehr-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; background: #e5ebe8; padding: 8px; }
-.systemtwo .ehr-summary > section { margin: 0; border-color: #aebfb7; }
-.systemtwo .ehr-summary h3 { background: #dce7e1; padding: 6px 9px; border-color: #b0c1b9; font-size: 12px; }
-.systemtwo .gp-note-form, .systemtwo .gp-book-form { padding: 12px; margin-bottom: 12px; }
-.systemtwo .gp-contact-history details { padding: 8px 4px; }
-.systemtwo .gp-contact-history summary { gap: 4px; }
-
+.systemtwo .ehr-main { display: flex; flex-direction: row; flex: 1; border: 0; min-width: 0; }
+.systemtwo .ehr-content { flex: 1; min-width: 0; padding: 0 9px 12px; }
+.systemtwo .ehr-table td { padding: 4px 7px; border-color: #d5d9e5; font-size: 11px; }
+.systemtwo .ehr-table tbody tr:nth-child(even) { background: #eeedf6; }
+.systemtwo .ehr-table .ehr-record-link { color: #293e74; }
+.systemtwo .ehr-section-heading { padding: 7px 0; }
+.systemtwo .ehr-section-heading h2 { font-size: 13px; }
+.systemtwo .ehr-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; background: #eef0f8; padding: 8px; }
+.systemtwo .ehr-summary > section { margin: 0; }
+.systemtwo .gp-note-form, .systemtwo .gp-book-form { padding: 10px; margin-bottom: 10px; }
+.practice-window-title { display: flex; align-items: center; gap: 10px; min-height: 23px; padding: 2px 6px; background: #d3dcf0; border-bottom: 1px solid #8596b8; font-size: 11px; }
+.practice-window-title strong { font-size: 11px; }
+.practice-window-title span { flex: 1; }
+.systemtwo .practice-window-title button { padding: 1px 5px; font-size: 10px; border-radius: 0; background: #edf0f8; }
+.practice-window-title small { font-size: 9px; }
+.practice-patient-strip { display: flex; gap: 17px; flex-wrap: wrap; align-items: center; padding: 5px 9px; background: #ffffe4; border-top: 1px solid #d0cfb3; border-bottom: 1px solid #b8b7a1; font-size: 11px; }
+.practice-patient-strip strong { font-size: 12px; }
+.practice-patient-strip small { margin-left: auto; font-size: 9px; }
+.practice-allergies { color: #853b34; }
+.practice-record-tree { flex: 0 0 174px; background: #f0f2f9; border-right: 1px solid #aebbd6; padding: 6px 3px; font-size: 11px; }
+.practice-record-tree summary { padding: 7px 4px 4px; font-weight: bold; cursor: pointer; color: #394867; }
+.systemtwo .practice-record-tree button { display: block; border: 0; background: transparent; box-shadow: none; width: 100%; padding: 5px 5px 5px 23px; text-align: left; font-size: 11px; border-radius: 0; }
+.systemtwo .practice-record-tree button.active { background: #3456a1; color: white; }
+.systemtwo .practice-record-tree button:hover { background: #dbe4f7; color: #26354a; }
+.systemtwo .practice-record-tree .practice-tree-home { display: flex; align-items: center; gap: 5px; padding-left: 5px; border-bottom: 1px solid #c8d0e4; }
+.systemtwo .practice-tree-home .desktop-icon { width: 17px; height: 17px; }
+.systemtwo .desktop-icon { display: block; width: 30px; height: 30px; margin: 0 auto 3px; }
+.systemtwo button:disabled .desktop-icon { filter: grayscale(1); }
+.hospital-chart-document { min-width: 0; }
+.hospital-document-tabs { display: flex; padding: 4px 3px 0; gap: 2px; background: #f0f0f0; border-bottom: 1px solid #9caab2; overflow-x: auto; }
+.hospital-operations .hospital-document-tabs button { padding: 5px 14px; min-width: 140px; text-align: left; border: 1px solid #b8bdc1; border-bottom: 0; background: linear-gradient(#fafafa, #e4e5e7); color: #4b565c; font-size: 11px; white-space: nowrap; }
+.hospital-operations .hospital-document-tabs button.active { background: white; color: #24546a; border-bottom: 3px solid #1883a4; }
 .hospital-operations { --ehr-accent: #245e91; --ehr-line: #afc0d0; --ehr-pale: #e6edf4; --ehr-ink: #21364a; background: #dce5ed; font: 12px Arial, sans-serif; }
 .hospital-operations button { border-radius: 0; }
-.hospital-masthead { display: flex; align-items: center; gap: 22px; background: linear-gradient(#366996, #234c74); color: #fff; padding: 6px 12px; margin: 0; border: 0; }
+.hospital-masthead { display: flex; align-items: center; gap: 14px; background: linear-gradient(#e5edf1, #c2d1dc); color: #223c50; padding: 3px 8px; margin: 0; border: 0; }
 .hospital-brand { display: flex; align-items: center; gap: 8px; }
-.hospital-brand > span { font-size: 24px; color: #b8d8ef; }
-.hospital-brand strong { display: block; font-size: 17px; }
-.hospital-brand small { display: block; font-size: 9px; color: #d5e5f1; margin-top: 2px; }
+.hospital-brand > span { display: none; }
+.hospital-brand strong { display: block; font-size: 12px; }
+.hospital-brand small { display: block; font-size: 9px; color: #4c6879; margin-top: 1px; }
 .hospital-masthead nav { display: flex; gap: 2px; flex: 1; }
-.hospital-masthead button { color: #fff; border: 1px solid transparent; background: transparent; box-shadow: none; padding: 6px 10px; white-space: nowrap; }
+.hospital-masthead button { color: #294254; border: 1px solid transparent; background: transparent; box-shadow: none; padding: 3px 8px; white-space: nowrap; }
 .hospital-masthead button:hover, .hospital-masthead nav button.active { background: #ffffff1c; border-color: #99b5ce; }
 .hospital-masthead > span { font-size: 11px; }
-.hospital-contextbar { display: flex; gap: 22px; align-items: center; padding: 6px 12px; background: #d9e2eb; border-bottom: 1px solid #a4b6c7; color: #3c536b; font-size: 11px; }
+.hospital-contextbar { display: flex; gap: 22px; align-items: center; padding: 3px 10px; background: #d9e2eb; border-bottom: 1px solid #a4b6c7; color: #3c536b; font-size: 11px; }
 .hospital-contextbar time { margin-left: auto; }
-.hospital-tools { display: flex; align-items: center; gap: 18px; padding: 7px 12px; background: linear-gradient(#f5f7fa, #e3e9ef); border-bottom: 1px solid #acbdce; }
+.hospital-tools { display: flex; align-items: center; gap: 18px; padding: 4px 10px; background: linear-gradient(#f5f7fa, #e3e9ef); border-bottom: 1px solid #acbdce; }
 .hospital-tools .ehr-finder { flex: 1; max-width: 490px; }
 .hospital-tools .ehr-finder input { flex: 1; width: auto; padding: 5px 8px; }
 .hospital-tools > label { display: flex; gap: 6px; align-items: center; white-space: nowrap; font-size: 11px; }
@@ -1107,10 +1102,6 @@
 
 /* Practice desktop: menu commands and launch tiles. */
 .systemtwo { --ehr-accent: #394c80; --ehr-line: #bcc5dc; --ehr-pale: #edf0f9; --ehr-ink: #242a39; background: #f1f3fa; }
-.systemtwo .ehr-titlebar { min-height: 28px; padding: 3px 9px; background: linear-gradient(#e5eafa, #c8d2ee); color: #27354e; border-bottom: 1px solid #8a9ac0; }
-.systemtwo .ehr-titlebar strong { font-size: 13px; }
-.systemtwo .ehr-titlebar strong span, .systemtwo .ehr-titlebar .ehr-location, .systemtwo .ehr-titlebar .ehr-identity { color: #354868; }
-.systemtwo .ehr-titlebar button { color: #283954; border-color: #a7b7d4; background: #e6ebf7; padding: 2px 7px; }
 .practice-menubar { display: flex; align-items: center; background: #e1e6f7; border-bottom: 1px solid #bdc7df; padding: 0 4px; position: relative; z-index: 8; }
 .practice-menu { position: relative; }
 .systemtwo .practice-menubar button, .practice-menubar > a { border: 1px solid transparent; background: transparent; box-shadow: none; border-radius: 0; padding: 4px 8px; color: #20283c; font-size: 12px; text-decoration: none; }
@@ -1121,22 +1112,16 @@
 .systemtwo .practice-iconbar { background: #f0f2fa; padding: 5px 8px; border-bottom: 1px solid #c4cde3; gap: 4px; }
 .systemtwo .practice-iconbar button { min-width: 66px; height: 57px; padding: 3px 8px; border: 1px solid transparent; background: transparent; box-shadow: none; font-size: 11px; }
 .systemtwo .practice-iconbar button:hover { background: #e5eafa; border-color: #a6b6d8; }
-.practice-iconbar button > span { display: block; font-family: Georgia, serif; font-size: 27px; line-height: 30px; color: #526c99; text-shadow: 1px 1px white; }
 .systemtwo .ehr-searchbar { background: #f0f2fa; padding: 5px 10px; border-color: #c3cce2; }
-.systemtwo .ehr-tabs { background: #e4e8f5; border-color: #b8c2dc; }
-.systemtwo .ehr-tabs button { background: #eff1f9; color: #394765; border-color: #b5c0db; font-size: 11px; }
-.systemtwo .ehr-tabs button.active { border-top-color: #7086b8; }
 .systemtwo .ehr-content { background: #fafbfe; }
 .systemtwo .ehr-table th { background: #e2e7f4; border-color: #bcc5d9; }
 .systemtwo .ehr-statusbar { background: #e2e7f4; border-color: #b9c4dc; }
-.practice-desktop { display: grid; grid-template-columns: 430px minmax(0, 1fr); min-height: 550px; margin: 0 -12px; background: #f5f6fc; }
+.practice-desktop { display: grid; grid-template-columns: 420px minmax(0, 1fr); min-height: 550px; margin: 0 -9px; width: calc(100% + 18px); background: #f5f6fc; }
 .practice-shortcuts { padding: 22px 16px; border-right: 1px solid #bdc8e3; background: #eff2fa; }
 .practice-desktop h2 { font-size: 14px; font-weight: normal; color: #374967; margin-bottom: 5px; }
 .practice-desktop p { color: #69758d; font-size: 11px; margin-bottom: 18px; }
 .practice-shortcuts > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
 .systemtwo .practice-shortcuts button { border: 1px solid #b9c7e3; border-radius: 0; background: linear-gradient(#fafbff, #eef2fa); height: 87px; padding: 5px; font-size: 11px; }
-.practice-shortcuts button > span { display: block; font-family: Georgia, serif; font-size: 32px; color: #55779d; line-height: 40px; }
-.practice-shortcuts button:nth-child(3n) > span { color: #487c70; }
 .practice-recent { padding: 22px 26px; max-width: 660px; }
 .systemtwo .practice-recent button { display: flex; justify-content: space-between; gap: 20px; width: 100%; padding: 10px 8px; border: 0; border-bottom: 1px solid #d8dfee; background: transparent; box-shadow: none; border-radius: 0; text-align: left; font-size: 12px; }
 .practice-recent button span { color: #78839a; font-size: 11px; }
@@ -1145,10 +1130,10 @@
 .hospital-chart-layout { display: grid; grid-template-columns: 172px minmax(0, 1fr); flex: 1; }
 .hospital-workflow-nav { padding: 8px 5px; background: #eff1f3; border-right: 1px solid #afb7bf; }
 .hospital-workflow-nav h2 { font-size: 12px; padding: 7px 9px 15px; color: #446179; }
-.hospital-operations .hospital-workflow-nav button { display: block; width: 100%; padding: 9px 10px; border: 0; background: transparent; box-shadow: none; text-align: left; font-size: 12px; }
+.hospital-operations .hospital-workflow-nav button { display: block; width: 100%; padding: 6px 9px; border: 0; background: transparent; box-shadow: none; text-align: left; font-size: 12px; }
 .hospital-operations .hospital-workflow-nav button.active { background: #0784b5; color: white; }
-.hospital-encounter .ehr-patient-banner { background: linear-gradient(#229ac0, #08749c); border-color: #005677; color: #fff; padding: 9px 14px; }
-.hospital-encounter .ehr-patient-name strong { color: white; font-size: 19px; }
+.hospital-encounter .ehr-patient-banner { background: linear-gradient(#229ac0, #08749c); border-color: #005677; color: #fff; padding: 5px 12px; }
+.hospital-encounter .ehr-patient-name strong { color: white; font-size: 15px; }
 .hospital-encounter .ehr-patient-banner small { color: #c8e9f2; }
 .hospital-encounter .ehr-allergy { border-color: #7fc1d7; }
 .hospital-encounter .ehr-allergy b { color: #fff4d4; }
@@ -1189,4 +1174,17 @@
   .hospital-workflow-nav { display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid #afb7bf; }
   .hospital-workflow-nav h2 { display: none; }
   .hospital-operations .hospital-workflow-nav button { width: auto; white-space: nowrap; }
+}
+
+@media (max-width: 760px) {
+  .practice-record-tree { flex-basis: 135px; }
+  .practice-window-title span { font-size: 10px; }
+  .practice-patient-strip { gap: 5px 12px; }
+  .systemtwo .practice-iconbar { display: flex; flex-wrap: wrap; }
+  .systemtwo .practice-iconbar button { min-width: 55px; padding: 3px 5px; }
+}
+@media (max-width: 480px) {
+  .practice-record-tree { flex-basis: 112px; }
+  .systemtwo .practice-record-tree button { padding-left: 10px; }
+  .practice-window-title { flex-wrap: wrap; }
 }
