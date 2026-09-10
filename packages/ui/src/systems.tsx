@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { z } from "zod";
+import { AppointmentBook, Consultations, type WorkflowApi } from "./gp-workflows.tsx";
 import type { Action, Patient, Resource, SiteId } from "../../contracts/src/index.ts";
 
 type Props = {
   siteId: SiteId;
+  api: WorkflowApi;
   view: {
+    id: string;
     now: number;
     resources: Resource[];
     staffing: { doctors: number; nurses: number; staffedSpaces: number; waiting: number };
@@ -17,7 +20,12 @@ type Props = {
   searchPatients: (query: string) => void;
   selectPatient: (id: string) => void;
   act: (type: Action["type"], resource: Resource, target?: SiteId) => void;
-  create: (type: Action["type"], patientId: string, title: string, target?: SiteId) => Promise<unknown>;
+  create: (
+    type: Action["type"],
+    patientId: string,
+    title: string,
+    target?: SiteId,
+  ) => Promise<unknown>;
   pending: boolean;
   exitToMap?: () => void;
   identityLabel?: string;
@@ -105,7 +113,7 @@ function PatientFinder(props: Props) {
       <input
         id="ehr-patient-search"
         value={props.patientSearch}
-        placeholder="Name or patient ID"
+        placeholder="Name, patient ID or care need"
         onFocus={() => setOpen(true)}
         onChange={(event) => {
           props.searchPatients(event.target.value);
@@ -206,8 +214,12 @@ function Composer({
           onSubmit={async (event) => {
             event.preventDefault();
             if (title.trim()) {
-              try { await create(operation.type, patient.id, title.trim(), operation.target); close(); }
-              catch (failure) { setError(failure instanceof Error ? failure.message : "Could not save request"); }
+              try {
+                await create(operation.type, patient.id, title.trim(), operation.target);
+                close();
+              } catch (failure) {
+                setError(failure instanceof Error ? failure.message : "Could not save request");
+              }
             }
           }}
         >
@@ -806,6 +818,8 @@ export function SystemWorkspace(props: Props) {
     ? ["Worklist", "Journal", "Results", "Medication", "Documents", "Care coordination"]
     : [
         "Journal",
+        "Consultations",
+        "Appointment book",
         "Problems",
         "Medication",
         "Results",
@@ -832,6 +846,27 @@ export function SystemWorkspace(props: Props) {
         <span className="ehr-identity">{props.identityLabel ?? "Simulation workspace"}</span>
       </header>
       <div className="ehr-toolbar">
+        {!hospital && (
+          <button
+            disabled={!patient}
+            onClick={() => {
+              setTab("Consultations");
+              setRecordId("");
+            }}
+          >
+            New consultation
+          </button>
+        )}
+        {!hospital && (
+          <button
+            onClick={() => {
+              setTab("Appointment book");
+              setRecordId("");
+            }}
+          >
+            Appointment book
+          </button>
+        )}
         {operations
           .filter((x) => !hospital || x.type !== "create_referral")
           .map((x) => (
@@ -877,6 +912,13 @@ export function SystemWorkspace(props: Props) {
           <div className="ehr-content">
             {hospital && tab === "Worklist" ? (
               <HospitalWorklist {...props} />
+            ) : tab === "Appointment book" ? (
+              <AppointmentBook
+                now={props.view.now}
+                api={props.api}
+                patient={patient}
+                selectPatient={props.selectPatient}
+              />
             ) : !patient ? (
               <div className="ehr-start">
                 <span>＋</span>
@@ -891,6 +933,15 @@ export function SystemWorkspace(props: Props) {
                   ))}
                 </div>
               </div>
+            ) : tab === "Consultations" ? (
+              <Consultations
+                key={props.view.id + patient.id}
+                worldId={props.view.id}
+                patient={patient}
+                rows={rows}
+                api={props.api}
+                siteId={props.siteId}
+              />
             ) : tab === "Care coordination" ? (
               <CareCoordination
                 rows={coordinationRows.filter((r) => r.patientId === patient.id)}

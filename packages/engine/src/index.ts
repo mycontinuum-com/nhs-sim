@@ -542,7 +542,7 @@ export class Engine {
   }
   patients(id: string, q = "", offset = 0, limit = 30) {
     const all = this.require(id).patients.filter((p) =>
-      (p.id + " " + p.name).toLowerCase().includes(q.toLowerCase()),
+      (p.id + " " + p.name + " " + p.conditions.join(" ") + " " + p.needs.join(" ")).toLowerCase().includes(q.toLowerCase()),
     );
     return { total: all.length, items: all.slice(offset, offset + Math.min(limit, 100)) };
   }
@@ -609,9 +609,74 @@ export class Engine {
         schedule_visit: ["visit", "community"],
         dispatch_robot: ["robot-job", "robotics"],
       };
-      if (create[a.type]) {
+      if (a.type === "save_consultation") {
+        if (site !== "gp" && site !== "control")
+          throw new SimError("Only primary care may save a GP consultation", 403);
+        if (!a.patientId || !a.title?.trim() || !a.text || !a.consultationStatus)
+          throw new SimError("Consultation patient, title, text and status are required");
+        if (r) {
+          if (r.kind !== "consultation" || r.owner !== "gp" || r.patientId !== a.patientId)
+            throw new SimError("Consultation must belong to this patient and primary care", 409);
+          r.title = a.title.trim();
+          r.version++;
+        } else r = this.add(w, "consultation", a.title.trim(), "gp", a.patientId);
+        r.status = a.consultationStatus;
+        r.data = {
+          ...r.data,
+          text: a.text,
+          author: actor,
+          mode: a.mode ?? r.data.mode ?? "in-person",
+          recordedAt: w.now,
+        };
+      } else if (create[a.type]) {
         if (!a.patientId) throw new SimError("patientId required");
         const [kind, owner] = create[a.type]!;
+        let appointment:
+          | {
+              startsAt: number;
+              durationMinutes: number;
+              clinician: string;
+              mode: string;
+              capacityReserved: true;
+            }
+          | undefined;
+        if (a.type === "book_appointment") {
+          const durationMinutes = a.durationMinutes ?? 15;
+          const clinician = a.clinician ?? (owner === "gp" ? "Duty GP" : "Duty clinician");
+          const duration = durationMinutes * minute;
+          let startsAt = a.startsAt ?? Math.ceil(w.now / (15 * minute)) * 15 * minute;
+          if (startsAt < w.now)
+            throw new SimError("Choose an appointment at or after the simulation time", 409);
+          const bookings = w.resources.filter(
+            (item) =>
+              item.kind === "appointment" &&
+              item.owner === owner &&
+              !["completed", "cancelled", "rejected"].includes(item.status) &&
+              typeof item.data.clinician === "string" &&
+              item.data.clinician.trim().toLowerCase() === clinician.toLowerCase() &&
+              typeof item.data.startsAt === "number" &&
+              typeof item.data.durationMinutes === "number",
+          );
+          for (;;) {
+            const overlap = bookings.find((item) => {
+              const start = Number(item.data.startsAt),
+                end = start + Number(item.data.durationMinutes) * minute;
+              return startsAt < end && startsAt + duration > start;
+            });
+            if (!overlap) break;
+            if (a.startsAt !== undefined)
+              throw new SimError("Clinician already has an overlapping appointment", 409);
+            startsAt =
+              Number(overlap.data.startsAt) + Number(overlap.data.durationMinutes) * minute;
+          }
+          appointment = {
+            startsAt,
+            durationMinutes,
+            clinician,
+            mode: a.mode ?? "in-person",
+            capacityReserved: true,
+          };
+        }
         if (["order_test", "book_appointment", "schedule_visit"].includes(a.type)) {
           const cap = w.resources.find((x) => x.id === "capacity-" + owner);
           if (!cap || Number(cap.data.remaining) <= 0)
@@ -630,6 +695,11 @@ export class Engine {
         r.visibleTo = [...new Set<SiteId>([owner, site, "patient"])];
         if (a.type === "create_referral" && a.target)
           r.visibleTo = [...new Set([...r.visibleTo, a.target])];
+        if (appointment) {
+          r.data = appointment;
+          r.status = "booked";
+          r.dueAt = appointment.startsAt;
+        }
         if (a.type === "draft_prescription") r.status = "draft";
         if (a.type === "order_test")
           w.scheduled.push({ at: w.now + 120 * minute, type: "result", resourceId: r.id });
@@ -644,6 +714,8 @@ export class Engine {
       } else {
         if (!r) throw new SimError("resourceId required");
         if (a.type === "share_record") {
+          if (r.data.planLab === "digital")
+            throw new SimError("Use challenge sharing controls", 409);
           if (!a.target) throw new SimError("target required");
           r.visibleTo = [...new Set([...r.visibleTo, a.target])];
         } else if (["report_absence", "restore_staff", "allocate_shift"].includes(a.type)) {
@@ -663,11 +735,21 @@ export class Engine {
           const transitions: Partial<Record<Action["type"], [string[], string]>> = {
             review: [["open", "draft", "available"], "reviewed"],
             accept: [["open", "reviewed", "rejected"], "accepted"],
-            complete: [["open", "reviewed", "accepted", "scheduled", "waiting"], "completed"],
+            complete: [
+              ["open", "reviewed", "accepted", "scheduled", "waiting", "booked", "arrived"],
+              "completed",
+            ],
+            arrive_appointment: [["open", "scheduled", "booked"], "arrived"],
+            cancel_appointment: [["open", "scheduled", "booked", "arrived"], "cancelled"],
             reject: [["open", "reviewed", "accepted"], "rejected"],
             dispense: [["approved"], "dispensed"],
             collect: [["dispensed"], "collected"],
           };
+          if (
+            ["arrive_appointment", "cancel_appointment"].includes(a.type) &&
+            r.kind !== "appointment"
+          )
+            throw new SimError("Appointment required");
           const t = transitions[a.type];
           if (!t || !t[0].includes(r.status))
             throw new SimError("Invalid lifecycle transition", 409);
@@ -689,8 +771,24 @@ export class Engine {
           if (a.type === "complete") {
             w.counters.completed++;
             const cap = w.resources.find((x) => x.id === "capacity-" + r!.owner);
-            if (cap && ["appointment", "test", "visit"].includes(r.kind))
+            if (cap && ["test", "visit"].includes(r.kind))
               cap.data.remaining = Math.min(Number(cap.data.total), Number(cap.data.remaining) + 1);
+          }
+          if (
+            ["complete", "cancel_appointment"].includes(a.type) &&
+            r.kind === "appointment" &&
+            r.data.capacityReserved === true
+          ) {
+            const capacityId = "capacity-" + r.owner;
+            const capacity = w.resources.find((item) => item.id === capacityId);
+            if (capacity) {
+              capacity.data.remaining = Math.min(
+                Number(capacity.data.total),
+                Number(capacity.data.remaining) + 1,
+              );
+              capacity.version++;
+            }
+            r.data.capacityReserved = false;
           }
           if (a.type === "reject") w.counters.rejected++;
           if (a.type === "review") w.counters.reviewMinutes += 5;

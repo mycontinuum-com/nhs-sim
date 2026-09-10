@@ -1,0 +1,38 @@
+---
+title: Working in SystemTwo
+hide_table_of_contents: true
+---
+
+# Working in SystemTwo
+
+<a href="/gp/">Open SystemTwo</a> with your team key. Search for a person by name, local ID, condition or care need.
+
+## Record a consultation
+
+Select a patient, then choose **New consultation**. Enter a title, contact type and notes. **Save draft** stores unfinished notes in your team world. **Save consultation** adds a saved entry to the patient journal.
+
+The **Consultations** tab lists previous contacts. Expand an entry to read its narrative. Entries created through this editor have **Open for editing**. Saving an edit updates that record and its version. A conflicting edit is rejected, so reload the entry before trying again.
+
+Unsubmitted title and note text remain in the current browser session for that patient. Use **Save draft** before moving to another device. The simulator does not provide clinical recommendations or a production clinical signing process.
+
+## Work the appointment book
+
+Choose **Appointment book**, even before selecting a patient. It shows all patients for the selected date, with a clinician filter. Dates and times use the simulation's UTC clock.
+
+Select a patient to book. Enter the time, duration, clinician, contact type and reason. Overlapping appointments for the same clinician are rejected. **Arrive**, **Complete** and **Cancel** update the booking. A cancelled appointment remains visible in the book.
+
+New API bookings reserve service capacity and release it once on completion or cancellation. Authored starter appointments do not consume the team's allocation. This is an operational simulation, not a scheduling policy for a real practice.
+
+## Explore the population
+
+New team worlds contain 500 people, including 32 authored life histories with personal context and three distinct past contacts each. Older worlds receive the missing authored people as an additive upgrade. Existing patient work is preserved.
+
+Try Nina Brooks, a child whose appointment arrangements involve her parent; Yasmin Ahmed, taking over her own appointment arrangements as she starts college; or Frank Walsh, coordinating longer appointments with community transport. Open their journal and consultation history to follow their earlier contacts.
+
+## Build against the same records
+
+Use `POST /api/sites/gp/actions` with your bearer key. A consultation action contains `type: "save_consultation"`, `patientId`, `title`, `text`, `mode` and `consultationStatus`, either `draft` or `saved`. Updates also require `resourceId` and `expectedVersion`.
+
+A `book_appointment` action accepts `startsAt` in epoch milliseconds, `durationMinutes`, `clinician` and `mode`. Existing clients that omit them receive the next available slot. `arrive_appointment` and `cancel_appointment` take a resource ID and support `expectedVersion`.
+
+Read the book with `GET /api/sites/gp/appointments?date=2026-09-10`. It returns appointments and the names needed to display them. Patient consultation records remain available through the normal patient view.

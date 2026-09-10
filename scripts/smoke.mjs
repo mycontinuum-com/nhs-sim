@@ -59,6 +59,33 @@ const headers = {
   "Content-Type": "application/json",
 };
 assert.equal((await call("/api/sites/gp/view", { headers })).status, 200);
+const gpView = await call("/api/sites/gp/view", {headers});
+const bookDate = new Date(gpView.data.now).toISOString().slice(0, 10);
+const appointmentBook = await call("/api/sites/gp/appointments?date=" + bookDate, {headers});
+assert.equal(appointmentBook.status, 200);
+assert.ok(appointmentBook.data.appointments.length >= 12);
+assert.equal((await call("/api/sites/gp/appointments?date=2026-02-31", {headers})).status, 400);
+assert.equal((await call("/api/sites/gp/appointments?date=" + bookDate)).status, 401);
+const consultation = await call("/api/sites/gp/actions", {method:"POST", headers,
+  body:JSON.stringify({type:"save_consultation",patientId:"SIM-000001",title:"Smoke consultation",text:"Fictional person requested an accessible follow-up time.",consultationStatus:"saved",mode:"telephone"})});
+assert.equal(consultation.status, 200);
+const consultationView = await call("/api/sites/gp/view?patient=SIM-000001", {headers});
+assert.equal(consultationView.data.resources.find(r => r.id === consultation.data.id)?.data.text,
+  "Fictional person requested an accessible follow-up time.");
+assert.equal((await call("/api/plan-lab")).status, 401);
+assert.equal((await call("/api/plan-lab", { headers })).data.challenges.length, 3);
+for (const action of ["start", "permit"]) {
+  assert.equal((await call("/api/plan-lab", {
+    method: "POST", headers, body: JSON.stringify({challenge: "digital", action}),
+  })).status, 200);
+}
+const sharedLab = await call("/api/sites/community/view?patient=SIM-000002", {headers});
+assert.ok(sharedLab.data.resources.some(resource => resource.data.planLab === "digital"));
+assert.equal((await call("/api/plan-lab", {
+  method: "POST", headers, body: JSON.stringify({challenge: "digital", action: "revoke"}),
+})).status, 200);
+const revokedLab = await call("/api/sites/community/view?patient=SIM-000002", {headers});
+assert.ok(!revokedLab.data.resources.some(resource => resource.data.planLab === "digital"));
 assert.equal((await call("/api/sites/control/view", { headers })).status, 403);
 assert.equal((await call("/api/sites/legacy/view", { headers })).status, 501);
 assert.equal((await call("/api/sites/gp/view")).status, 401);

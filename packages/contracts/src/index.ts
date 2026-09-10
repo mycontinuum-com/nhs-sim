@@ -151,33 +151,60 @@ export type World = {
   counters: Record<string, number>;
   faults: Record<string, boolean>;
 };
-export const actionSchema = z.object({
-  type: z.enum([
-    "create_task",
-    "create_referral",
-    "order_test",
-    "draft_prescription",
-    "book_appointment",
-    "send_message",
-    "schedule_visit",
-    "dispatch_robot",
-    "review",
-    "accept",
-    "complete",
-    "reject",
-    "dispense",
-    "collect",
-    "share_record",
-    "report_absence",
-    "restore_staff",
-    "allocate_shift",
-  ]),
-  patientId: z.string().optional(),
-  resourceId: z.string().optional(),
-  title: z.string().min(1).max(500).optional(),
-  target: z.enum(activeServices as [SiteId, ...SiteId[]]).optional(),
-  expectedVersion: z.number().int().positive().optional(),
-});
+export const actionSchema = z
+  .object({
+    type: z.enum([
+      "create_task",
+      "create_referral",
+      "order_test",
+      "draft_prescription",
+      "book_appointment",
+      "arrive_appointment",
+      "cancel_appointment",
+      "save_consultation",
+      "send_message",
+      "schedule_visit",
+      "dispatch_robot",
+      "review",
+      "accept",
+      "complete",
+      "reject",
+      "dispense",
+      "collect",
+      "share_record",
+      "report_absence",
+      "restore_staff",
+      "allocate_shift",
+    ]),
+    patientId: z.string().optional(),
+    resourceId: z.string().optional(),
+    title: z.string().min(1).max(500).optional(),
+    target: z.enum(activeServices as [SiteId, ...SiteId[]]).optional(),
+    expectedVersion: z.number().int().positive().optional(),
+    text: z.string().trim().min(1).max(20000).optional(),
+    consultationStatus: z.enum(["draft", "saved"]).optional(),
+    startsAt: z.number().int().nonnegative().max(8640000000000000).optional(),
+    durationMinutes: z.number().int().min(5).max(120).optional(),
+    clinician: z.string().trim().min(1).max(100).optional(),
+    mode: z.enum(["in-person", "telephone", "video", "online"]).optional(),
+  })
+  .superRefine((action, context) => {
+    if (action.type === "save_consultation") {
+      for (const field of ["patientId", "title", "text", "consultationStatus"] as const)
+        if (!action[field]?.trim())
+          context.addIssue({
+            code: "custom",
+            path: [field],
+            message: field + " is required for a consultation",
+          });
+      if (action.resourceId && action.expectedVersion === undefined)
+        context.addIssue({
+          code: "custom",
+          path: ["expectedVersion"],
+          message: "expectedVersion is required when editing a consultation",
+        });
+    }
+  });
 export type Action = z.infer<typeof actionSchema>;
 export const scenarios = [
   {

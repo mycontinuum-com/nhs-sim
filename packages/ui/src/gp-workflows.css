@@ -1,0 +1,107 @@
+.gp-note-form,
+.gp-book-form {
+  background: #f5f8f8;
+  border: 1px solid #cad7d9;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.gp-note-form header,
+.gp-form-actions,
+.gp-book-controls,
+.gp-book-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.gp-note-form header {
+  justify-content: space-between;
+}
+.gp-note-form label,
+.gp-book-form label,
+.gp-book-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.gp-note-form textarea {
+  width: 100%;
+  resize: vertical;
+  line-height: 1.6;
+  padding: 12px;
+  border: 1px solid #aebfc2;
+  background: white;
+  font: inherit;
+}
+.gp-note-form input,
+.gp-note-form select,
+.gp-book-form input,
+.gp-book-form select,
+.gp-book-controls input,
+.gp-book-controls select {
+  min-height: 36px;
+  background: white;
+  border: 1px solid #aebfc2;
+  padding: 7px;
+  font: inherit;
+}
+.gp-contact-history details {
+  border-bottom: 1px solid #cad7d9;
+  padding: 15px 4px;
+}
+.gp-contact-history summary {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gp-contact-history summary span,
+.gp-contact-history small {
+  font-size: 12px;
+  color: #5b7078;
+}
+.gp-note-text,
+.ehr-record-detail dd {
+  white-space: pre-wrap;
+  line-height: 1.65;
+}
+.gp-contact-history button {
+  margin: 12px;
+}
+.gp-book-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.gp-book-actions {
+  margin-top: 10px;
+  gap: 5px;
+}
+.gp-book-controls {
+  margin: 15px 0;
+}
+.gp-book-controls label {
+  margin: 0;
+}
+.gp-appointment-book .ehr-table small {
+  display: block;
+  margin-top: 6px;
+}
+.gp-book-form {
+  margin-top: 24px;
+}
+@media (max-width: 700px) {
+  .gp-book-fields {
+    grid-template-columns: 1fr;
+  }
+  .gp-note-form,
+  .gp-book-form {
+    padding: 14px;
+  }
+  .gp-appointment-book .ehr-table {
+    min-width: 720px;
+  }
+}

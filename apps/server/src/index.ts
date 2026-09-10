@@ -18,6 +18,7 @@ import {
   MockOIDC,
 } from "../../../packages/nhs-mocks/src/index.ts";
 import { handleCis2 } from "./cis2.ts";
+import { getPlanLab, runPlanLab } from "../../../packages/engine/src/plan-lab.ts";
 import { ModelAgent } from "../../../packages/agents/src/index.ts";
 
 const port = Number(process.env.PORT ?? 8080);
@@ -203,6 +204,20 @@ const server = createServer(async (req, res) => {
           : { team: key!.team, world: key!.world, scopes: key!.scopes },
       );
     }
+    if (path === "/api/plan-lab") {
+      const id = authenticated();
+      if (
+        !admin &&
+        !["gp", "hospital", "community", "pharmacy"].every((scope) => key!.scopes.includes(scope))
+      )
+        throw new SimError("Plan challenges require a full cross-service team key", 403);
+      if (method === "GET") return send(res, 200, getPlanLab(store.engine, id));
+      if (method === "POST") {
+        const input = await json(req);
+        return send(res, 200, await store.run(() => runPlanLab(store.engine, id, input)));
+      }
+      return send(res, 405, { error: "Method not allowed" });
+    }
     if (path === "/api/clock" && method === "POST") {
       const id = authenticated();
       const input = z
@@ -295,7 +310,7 @@ const server = createServer(async (req, res) => {
       }
       throw new SimError("Unsupported mock operation", 405);
     }
-    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions)$/);
+    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments)$/);
     if (match) {
       const id = authenticated(),
         site = match[1] as SiteId;
@@ -306,6 +321,35 @@ const server = createServer(async (req, res) => {
         });
       if (site === "control" && !admin) throw new SimError("Operator only", 403);
       if (!admin && !key!.scopes.includes(site)) throw new SimError("Key lacks service scope", 403);
+      if (match[2] === "appointments") {
+        if (method !== "GET") throw new SimError("Method not allowed", 405);
+        const date = url.searchParams.get("date");
+        if (
+          !date ||
+          !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+          !Number.isFinite(Date.parse(date + "T00:00:00Z"))
+        )
+          throw new SimError("A valid date is required");
+        const start = Date.parse(date + "T00:00:00Z");
+        if (new Date(start).toISOString().slice(0, 10) !== date)
+          throw new SimError("A valid date is required");
+        const world = store.engine.require(id);
+        const appointments = store.engine
+          .view(id, site)
+          .resources.filter(
+            (r) =>
+              r.kind === "appointment" &&
+              r.owner === site &&
+              typeof r.data.startsAt === "number" &&
+              r.data.startsAt >= start &&
+              r.data.startsAt < start + 86400000,
+          )
+          .sort((a, b) => Number(a.data.startsAt) - Number(b.data.startsAt));
+        const patients = world.patients
+          .filter((p) => appointments.some((r) => r.patientId === p.id))
+          .map(({ id, name }) => ({ id, name }));
+        return send(res, 200, { appointments, patients });
+      }
       if (match[2] === "view") {
         const limit = url.searchParams.has("limit")
           ? Number(url.searchParams.get("limit"))

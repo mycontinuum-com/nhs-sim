@@ -1,0 +1,51 @@
+---
+title: Explore the ten-year plan
+hide_table_of_contents: true
+---
+
+# Explore the ten-year plan
+
+<a href="/control/?challenges=1">Open the practical lab</a> with your team's key. Each challenge adds a small set of fictional records to the existing world. Repeat visits keep your progress. No challenge resets the world.
+
+The [2025 ten-year plan for England](https://www.gov.uk/government/publications/10-year-health-plan-for-england-fit-for-the-future/fit-for-the-future-10-year-health-plan-for-england-executive-summary) centres on three shifts: hospital to community, analogue to digital, and sickness to prevention. It also discusses coordinated neighbourhood care, patient control of records and reducing inequalities in access. The following exercises are our simplified interpretations of implementation problems.
+
+## Coordinate care beyond the hospital
+
+Start the discharge challenge. Inspect the outstanding prerequisites, agree the support plan, make the handover visible to the GP, complete pharmacy supply and arrange community follow-up. Try the readiness check before everything is in place, then repeat it after resolving the missing steps.
+
+Open the linked workplaces to inspect the same records. You can use their normal actions for prescription and visit transitions. The lab reports operational prerequisites only. It does not decide whether a person is medically fit for discharge, predict readmissions or estimate saved bed days.
+
+## Make sharing controllable
+
+Start the digital challenge. Attempt to read the dedicated handover as the community team before permission, allow access, read again, then revoke it. Compare the decision trail and the record's visibility to the receiving service.
+
+This exercise applies a deliberately simple permission rule to one dedicated document. It is not a model of NHS legal bases for data processing, a production consent service, or a claim that all NHS record access requires consent. Revocation prevents future reads through the model; it cannot erase copies a recipient already made.
+
+## Reach people before a care gap grows
+
+Start the prevention challenge. Compare app outreach with phone or letter outreach for the authored cohort. Book and complete follow-up within the finite appointment allowance. Inspect who was reached and who still has no appointment.
+
+The contact preferences and capacity are fictional scenario settings. The exercise models access and coordination, not clinical eligibility, diagnosis, treatment effects or national prevention performance. A larger count of app messages does not imply that everyone received them.
+
+## Build an agent against the lab
+
+Use your full team bearer key:
+
+```http
+GET /api/plan-lab
+Authorization: Bearer sim_...
+```
+
+The response contains `now` and `challenges`. Each challenge includes its checks, metrics, available actions, workplace links and decision trail. Send an action's `input` object unchanged:
+
+```http
+POST /api/plan-lab
+Authorization: Bearer sim_...
+Content-Type: application/json
+
+{"challenge":"discharge","action":"start"}
+```
+
+The response is the updated workbook. Disabled actions include an explanation; server-side validation also enforces prerequisites. Cross-service challenges require GP, hospital, community and pharmacy scopes. Service-specific keys cannot use this endpoint.
+
+Demonstrate both a blocked attempt and a completed path. Explain the model's assumptions, show the receiving record and identify a person or step your solution still misses. The model does not award clinical outcome scores.

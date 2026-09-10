@@ -13,6 +13,7 @@ import {
 import { SystemWorkspace } from "./systems.tsx";
 import { CareWorkspace } from "./care-workspaces.tsx";
 import { HomeWorkspace } from "./home-workspace.tsx";
+import { PlanLab } from "./plan-lab.tsx";
 import "./care-workspaces.css";
 import "./home-workspace.css";
 import "./style.css";
@@ -20,6 +21,7 @@ import "./systems.css";
 
 const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 type View = {
+  id: string;
   now: number;
   speed: number;
   paused: boolean;
@@ -120,6 +122,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const [operatorToken, setOperatorToken] = useState("");
   const [place, setPlace] = useState<string | null>(null);
   const isMap = siteId === "control";
+  const isPlan = isMap && new URLSearchParams(location.search).has("challenges");
   const Workspace =
     siteId === "pharmacy" || siteId === "community"
       ? CareWorkspace
@@ -311,6 +314,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               NHS-SIM <span>Riverside & Northbank</span>
             </a>
             <nav aria-label="World tools">
+              <a href="/control/?challenges=1">Plan challenges</a>
               <a href="/docs/">Handbook</a>
               <button onClick={() => setDrawer("operator")}>Operator</button>
               <button onClick={() => setDrawer("team")}>
@@ -318,69 +322,80 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               </button>
             </nav>
           </header>
-          <main className="world-map" aria-label="Interactive neighbourhood map">
-            <div className="map-intro">
-              <span>A SYNTHETIC HEALTH NEIGHBOURHOOD</span>
-              <h1>Where would you like to work?</h1>
-              <p>
-                Choose a building to enter its system.
-                <span className="map-mobile-hint"> Swipe the map or open Places below.</span>
-              </p>
-            </div>
-            <div className="map-landscape">
-              <img
-                src="/control/world/neighbourhood-v2.png"
-                alt="Illustrated English neighbourhood with Riverside GP practice to the west, Northbank hospital to the east, a community centre and high street pharmacy beside the river"
-              />
-              {places.map((item) => (
-                <button
-                  key={item.id}
-                  className={"map-place" + (item.id === place ? " selected" : "")}
-                  style={{ left: item.x + "%", top: item.y + "%" }}
-                  onClick={() => setPlace(item.id)}
-                  aria-label={`Explore ${item.title}`}
-                  aria-expanded={item.id === place}
-                >
-                  <span className="map-pin" />
-                  <span className="map-label">
-                    <small>{item.label}</small>
-                    {item.title}
-                  </span>
-                </button>
-              ))}
-            </div>
-            {selectedPlace && (
-              <section className="place-detail" aria-label={selectedPlace.title}>
-                <button
-                  className="close"
-                  onClick={() => setPlace(null)}
-                  aria-label="Close place details"
-                >
-                  ×
-                </button>
-                <span>{selectedPlace.label}</span>
-                <h2>{selectedPlace.title}</h2>
-                <p>{selectedPlace.description}</p>
-                <button className="primary" onClick={() => enter(selectedPlace.href)}>
-                  Enter {selectedPlace.system}
-                </button>
-              </section>
-            )}
-            <footer className="map-footer">
-              <span>Fictional people. Shared records. Consequences over time.</span>
-              <details>
-                <summary>Places</summary>
-                <nav aria-label="Accessible place directory">
-                  {places.map((item) => (
-                    <button key={item.id} onClick={() => enter(item.href)}>
+          {isPlan ? (
+            <PlanLab
+              connected={!!key}
+              api={api}
+              join={() => {
+                setDestination("/control/?challenges=1");
+                setDrawer("team");
+              }}
+            />
+          ) : (
+            <main className="world-map" aria-label="Interactive neighbourhood map">
+              <div className="map-intro">
+                <span>A SYNTHETIC HEALTH NEIGHBOURHOOD</span>
+                <h1>Where would you like to work?</h1>
+                <p>
+                  Choose a building to enter its system.
+                  <span className="map-mobile-hint"> Swipe the map or open Places below.</span>
+                </p>
+              </div>
+              <div className="map-landscape">
+                <img
+                  src="/control/world/neighbourhood-v2.png"
+                  alt="Illustrated English neighbourhood with Riverside GP practice to the west, Northbank hospital to the east, a community centre and high street pharmacy beside the river"
+                />
+                {places.map((item) => (
+                  <button
+                    key={item.id}
+                    className={"map-place" + (item.id === place ? " selected" : "")}
+                    style={{ left: item.x + "%", top: item.y + "%" }}
+                    onClick={() => setPlace(item.id)}
+                    aria-label={`Explore ${item.title}`}
+                    aria-expanded={item.id === place}
+                  >
+                    <span className="map-pin" />
+                    <span className="map-label">
+                      <small>{item.label}</small>
                       {item.title}
-                      <small>{item.system}</small>
-                    </button>
-                  ))}
-                </nav>
-              </details>
-            </footer>
-          </main>
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {selectedPlace && (
+                <section className="place-detail" aria-label={selectedPlace.title}>
+                  <button
+                    className="close"
+                    onClick={() => setPlace(null)}
+                    aria-label="Close place details"
+                  >
+                    ×
+                  </button>
+                  <span>{selectedPlace.label}</span>
+                  <h2>{selectedPlace.title}</h2>
+                  <p>{selectedPlace.description}</p>
+                  <button className="primary" onClick={() => enter(selectedPlace.href)}>
+                    Enter {selectedPlace.system}
+                  </button>
+                </section>
+              )}
+              <footer className="map-footer">
+                <span>Fictional people. Shared records. Consequences over time.</span>
+                <details>
+                  <summary>Places</summary>
+                  <nav aria-label="Accessible place directory">
+                    {places.map((item) => (
+                      <button key={item.id} onClick={() => enter(item.href)}>
+                        {item.title}
+                        <small>{item.system}</small>
+                      </button>
+                    ))}
+                  </nav>
+                </details>
+              </footer>
+            </main>
+          )}
         </>
       ) : (
         <>
@@ -431,6 +446,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               selectPatient={selectPatient}
               act={act}
               create={create}
+              api={api}
               pending={mutation.isPending}
               exitToMap={() => location.assign("/control/")}
             />
@@ -457,6 +473,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
             <p className="loading">Opening the patient record…</p>
           )}
           <footer className="workspace-status">
+            <a href="/control/?challenges=1">Plan challenges</a>
             <a href="/control/">Neighbourhood</a>
             <span>
               {view.data

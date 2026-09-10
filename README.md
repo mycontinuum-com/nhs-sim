@@ -139,3 +139,8 @@ Rule agents run without internet or credentials. Their actions use simulation ti
 Read [hackathon projects and coverage](docs/hackathon.md), [API contracts](docs/api-contracts.md), and [security](SECURITY.md).
 
 CI builds the image, starts PostgreSQL and the app, runs all single-origin smoke checks and restarts the app. Container testing requires Docker; local unit tests do not.
+
+
+## Ten-year plan lab
+
+Open `/control/?challenges=1` to explore three persisted challenges in your team world: discharge coordination, controlled sharing and inclusive prevention outreach. Each has actions, prerequisites, a decision trail and links to receiving workplaces. `GET /api/plan-lab` exposes the workbook; POST an action's `input` to the same endpoint. These are fictional operational models, not clinical outcome forecasts. See `/docs/ten-year-plan/` for scope and assumptions.

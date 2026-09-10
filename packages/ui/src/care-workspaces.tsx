@@ -326,6 +326,43 @@ export function CareWorkspace(props: Props) {
         </div>
         <span className="care-identity">{props.identityLabel ?? "Simulation staff session"}</span>
       </div>
+      {!pharmacy &&
+        props.rows.some(
+          (record) =>
+            record.kind === "document" &&
+            record.data.planLab === "digital" &&
+            (!props.selectedPatient || record.patientId === props.selectedPatient),
+        ) && (
+          <section className="care-incoming" aria-label="Shared record inbox">
+            <div className="care-incoming-heading">
+              <div>
+                <p className="care-eyebrow">Shared record inbox</p>
+                <h2>From the practice</h2>
+              </div>
+              <a href="/control/?challenges=1">Sharing challenge ↗</a>
+            </div>
+            {props.rows
+              .filter(
+                (record) =>
+                  record.kind === "document" &&
+                  record.data.planLab === "digital" &&
+                  (!props.selectedPatient || record.patientId === props.selectedPatient),
+              )
+              .map((record) => (
+                <details className="care-handover-card" key={record.id}>
+                  <summary>{record.title}</summary>
+                  <p>
+                    {record.patientId} · Shared by {record.owner} · Version {record.version}
+                  </p>
+                  <p>
+                    {typeof record.data.text === "string"
+                      ? record.data.text
+                      : "No document body recorded."}
+                  </p>
+                </details>
+              ))}
+          </section>
+        )}
       {!pharmacy && (
         <section className="care-incoming" aria-label="Incoming care handovers">
           <div className="care-incoming-heading">

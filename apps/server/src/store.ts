@@ -1,4 +1,5 @@
 import pg from "pg";
+import { enrichPatientStories } from "../../../packages/engine/src/population.ts";
 import { Engine } from "../../../packages/engine/src/index.ts";
 import { createHash, randomBytes } from "node:crypto";
 
@@ -30,6 +31,7 @@ export class Store {
       if (result.rows[0].schema_version !== 1) throw new Error("Unsupported database schema");
       this.engine.state = result.rows[0].payload;
     }
+    for (const world of Object.values(this.engine.state.worlds)) enrichPatientStories(world);
     this.keys = (await client.query("SELECT * FROM team_keys")).rows;
     await this.persist();
   }
