@@ -1,3 +1,4 @@
+import { pharmacyPathways } from "./pharmacy.ts";
 import { z } from "zod";
 
 const serviceIds = [
@@ -121,7 +122,19 @@ export type Resource = {
   dueAt?: number;
   data: Record<string, unknown>;
   version: number;
-  provenance?: { created: RecordChange | null; changes: RecordChange[]; recovery?: { migration: string; basis: "synthetic-history" | "simulation-generator" | "recorded-change" | "team-event" | "unavailable" } };
+  provenance?: {
+    created: RecordChange | null;
+    changes: RecordChange[];
+    recovery?: {
+      migration: string;
+      basis:
+        | "synthetic-history"
+        | "simulation-generator"
+        | "recorded-change"
+        | "team-event"
+        | "unavailable";
+    };
+  };
 };
 export type SimEvent = {
   id: string;
@@ -166,6 +179,13 @@ export type World = {
 export const actionSchema = z
   .object({
     type: z.enum([
+      "place_pharmacy_order",
+      "receive_pharmacy_order",
+      "receive_pharmacy_referral",
+      "update_pharmacy_referral",
+      "receive_stock",
+      "update_stock_price",
+      "link_prescription_stock",
       "register_attendance",
       "update_attendance",
       "connect_device",
@@ -209,6 +229,14 @@ export const actionSchema = z
     sourceProblemKey: z.string().min(1).max(600).optional(),
     startsAt: z.number().int().nonnegative().max(8640000000000000).optional(),
     durationMinutes: z.number().int().min(5).max(120).optional(),
+    productId: z.string().min(1).optional(),
+    quantity: z.number().int().min(1).max(100000).optional(),
+    costPence: z.number().int().min(0).max(10000000).optional(),
+    pricePence: z.number().int().min(0).max(10000000).optional(),
+    reorderLevel: z.number().int().min(0).max(100000).optional(),
+    pharmacyPathway: z.enum(pharmacyPathways).optional(),
+    referralSource: z.enum(["gp", "hospital", "patient", "referrals"]).optional(),
+    pharmacyCommand: z.enum(["accept", "consult", "complete"]).optional(),
     hospitalCommand: z.enum(["assign", "assess", "refer", "admit", "discharge"]).optional(),
     acuity: z.enum(["1", "2", "3", "4", "5"]).optional(),
     location: z.string().trim().min(1).max(100).optional(),
@@ -218,24 +246,60 @@ export const actionSchema = z
   })
   .superRefine((action, context) => {
     if (action.type === "connect_device") {
-      if (!action.patientId?.trim()) context.addIssue({ code: "custom", path: ["patientId"], message: "patientId is required for a device" });
-      if (action.resourceId) context.addIssue({ code: "custom", path: ["resourceId"], message: "Connect a device by patient, not resource" });
+      if (!action.patientId?.trim())
+        context.addIssue({
+          code: "custom",
+          path: ["patientId"],
+          message: "patientId is required for a device",
+        });
+      if (action.resourceId)
+        context.addIssue({
+          code: "custom",
+          path: ["resourceId"],
+          message: "Connect a device by patient, not resource",
+        });
     }
     if (action.type === "save_allergy") {
       for (const field of ["patientId", "title", "allergyStatus"] as const)
-        if (!action[field]?.trim()) context.addIssue({ code: "custom", path: [field], message: field + " is required for an allergy" });
+        if (!action[field]?.trim())
+          context.addIssue({
+            code: "custom",
+            path: [field],
+            message: field + " is required for an allergy",
+          });
       if (action.resourceId && action.expectedVersion === undefined)
-        context.addIssue({ code: "custom", path: ["expectedVersion"], message: "expectedVersion is required when editing an allergy" });
+        context.addIssue({
+          code: "custom",
+          path: ["expectedVersion"],
+          message: "expectedVersion is required when editing an allergy",
+        });
       if (action.resourceId && action.sourceAllergyKey)
-        context.addIssue({ code: "custom", path: ["sourceAllergyKey"], message: "Choose an existing allergy or a historical source" });
+        context.addIssue({
+          code: "custom",
+          path: ["sourceAllergyKey"],
+          message: "Choose an existing allergy or a historical source",
+        });
     }
     if (action.type === "save_problem") {
       for (const field of ["patientId", "title", "problemStatus"] as const)
-        if (!action[field]?.trim()) context.addIssue({ code: "custom", path: [field], message: field + " is required for a problem" });
+        if (!action[field]?.trim())
+          context.addIssue({
+            code: "custom",
+            path: [field],
+            message: field + " is required for a problem",
+          });
       if (action.resourceId && action.expectedVersion === undefined)
-        context.addIssue({ code: "custom", path: ["expectedVersion"], message: "expectedVersion is required when editing a problem" });
+        context.addIssue({
+          code: "custom",
+          path: ["expectedVersion"],
+          message: "expectedVersion is required when editing a problem",
+        });
       if (action.resourceId && action.sourceProblemKey)
-        context.addIssue({ code: "custom", path: ["sourceProblemKey"], message: "Choose an existing problem or a historical source" });
+        context.addIssue({
+          code: "custom",
+          path: ["sourceProblemKey"],
+          message: "Choose an existing problem or a historical source",
+        });
     }
     if (action.type === "save_consultation") {
       for (const field of ["patientId", "title", "text", "consultationStatus"] as const)

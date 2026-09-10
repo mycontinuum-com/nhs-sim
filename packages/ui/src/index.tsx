@@ -1,3 +1,4 @@
+import { PharmacyWorkspace } from "./pharmacy-workspace.tsx";
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider, useMutation, useQuery } from "@tanstack/react-query";
@@ -142,7 +143,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     history.replaceState(null, "", url.pathname + url.search + url.hash);
   }, [isMap, explorePlan]);
   const Workspace =
-    siteId === "pharmacy" || siteId === "community"
+    siteId === "pharmacy" ? PharmacyWorkspace : siteId === "community"
       ? CareWorkspace
       : siteId === "wearables"
         ? HomeWorkspace
@@ -736,7 +737,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                   >
                     {clock.data?.paused ? "Run" : "Pause"}
                   </button>
-                  {[15, 60, 121].map((minutes) => (
+                  {[15, 60, 121, 1440].map((minutes) => (
                     <button
                       key={minutes}
                       disabled={!clock.data || clockChange.isPending}
@@ -744,7 +745,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                         clockChange.mutate({ paused: true, advanceMinutes: minutes })
                       }
                     >
-                      +{minutes} minutes
+                      {minutes === 1440 ? "+1 day" : `+${minutes} minutes`}
                     </button>
                   ))}
                 </div>

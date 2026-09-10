@@ -14,7 +14,7 @@ Demonstrate the original document, the receiving service's visible copy, and the
 
 ## Medicines and support at home
 
-Draft a prescription with `draft_prescription` from GP or hospital. Its owner is pharmacy. Use `/api/sites/pharmacy/actions` to `review`, `accept`, `dispense`, then `collect` that resource. Acceptance changes a prescription to `approved`; dispensing requires that state and available stock. Use a team key with pharmacy scope.
+Draft a prescription with `draft_prescription` from GP or hospital. Its owner is pharmacy. Read the product catalogue at `/api/sites/pharmacy/pharmacy-workspace`. Use `link_prescription_stock` to choose a matching `productId` and `quantity` in units. Then use `/api/sites/pharmacy/actions` to `review`, `accept`, `dispense`, and `collect` the prescription. Send its current `expectedVersion` with each action. Acceptance changes it to `approved`; dispensing deducts the linked quantity from stock. Use a team key with pharmacy scope.
 
 For `SIM-000006`, inspect the support plan through `/api/sites/community/view?patient=SIM-000006`. Create a `schedule_visit` action from GP or hospital and advance the clock by 91 minutes. Confirm the visit completed in the community projection. Exhausted community capacity rejects new bookings with HTTP 409.
 
@@ -41,7 +41,7 @@ Keep the seed and intervention sequence fixed when comparing runs. Present initi
 
 1. Create a team from the map. In SystemTwo, choose Amira Khan, `SIM-000001`, and send a referral to the hospital.
 2. Open Millenni-ish from the map. Select Amira and find your referral in the discharge chart.
-3. Open High Street Pharmacy. Select the discharge prescription, dispense it and confirm collection. A newly drafted prescription must first be reviewed and approved.
+3. Open High Street Pharmacy. Select the discharge prescription, link its matching catalogue item and quantity, dispense it, and confirm collection. A newly drafted prescription must first be reviewed and approved.
 4. Open Neighbourhood Care, select Amira and schedule a home visit. Open Simulation controls and advance 121 minutes. The visit changes to completed after its 90-minute delay.
 5. Open Eleanor's home from the map. Compare the stored activity, sleep and heart-rate readings. Advance 15 minutes to receive a new activity reading. The home monitor produces readings hourly after its first scheduled reading at 08:10.
 

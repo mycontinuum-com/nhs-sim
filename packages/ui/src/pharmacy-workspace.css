@@ -1,0 +1,460 @@
+.pharmacy-workspace {
+  --rx-ink: #203d36;
+  --rx-green: #286653;
+  --rx-line: #d9dfd5;
+  background: #f4f3ed;
+  color: var(--rx-ink);
+  min-height: calc(100vh - var(--workspace-status-height, 50px));
+  font-family: Arial, sans-serif;
+}
+.rx-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #173f34;
+  color: #fff;
+  padding: 18px 30px;
+}
+.rx-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.rx-brand > span {
+  font-size: 34px;
+  color: #d8e7b9;
+}
+.rx-brand b {
+  font-family: Georgia, serif;
+  font-size: 29px;
+  letter-spacing: -1px;
+}
+.rx-brand small {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 2px;
+  margin-top: 5px;
+}
+.rx-header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-size: 12px;
+}
+.pharmacy-workspace button {
+  border: 1px solid #b8c6bb;
+  border-radius: 4px;
+  background: #fff;
+  color: #25483b;
+  padding: 9px 13px;
+  cursor: pointer;
+  font: inherit;
+}
+.pharmacy-workspace button:hover {
+  background: #e9efdf;
+}
+.pharmacy-workspace button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.rx-header button {
+  background: transparent;
+  color: #fff;
+  border-color: #6a877d;
+}
+.rx-overview {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 28px 30px;
+  background: #e8eddd;
+  border-bottom: 1px solid var(--rx-line);
+}
+.rx-overview > div:first-child {
+  flex: 1;
+}
+.rx-overview p {
+  font-size: 10px;
+  letter-spacing: 2px;
+  margin: 0 0 8px;
+}
+.rx-overview h1 {
+  font:
+    32px Georgia,
+    serif;
+  margin: 0 0 9px;
+}
+.rx-overview span {
+  font-size: 12px;
+}
+.rx-stat {
+  min-width: 115px;
+  border-left: 1px solid #bdc9b9;
+  padding-left: 25px;
+}
+.rx-stat b {
+  display: block;
+  font:
+    35px Georgia,
+    serif;
+}
+.rx-stat span {
+  display: block;
+  max-width: 130px;
+  margin-top: 5px;
+}
+.rx-tabs {
+  display: flex;
+  padding: 0 30px;
+  border-bottom: 1px solid var(--rx-line);
+  background: #fff;
+  gap: 22px;
+}
+.rx-tabs button {
+  border: 0;
+  border-radius: 0;
+  border-bottom: 3px solid transparent;
+  padding: 16px 4px;
+}
+.rx-tabs button[aria-current="page"] {
+  border-color: #285d46;
+  font-weight: bold;
+}
+.rx-directory {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  padding: 18px 30px;
+}
+.rx-directory label {
+  flex: 1;
+  max-width: 350px;
+}
+.pharmacy-workspace label {
+  display: block;
+  font-size: 12px;
+  font-weight: bold;
+  margin: 12px 0;
+}
+.pharmacy-workspace input,
+.pharmacy-workspace select,
+.pharmacy-workspace textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #becabd;
+  border-radius: 3px;
+  background: #fff;
+  color: #243e35;
+  margin-top: 6px;
+  font:
+    14px Arial,
+    sans-serif;
+}
+.pharmacy-workspace textarea {
+  min-height: 90px;
+}
+.pharmacy-workspace .rx-primary {
+  background: #245a43;
+  color: #fff;
+}
+.rx-main {
+  display: grid;
+  grid-template-columns: minmax(400px, 1.6fr) minmax(310px, 1fr);
+  gap: 24px;
+  padding: 0 30px 40px;
+  align-items: start;
+}
+.rx-list,
+.rx-bench {
+  background: #fff;
+  border: 1px solid var(--rx-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.rx-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--rx-line);
+}
+.rx-section-title h2 {
+  margin: 0;
+  font:
+    23px Georgia,
+    serif;
+}
+.rx-section-title span,
+.rx-caption {
+  font-size: 11px;
+  color: #68776b;
+  line-height: 1.5;
+}
+.rx-list > .rx-caption {
+  padding: 0 20px;
+}
+.rx-table-wrap {
+  overflow: auto;
+}
+.rx-list table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.rx-list th {
+  background: #f2f3ec;
+  text-align: left;
+  padding: 12px;
+  color: #657467;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.rx-list td {
+  border-bottom: 1px solid #e6e9e0;
+  padding: 12px;
+}
+.rx-list td button {
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+}
+.rx-list td strong,
+.rx-list td span {
+  display: block;
+}
+.rx-list td button span {
+  color: #718075;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.rx-list tr[aria-selected="true"] {
+  background: #edf2e6;
+}
+.rx-status {
+  background: #edf1e5;
+  border-radius: 3px;
+  padding: 5px 7px;
+  font-size: 10px;
+  text-transform: uppercase;
+  display: inline-block;
+}
+.rx-low {
+  display: block;
+  color: #a24e18;
+  padding-top: 6px;
+}
+.rx-bench {
+  padding: 22px;
+  box-sizing: border-box;
+}
+.rx-bench h2 {
+  font:
+    25px Georgia,
+    serif;
+  margin: 10px 0 18px;
+}
+.rx-bench h3 {
+  font-size: 14px;
+}
+.rx-bench form {
+  padding: 12px 0;
+  border-top: 1px solid var(--rx-line);
+  margin-top: 18px;
+}
+.rx-bench button {
+  margin: 6px 6px 0 0;
+  font-size: 12px;
+}
+.rx-bench dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  font-size: 12px;
+  gap: 10px;
+}
+.rx-bench dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.rx-bench dt {
+  color: #718075;
+}
+.rx-empty-bench > span {
+  font:
+    50px Georgia,
+    serif;
+  color: #9bae94;
+}
+.rx-empty-bench > p,
+.rx-empty {
+  font-size: 13px;
+  line-height: 1.8;
+  color: #68776b;
+}
+.rx-empty {
+  padding: 20px;
+}
+.rx-paper {
+  margin-top: 24px;
+  padding: 20px;
+  background: #fbfaf2;
+  border: 1px dashed #b8beac;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.rx-paper b {
+  font-size: 12px;
+}
+.rx-paper p {
+  font-size: 13px;
+}
+.rx-paper small {
+  font-size: 10px;
+}
+.rx-notice {
+  padding: 10px 30px;
+  background: #e5edde;
+  font-size: 13px;
+  margin: 0 30px 15px;
+}
+.rx-progress {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 10px;
+}
+.rx-progress li {
+  color: #809080;
+}
+.rx-progress li[aria-current="step"] {
+  color: #1e553c;
+  font-weight: bold;
+  text-decoration: underline;
+}
+.rx-financial {
+  padding: 12px 30px;
+  font-size: 12px;
+  display: flex;
+  gap: 22px;
+  border-bottom: 1px solid var(--rx-line);
+  background: #fbfaf3;
+}
+.rx-quotes {
+  padding: 0;
+  list-style: none;
+}
+.rx-quotes li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rx-line);
+  font-size: 12px;
+}
+.rx-quotes small {
+  display: block;
+  color: #6f7d71;
+  margin: 6px 0;
+}
+@media (max-width: 950px) {
+  .rx-main {
+    grid-template-columns: 1fr;
+  }
+  .rx-overview {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .rx-overview > div:first-child {
+    flex-basis: 100%;
+  }
+  .rx-directory {
+    flex-wrap: wrap;
+  }
+  .rx-directory label {
+    min-width: 200px;
+  }
+  .rx-tabs {
+    overflow: auto;
+    gap: 12px;
+  }
+  .rx-tabs button {
+    white-space: nowrap;
+  }
+  .rx-financial {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 550px) {
+  .rx-header {
+    padding: 14px;
+  }
+  .rx-header-right > span {
+    display: none;
+  }
+  .rx-brand b {
+    font-size: 23px;
+  }
+  .rx-overview,
+  .rx-directory {
+    padding: 18px;
+  }
+  .rx-main {
+    padding: 0 12px 20px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rx-stat {
+    padding-left: 12px;
+    min-width: 80px;
+  }
+  .rx-stat b {
+    font-size: 25px;
+  }
+  .rx-directory label {
+    max-width: none;
+    width: 100%;
+  }
+  .rx-header button {
+    font-size: 11px;
+  }
+  .rx-list td {
+    padding: 8px;
+  }
+}
+.rx-header a {
+  color: #e0ead6;
+  font-size: 12px;
+}
+.pharmacy-workspace .rx-primary:hover,
+.pharmacy-workspace .rx-primary:focus-visible {
+  background: #173e2e;
+  color: #fff;
+}
+.pharmacy-workspace .rx-header button:hover,
+.pharmacy-workspace .rx-header button:focus-visible {
+  background: #315e4f;
+  color: #fff;
+}
+
+.rx-disclosure > summary {
+  cursor: pointer;
+  font-size: 12px;
+  padding: 10px 0;
+}
+.rx-disclosure > summary small {
+  margin-left: 15px;
+}
+.rx-disclosure > summary:focus-visible {
+  outline: 2px solid #286653;
+  outline-offset: 3px;
+}
+.rx-disclosure form {
+  margin-top: 4px;
+}
+.rx-order-total {
+  font-size: 13px;
+  background: #edf2e6;
+  padding: 12px;
+}

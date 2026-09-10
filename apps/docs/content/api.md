@@ -15,7 +15,7 @@ These are implemented **simulation contracts**, not assertions of NHS wire compa
 Public POST /api/keys:
 
 ```json
-{"teamName":"Example builders","site":"gp"}
+{ "teamName": "Example builders", "site": "gp" }
 ```
 
 Omit site to request all API-enabled services. Response contains apiKey, team, world, scopes. Repeated issuance creates another world, even for the same team name; retain and reuse the original key. No name-based world takeover.
@@ -26,15 +26,15 @@ GET /api/sites/{site}/view returns:
 
 ```json
 {
-  "id":"team-example",
-  "now":1789200000000,
-  "speed":60,
-  "paused":true,
-  "population":500,
-  "resources":[],
-  "events":[],
-  "counters":{"actions":0,"completed":0,"rejected":0,"reviewMinutes":0},
-  "staffing":{"doctors":4,"nurses":4,"staffedSpaces":8,"waiting":2}
+  "id": "team-example",
+  "now": 1789200000000,
+  "speed": 60,
+  "paused": true,
+  "population": 500,
+  "resources": [],
+  "events": [],
+  "counters": { "actions": 0, "completed": 0, "rejected": 0, "reviewMinutes": 0 },
+  "staffing": { "doctors": 4, "nurses": 4, "staffedSpaces": 8, "waiting": 2 }
 }
 ```
 
@@ -44,18 +44,18 @@ GET /api/sites/{site}/patients?q=...&offset=0 returns items and total. 30 items 
 
 POST /api/sites/{site}/actions supports:
 
-| Action | Required input | Effect |
-|---|---|---|
-| connect_device | patientId, through wearables | Connect a synthetic activity watch; first reading after 10 simulation minutes, then hourly. Reuses an existing watch. |
-| create_task | patientId, optional title | New owning-service work item |
-| create_referral | patientId | New referral visible to sender and referral service |
-| order_test | patientId | Reserve diagnostics slot; result due in 120 simulation minutes |
-| draft_prescription | patientId | Draft pharmacy prescription, not automatically approved |
-| book_appointment | patientId, optional target | Reserve service capacity |
-| schedule_visit | patientId | Reserve community slot; simulated completion after 90 minutes |
-| review / accept / reject / complete | resourceId | Owner-checked state transition |
-| dispense / collect | prescription resourceId | Validated dispensing lifecycle |
-| share_record | resourceId, target | Explicit visibility transfer |
+| Action                              | Required input               | Effect                                                                                                                |
+| ----------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| connect_device                      | patientId, through wearables | Connect a synthetic activity watch; first reading after 10 simulation minutes, then hourly. Reuses an existing watch. |
+| create_task                         | patientId, optional title    | New owning-service work item                                                                                          |
+| create_referral                     | patientId                    | New referral visible to sender and referral service                                                                   |
+| order_test                          | patientId                    | Reserve diagnostics slot; result due in 120 simulation minutes                                                        |
+| draft_prescription                  | patientId                    | Draft pharmacy prescription, not automatically approved                                                               |
+| book_appointment                    | patientId, optional target   | Reserve service capacity                                                                                              |
+| schedule_visit                      | patientId                    | Reserve community slot; simulated completion after 90 minutes                                                         |
+| review / accept / reject / complete | resourceId                   | Owner-checked state transition                                                                                        |
+| dispense / collect                  | prescription resourceId      | Validated dispensing lifecycle                                                                                        |
+| share_record                        | resourceId, target           | Explicit visibility transfer                                                                                          |
 
 Pass expectedVersion for optimistic concurrency and Idempotency-Key for safe retries. Conflicting keys and stale versions return 409. Unavailable capacity also returns 409. Missing scopes/ownership return 403.
 
@@ -65,20 +65,20 @@ PDS and ODS also provide [typed patient and organisation endpoints](./fhir.mdx),
 
 GET /api/nhs/{adapter} returns a FHIR-shaped Bundle. Patient filtering for non-PDS adapters: ?patient=SIM-000001. PDS search: ?q=....
 
-| Adapter | Scope | Implemented data | Important deviation |
-|---|---|---|---|
-| pds | gp | Demographic search | SIM identifiers, no NHS-number lookup or update |
-| ods | referrals | Fictional organisation directory | Small static directory |
-| dos | referrals | Fictional services | No national DoS triage logic |
-| ers | referrals | Referral lifecycle | No full e-RS FHIR profiles, shortlist/UBRN protocol or attachment upload |
-| eps | pharmacy | Prescription lifecycle | No digital prescribing signature or NHS transport |
-| eps-tracker | pharmacy | Current prescription status | Local read projection |
-| gp-connect | gp | Primary-care tasks | Not GP Connect Access Record or appointment wire format |
-| mesh | gp | Communication projection | No MESH mailbox acknowledgement/download protocol |
-| scr | gp | Explicitly shared documents | Not a real Summary Care Record |
-| pathology | diagnostics | Delayed test results | No HL7v2 or laboratory device feed |
-| radiology | diagnostics | Report metadata | No DICOM/PACS image server |
-| appointments | gp | Capacity-backed bookings | Local slot abstraction |
+| Adapter      | Scope       | Implemented data                 | Important deviation                                                      |
+| ------------ | ----------- | -------------------------------- | ------------------------------------------------------------------------ |
+| pds          | gp          | Demographic search               | SIM identifiers, no NHS-number lookup or update                          |
+| ods          | referrals   | Fictional organisation directory | Small static directory                                                   |
+| dos          | referrals   | Fictional services               | No national DoS triage logic                                             |
+| ers          | referrals   | Referral lifecycle               | No full e-RS FHIR profiles, shortlist/UBRN protocol or attachment upload |
+| eps          | pharmacy    | Prescription lifecycle           | No digital prescribing signature or NHS transport                        |
+| eps-tracker  | pharmacy    | Current prescription status      | Local read projection                                                    |
+| gp-connect   | gp          | Primary-care tasks               | Not GP Connect Access Record or appointment wire format                  |
+| mesh         | gp          | Communication projection         | No MESH mailbox acknowledgement/download protocol                        |
+| scr          | gp          | Explicitly shared documents      | Not a real Summary Care Record                                           |
+| pathology    | diagnostics | Delayed test results             | No HL7v2 or laboratory device feed                                       |
+| radiology    | diagnostics | Report metadata                  | No DICOM/PACS image server                                               |
+| appointments | gp          | Capacity-backed bookings         | Local slot abstraction                                                   |
 
 POST /api/nhs/{adapter}/actions uses the same simulator action schema and service scope as its owning site. It is a convenience adapter, **not** the corresponding NHS endpoint syntax. Read-only-looking adapters should be used for GET; production-parity method restrictions are not represented.
 
@@ -86,16 +86,16 @@ POST /api/nhs/{adapter}/actions uses the same simulator action schema and servic
 
 Open `/cis2/` for the emulator. The staff flow offers simulated smartcard and security-key choices, followed by fictional GP, hospital, community nurse and pharmacy identities. Developer and operator controls are in expandable sections. Each identity has organisation and role assignments; the hospital identity has two assignments to exercise role selection.
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /cis2/.well-known/openid-configuration` | OIDC discovery |
-| `GET /cis2/jwks` | Public signing key |
-| `GET /cis2/authorize` | Start browser sign-in |
-| `POST /cis2/authorize` | Submit identity and assignment or cancel |
-| `POST /cis2/token` | Exchange a code, form encoded |
-| `GET /cis2/userinfo` | Read claims with the issued access token |
-| `GET /cis2/callback` | Default demonstration callback |
-| `GET /cis2/session` | Current browser identity or `null`; no team API access |
+| Endpoint                                     | Purpose                                                |
+| -------------------------------------------- | ------------------------------------------------------ |
+| `GET /cis2/.well-known/openid-configuration` | OIDC discovery                                         |
+| `GET /cis2/jwks`                             | Public signing key                                     |
+| `GET /cis2/authorize`                        | Start browser sign-in                                  |
+| `POST /cis2/authorize`                       | Submit identity and assignment or cancel               |
+| `POST /cis2/token`                           | Exchange a code, form encoded                          |
+| `GET /cis2/userinfo`                         | Read claims with the issued access token               |
+| `GET /cis2/callback`                         | Default demonstration callback                         |
+| `GET /cis2/session`                          | Current browser identity or `null`; no team API access |
 
 The default public client is `nhs-sim-client`, with exact callback `PUBLIC_ORIGIN/cis2/callback`. Use Authorization Code with PKCE S256, `state`, `nonce`, and `openid` scope. `profile` is also supported. The token request must repeat the registered client ID and exact redirect URI and provide the original PKCE verifier.
 
@@ -109,11 +109,11 @@ This is a local protocol exercise. It does not implement smartcards, real staff 
 
 Use the organiser token as a Bearer credential at `/api/operator/cis2`:
 
-| Method | Effect |
-| --- | --- |
-| `GET` | Read settings, fictional identities and active session counts |
-| `PUT` | Replace settings and revoke all current interactions, codes and access tokens |
-| `DELETE` | Revoke current interactions, codes and access tokens |
+| Method   | Effect                                                                        |
+| -------- | ----------------------------------------------------------------------------- |
+| `GET`    | Read settings, fictional identities and active session counts                 |
+| `PUT`    | Replace settings and revoke all current interactions, codes and access tokens |
+| `DELETE` | Revoke current interactions, codes and access tokens                          |
 
 The `PUT` body contains the complete configuration, including every registered client:
 
@@ -121,11 +121,13 @@ The `PUT` body contains the complete configuration, including every registered c
 {
   "scenario": "normal",
   "tokenLifetimeSeconds": 300,
-  "clients": [{
-    "id": "nhs-sim-client",
-    "name": "NHS simulation explorer",
-    "redirectUris": ["http://localhost:8080/cis2/callback"]
-  }]
+  "clients": [
+    {
+      "id": "nhs-sim-client",
+      "name": "NHS simulation explorer",
+      "redirectUris": ["http://localhost:8080/cis2/callback"]
+    }
+  ]
 }
 ```
 
@@ -179,3 +181,24 @@ Send `register_attendance` to `/api/sites/hospital/actions` with `patientId`, `t
 Send `update_attendance` with `resourceId`, `expectedVersion` and `hospitalCommand`. Commands are `assign`, `assess`, `refer`, `admit` and `discharge`. Assignment accepts `clinician`, `location` and `acuity`. Assessment requires a clinician; admission requires a location; discharge requires a `disposition`. The normal sequence is waiting → assessing → take → inpatient → discharged. Discharge is also available earlier for patients leaving A&E. Hospital locations are recorded destinations, not reservations against the separate bed-capacity adapter.
 
 All updates carry team attribution and use simulation timestamps. Current mean wait covers patients still awaiting assessment. Mean assessment wait covers assessed patients who arrived on the current simulation date. Assessment wait stops increasing when assessment starts. The four-hour counter includes patients still in A&E or awaiting medical take. These are synthetic operational measures, not clinical guidance.
+
+## Pharmacy workspace and purchasing
+
+`GET /api/sites/pharmacy/pharmacy-workspace` returns this team's prescriptions, Pharmacy First referrals, product catalogue, supplier quotes, purchase orders, stock movements and relevant patients. See the [pharmacy workflow guide](/docs/pharmacy/).
+
+Send actions to `POST /api/sites/pharmacy/actions`. All updates require `resourceId` and `expectedVersion`; use an `Idempotency-Key` on retries.
+
+| Action                      | Additional fields                                                                     | Result                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `receive_pharmacy_referral` | `patientId`, `title`, `pharmacyPathway`, `referralSource`                             | Creates an attributed referral, shared with its source and GP |
+| `update_pharmacy_referral`  | `pharmacyCommand`: `accept`, `consult`, or `complete`; `text` required for completion | Returns recorded outcome to referring service                 |
+| `link_prescription_stock`   | `productId`, `quantity` in individual units                                           | Links supply without overwriting prescribed text              |
+| `dispense`                  | Versioned approved prescription with linked product and quantity                      | Deducts stock atomically, records historical cost and revenue |
+| `receive_stock`             | Product resource, `quantity` in units, unique `text` delivery reference               | Receives an external delivery at current catalogue cost       |
+| `update_stock_price`        | Product resource, `costPence`, `pricePence`, `reorderLevel`                           | Changes simulated pack prices and reorder threshold           |
+| `place_pharmacy_order`      | Supplier quote resource, `quantity` in packs                                          | Snapshots quote, total price and delivery due date            |
+| `receive_pharmacy_order`    | Outstanding order resource                                                            | Adds ordered units and acquisition cost once, after due time  |
+
+Supplier quotes expose `productId`, `supplier`, `packSize`, `packCostPence`, `minimumPacks`, and `leadDays`. Purchase orders add `packs`, `totalPence`, `orderedAt`, `dueAt` and, after receipt, `receivedAt`. Advance simulation time before receiving a future delivery. All suppliers and prices are fictional.
+
+Products expose `stock` in units and `stockCostPence` as total weighted acquisition value. Dispensing movements snapshot `costPence` and `revenuePence` for the dispensed quantity; received deliveries snapshot `acquisitionPence`. Later prices do not rewrite these values. Purchase cost, stock value and gross margin are separate measures; this is not a net-profit model.

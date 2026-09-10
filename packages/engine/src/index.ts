@@ -1,3 +1,5 @@
+import { seedPharmacy } from "./pharmacy-seed.ts";
+import { pharmacyProductSchema, pharmacyReferralSchema, supplierQuoteSchema, purchaseOrderSchema } from "../../contracts/src/pharmacy.ts";
 import { seedHospitalAttendances } from "./hospital-seed.ts";
 import { hospitalAttendanceSchema } from "../../contracts/src/hospital.ts";
 import { produce, current, isDraft, original, setAutoFreeze } from "immer";
@@ -463,6 +465,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     { at: START + 24 * 60 * minute, type: "screening" },
   );
   seedHospitalAttendances(w);
+  seedPharmacy(w);
   populateHistories(w);
   for (const record of w.resources) {
     const created: RecordChange = {
@@ -660,7 +663,68 @@ export class Engine {
         schedule_visit: ["visit", "community"],
         dispatch_robot: ["robot-job", "robotics"],
       };
-      if (a.type === "register_attendance" || a.type === "update_attendance") {
+      if (["place_pharmacy_order", "receive_pharmacy_order", "receive_pharmacy_referral", "update_pharmacy_referral", "receive_stock", "update_stock_price", "link_prescription_stock"].includes(a.type)) {
+        if (site !== "pharmacy" && site !== "control" && !(a.type === "receive_pharmacy_referral" && ["gp", "hospital", "referrals", "patient"].includes(site))) throw new SimError("Pharmacy access required", 403);
+        if (a.type === "place_pharmacy_order") {
+          if (!r || r.kind !== "pharmacy-quote" || a.expectedVersion === undefined || !a.quantity) throw new SimError("Versioned supplier quote and quantity in packs required");
+          const quote = supplierQuoteSchema.parse(r.data);
+          if (a.quantity < quote.minimumPacks) throw new SimError("Order does not meet supplier minimum packs", 409);
+          r = this.add(w, "pharmacy-order", quote.supplier + " purchase order", "pharmacy", undefined, { ...quote, packs: a.quantity, totalPence: a.quantity * quote.packCostPence, orderedAt: w.now, dueAt: w.now + quote.leadDays * 86400000 });
+          r.status = "ordered";
+        } else if (a.type === "receive_pharmacy_order") {
+          if (!r || r.kind !== "pharmacy-order" || r.status !== "ordered" || a.expectedVersion === undefined) throw new SimError("An outstanding versioned purchase order is required", 409);
+          const order = purchaseOrderSchema.parse(r.data);
+          if (w.now < order.dueAt) throw new SimError("Delivery is not due yet; advance simulation time", 409);
+          const index = (original(w)?.resources ?? w.resources).findIndex(item => item.id === order.productId && item.kind === "pharmacy-product");
+          if (index < 0) throw new SimError("Ordered product unavailable", 409);
+          const stock = w.resources[index]!;
+          const product = pharmacyProductSchema.parse(stock.data);
+          stock.data = { ...product, stock: product.stock + order.packs * order.packSize, stockCostPence: product.stockCostPence + order.totalPence };
+          stock.version++;
+          const receipt: RecordChange = { actor: attribution, source: site, action: a.type, time: w.now, version: stock.version };
+          stock.provenance ??= { created: null, changes: [] }; stock.provenance.changes.push(receipt);
+          const movement = this.add(w, "pharmacy-movement", "Supplier delivery received", "pharmacy", undefined, { productId: stock.id, orderId: r.id, quantity: order.packs * order.packSize, balance: stock.data.stock, acquisitionPence: order.totalPence, reference: r.title });
+          movement.provenance = { created: { ...receipt, version: 1 }, changes: [] };
+          r.data = { ...order, receivedAt: w.now }; r.status = "received"; r.version++;
+        } else if (a.type === "receive_pharmacy_referral") {
+          if (r || !a.patientId || !a.title || !a.pharmacyPathway || !a.referralSource) throw new SimError("Patient, reason, pathway and referring service are required");
+          if (a.pharmacyPathway === "Urgent medicine supply" && a.referralSource === "gp") throw new SimError("Urgent medicine supply is not a GP Pharmacy First referral route");
+          r = this.add(w, "pharmacy-referral", a.title, "pharmacy", a.patientId);
+          r.data = pharmacyReferralSchema.parse({ pathway: a.pharmacyPathway, source: a.referralSource, receivedAt: w.now, stage: "received" });
+          r.status = "received";
+          r.visibleTo = [...new Set<SiteId>(["pharmacy", a.referralSource, "patient", "gp"])];
+        } else {
+          if (!r || a.expectedVersion === undefined) throw new SimError("Versioned pharmacy record required");
+          if (a.type === "update_pharmacy_referral") {
+            if (r.kind !== "pharmacy-referral") throw new SimError("Pharmacy First referral required");
+            const referral = pharmacyReferralSchema.parse(r.data);
+            const next = a.pharmacyCommand === "accept" && referral.stage === "received" ? "accepted" : a.pharmacyCommand === "consult" && referral.stage === "accepted" ? "consulting" : a.pharmacyCommand === "complete" && referral.stage === "consulting" ? "completed" : null;
+            if (!next) throw new SimError("Invalid referral transition", 409);
+            if (next === "completed" && !a.text) throw new SimError("Record the consultation outcome before returning it");
+            r.data = { ...referral, stage: next, ...(next === "completed" ? { outcome: a.text, completedAt: w.now } : {}) };
+            r.status = next;
+          } else if (a.type === "link_prescription_stock") {
+            if (r.kind !== "prescription" || ["dispensed", "collected"].includes(r.status)) throw new SimError("Undispensed prescription required", 409);
+            const product = (original(w)?.resources ?? w.resources).find(item => item.id === a.productId && item.kind === "pharmacy-product");
+            if (!product || !a.quantity) throw new SimError("Choose a catalogue item and quantity in units");
+            r.data = { ...r.data, productId: product.id, quantity: a.quantity, supplyDrug: pharmacyProductSchema.parse(product.data).drug };
+          } else {
+            if (r.kind !== "pharmacy-product") throw new SimError("Stock catalogue item required");
+            const product = pharmacyProductSchema.parse(r.data);
+            if (a.type === "receive_stock") {
+              if (!a.quantity || !a.text) throw new SimError("Quantity and delivery reference required");
+              if ((original(w)?.resources ?? w.resources).some(item => item.kind === "pharmacy-movement" && item.data.productId === r!.id && item.data.reference === a.text && Number(item.data.quantity) > 0)) throw new SimError("Delivery reference already received for this product", 409);
+              r.data = { ...product, stock: product.stock + a.quantity, stockCostPence: product.stockCostPence + a.quantity / product.packSize * product.costPence };
+            } else {
+              if (a.costPence === undefined || a.pricePence === undefined || a.reorderLevel === undefined) throw new SimError("Cost, indicative price and reorder level required");
+              r.data = { ...product, costPence: a.costPence, pricePence: a.pricePence, reorderLevel: a.reorderLevel };
+            }
+            const movement = this.add(w, "pharmacy-movement", a.type === "receive_stock" ? "Stock received" : "Price updated", "pharmacy", undefined, { productId: r.id, quantity: a.type === "receive_stock" ? a.quantity : 0, balance: r.data.stock, acquisitionPence: a.type === "receive_stock" ? Number(a.quantity) / product.packSize * product.costPence : 0, reference: a.text ?? "Catalogue price update", costPence: r.data.costPence, pricePence: r.data.pricePence });
+            movement.provenance = { created: { actor: attribution, source: site, action: a.type, time: w.now, version: 1 }, changes: [] };
+          }
+          r.version++;
+        }
+      } else if (a.type === "register_attendance" || a.type === "update_attendance") {
         if (site !== "hospital" && site !== "control") throw new SimError("Hospital access required", 403);
         if (a.type === "register_attendance") {
           if (r || !a.patientId || !a.title || !a.acuity || !a.location) throw new SimError("Patient, complaint, acuity and location are required");
@@ -868,7 +932,7 @@ export class Engine {
         }
       } else {
         if (!r) throw new SimError("resourceId required");
-        if (["problem", "allergy", "hospital-attendance"].includes(r.kind) && a.type !== "share_record")
+        if (["problem", "allergy", "hospital-attendance", "pharmacy-product", "pharmacy-referral", "pharmacy-movement", "pharmacy-order", "pharmacy-quote"].includes(r.kind) && a.type !== "share_record")
           throw new SimError(`Use the ${r.kind} editor to change this record`, 409);
         if (a.type === "share_record") {
           if (r.data.planLab === "digital")
@@ -925,8 +989,25 @@ export class Engine {
             r.status = "approved";
           } else r.status = t[1];
           if (a.type === "dispense") {
-            if (Number(r.data.stock ?? 1) <= 0) throw new SimError("Out of stock", 409);
-            r.data.stock = Number(r.data.stock ?? 1) - 1;
+            if (site !== "pharmacy" && site !== "control") throw new SimError("Only pharmacy may dispense", 403);
+            if (w.faults["pharmacy-shortage"]) throw new SimError("Pharmacy supply is blocked by the shortage incident", 409);
+            if (!a.expectedVersion) throw new SimError("Versioned prescription required");
+            const productIndex = (original(w)?.resources ?? w.resources).findIndex(item => item.id === r!.data.productId && item.kind === "pharmacy-product");
+            const quantity = r.data.quantity;
+            if (productIndex < 0 || typeof quantity !== "number" || !Number.isInteger(quantity) || quantity <= 0) throw new SimError("Link a catalogue item and quantity before dispensing", 409);
+            const stock = w.resources[productIndex]!;
+            const product = pharmacyProductSchema.parse(stock.data);
+            if (product.stock < quantity) throw new SimError("Insufficient stock: receive a delivery before dispensing", 409);
+            const costPence = product.stockCostPence / product.stock * quantity;
+            const revenuePence = product.pricePence / product.packSize * quantity;
+            stock.data = { ...product, stock: product.stock - quantity, stockCostPence: Math.max(0, product.stockCostPence - costPence) };
+            stock.version++;
+            const stockChange: RecordChange = { actor: attribution, source: site, action: "dispense", time: w.now, version: stock.version };
+            stock.provenance ??= { created: null, changes: [] };
+            stock.provenance.changes.push(stockChange);
+            const movement = this.add(w, "pharmacy-movement", "Prescription dispensed", "pharmacy", r.patientId, { productId: stock.id, prescriptionId: r.id, quantity: -quantity, balance: stock.data.stock, reference: r.title, costPence, revenuePence });
+            movement.provenance = { created: { ...stockChange, version: 1 }, changes: [] };
+            r.data.dispensedAt = w.now;
           }
           if (a.type === "complete") {
             w.counters.completed++;
@@ -1023,9 +1104,13 @@ export class Engine {
     targets.add("capacity-community");
     const targetIndices = new Map<string, number>();
     const flowIndices: number[] = [];
+    const activeAttendances = new Set<string>();
+    const deviceIndices = new Map<string, number>();
     if (w.scheduled.some((job) => job.at <= end)) {
       resourceSnapshot(w).forEach((record, index) => {
         if (targets.has(record.id)) targetIndices.set(record.id, index);
+        if (record.kind === "hospital-attendance" && record.status !== "discharged" && record.patientId) activeAttendances.add(record.patientId);
+        if (record.kind === "device" && record.owner === "wearables" && record.patientId && (record.data.metric === "steps" || record.title === "Home activity watch")) deviceIndices.set(record.patientId, index);
         if (record.kind === "staff" || record.kind === "bed" ||
           (["encounter", "handover", "hospital-attendance"].includes(record.kind) && record.status === "waiting"))
           flowIndices.push(index);
@@ -1077,8 +1162,8 @@ export class Engine {
               patient.id,
             );
             if (i > 0) {
-              const existingAttendance = resourceSnapshot(w).find((r) => r.id !== item.id && r.kind === "hospital-attendance" && r.patientId === patient.id && r.status !== "discharged");
-              if (existingAttendance) { w.resources.pop(); continue; }
+              if (activeAttendances.has(patient.id)) { w.resources.pop(); continue; }
+              activeAttendances.add(patient.id);
               item.data = hospitalAttendanceSchema.parse({ stage: "waiting", arrivalAt: w.now, presentingComplaint: "New A&E arrival", acuity: "3", location: "Waiting room", clinician: "Unassigned" });
             }
             flowIndices.push(w.resources.length - 1);
@@ -1174,7 +1259,8 @@ export class Engine {
           );
           x.status = "available";
           x.visibleTo = ["wearables", "community", "patient"];
-          const device = w.resources.find((item) => item.kind === "device" && item.owner === "wearables" && item.patientId === job.patientId && (item.data.metric === "steps" || item.title === "Home activity watch"));
+          const deviceIndex = job.patientId ? deviceIndices.get(job.patientId) : undefined;
+          const device = deviceIndex === undefined ? undefined : w.resources[deviceIndex];
           if (device) {
             device.data.quality = x.data.quality;
             if (!w.faults["wearable-disconnect"]) device.data.lastSyncedAt = w.now;
@@ -1272,10 +1358,8 @@ export class Engine {
           }
       }
       if (name === "pharmacy-shortage") {
-        for (const prescription of w.resources.filter((x) => x.kind === "prescription")) {
-          prescription.data.stock = enabled ? 0 : Math.max(3, Number(prescription.data.stock ?? 0));
-          prescription.version++;
-        }
+        // The fault blocks supply without destroying the stock ledger or acquisition values.
+        w.faults["pharmacy-shortage"] = enabled;
       }
       if (name === "pathology-outage" && !enabled)
         for (const r of w.resources.filter((x) => x.kind === "test" && x.status === "available"))

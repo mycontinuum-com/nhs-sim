@@ -1,0 +1,47 @@
+---
+title: Run the pharmacy
+---
+
+# Run the pharmacy
+
+Open <a href="/pharmacy/">High Street Pharmacy</a> and connect your team. The pharmacy uses the same patients and team world as the EPRs. Its prices, suppliers, and stock are fictional.
+
+## Complete a Pharmacy First referral
+
+1. Select a patient from the directory.
+2. Open **Pharmacy First** and receive a referral. Record its source, pathway, and reason.
+3. Open the referral and accept it.
+4. Start the consultation, record its outcome, and return it to the referring service.
+5. Open the same patient in the GP record to inspect the shared outcome and team attribution.
+
+The simulator records the workflow and your entered outcome. It does not choose treatment. The service categories follow [NHS England's Pharmacy First overview](https://www.england.nhs.uk/primary-care/pharmacy/pharmacy-services/pharmacy-first/).
+
+## Dispense a prescription
+
+1. Open **Dispensing bench** and select a prescription, or create one for the selected patient.
+2. Link the matching catalogue product and enter the quantity in units.
+3. Record the review and approve the prescription.
+4. Dispense the item. The product's stock falls by the dispensed quantity.
+5. Confirm collection. Inspect the movement ledger for the stock change and its author.
+
+If stock is insufficient, receive a delivery before dispensing. Repeating a completed dispense cannot deduct stock again.
+
+## Compare suppliers and order stock
+
+Open a product in **Stock & prices**. Compare supplier pack prices, pack quantities, minimum orders, and lead times. Purchase orders retain the quote agreed when the order was placed. Receive the order when its delivery is available to add the units to stock.
+
+Pack prices and stock units are different quantities. Compare cost per unit when pack sizes differ. A cheaper pack does not necessarily contain the same quantity.
+
+## Connect a stock-management agent
+
+Use **Team & API key** in the fixed bottom bar to copy your key. Read the pharmacy workspace through `GET /api/sites/pharmacy/pharmacy-workspace`. Submit changes through `POST /api/sites/pharmacy/actions`. See the [action reference](/docs/api/) for request fields.
+
+An agent can compare quotes, inspect stock and reorder levels, place purchase orders, and observe completed dispensing. Use `expectedVersion` when changing a record and an `Idempotency-Key` header when submitting an action that may be retried. Refresh the record after a version conflict.
+
+Assess ordering decisions using stock availability as well as cost. An experiment that reduces stock value while leaving prescriptions unfilled has changed the service level. Record both outcomes in your demo.
+
+## Read the financial figures
+
+Purchase spend measures acquisition costs. Stock value measures the cost of inventory still on hand. Dispensing cost measures the stock consumed by completed dispenses. Simulated revenue uses the item's indicative selling price at dispensing time. Gross margin is that revenue minus dispensing cost.
+
+Historical dispensing figures retain their original cost and revenue when a catalogue price changes. These figures describe the simulated medicine inventory. They exclude staffing, rent, tax, reimbursement rules, and other overheads, so gross margin is not net profit.

@@ -195,7 +195,8 @@ test("prescription lifecycle requires review then approval", () => {
   );
   e.action("default", "pharmacy", { type: "review", resourceId: r.id }, "team");
   e.action("default", "pharmacy", { type: "accept", resourceId: r.id }, "team");
-  e.action("default", "pharmacy", { type: "dispense", resourceId: r.id }, "team");
+  const linked = e.action("default", "pharmacy", { type: "link_prescription_stock", resourceId: r.id, expectedVersion: 3, productId: "pharmacy-product-furosemide", quantity: 28 }, "team");
+  e.action("default", "pharmacy", { type: "dispense", resourceId: r.id, expectedVersion: linked.version }, "team");
   e.action("default", "patient", { type: "collect", resourceId: r.id }, "team");
   assert.equal(e.require("default").resources.find((x) => x.id === r.id)?.status, "collected");
 });
