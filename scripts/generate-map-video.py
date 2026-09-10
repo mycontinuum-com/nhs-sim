@@ -12,7 +12,7 @@ WORK = ROOT / '.verification/veo'
 SOURCE = ROOT / 'apps/control/public/world/neighbourhood-v2.5f600ac647e4.webp'
 PLACES = {'practice': (23, 44), 'hospital': (75, 39), 'community': (49, 64), 'pharmacy': (37, 79), 'home': (17, 73)}
 BASE = 'Preserve the exact illustrated English healthcare neighbourhood, every building, road, river, colour and architectural detail. No text, titles, logos, new buildings or scene cuts. The cream vertical side borders remain flat and unchanged. Silent scene. '
-LOOP = BASE + 'A calm living illustration. Locked camera. All vehicles are PARKED and remain completely stationary for the entire shot. Preserve every original car, van, bus and ambulance exactly where it is, with identical colour, shape and size in every frame. All roads and vehicles are a still image. Animate ONLY subtle ripples on the river, gentle movement of leaves in a few trees, and a few tiny pedestrians walking very slowly on pavements. No traffic movement. No new vehicles. No transformations. All buildings, roads, lane markings, vehicles and landmarks are rigid and unchanged. Preserve the hand-painted miniature town style. No camera movement, zoom, cuts, transitions, fades or perspective change. Return the subtle water and foliage motion naturally to the starting appearance for an eight-second loop.'
+LOOP = 'Animate a few tiny cars moving slowly along these roads. The compact white van at the central junction moves a short distance, keeping its compact shape. Subtle pedestrian movement. Fixed camera and unchanged buildings. A gentle animated illustration. Silent.'
 
 
 def ffmpeg(*args):

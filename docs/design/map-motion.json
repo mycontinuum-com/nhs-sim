@@ -1,90 +1,90 @@
 {
   "model": "veo-3.1-generate-preview",
-  "prompt": "Preserve the exact illustrated English healthcare neighbourhood, every building, road, river, colour and architectural detail. No text, titles, logos, new buildings or scene cuts. The cream vertical side borders remain flat and unchanged. Silent scene. A calm living illustration. Locked camera. All vehicles are PARKED and remain completely stationary for the entire shot. Preserve every original car, van, bus and ambulance exactly where it is, with identical colour, shape and size in every frame. All roads and vehicles are a still image. Animate ONLY subtle ripples on the river, gentle movement of leaves in a few trees, and a few tiny pedestrians walking very slowly on pavements. No traffic movement. No new vehicles. No transformations. All buildings, roads, lane markings, vehicles and landmarks are rigid and unchanged. Preserve the hand-painted miniature town style. No camera movement, zoom, cuts, transitions, fades or perspective change. Return the subtle water and foliage motion naturally to the starting appearance for an eight-second loop.",
+  "prompt": "Animate a few tiny cars moving slowly along these roads. The compact white van at the central junction moves a short distance, keeping its compact shape. Subtle pedestrian movement. Fixed camera and unchanged buildings. A gentle animated illustration. Silent.",
   "reference": "apps/control/public/world/neighbourhood-v2.5f600ac647e4.webp",
   "generationScript": "scripts/generate-map-video.py",
-  "renderCommand": "python3 scripts/render-map-video.py neighbourhood-calm-loop",
+  "renderCommand": "python3 scripts/render-map-video.py neighbourhood-simple-traffic-9",
   "treatment": "Half-second loop seam blend. Quintic easing starts and finishes with zero velocity and acceleration. Arrival frames hold the close-up behind the launcher. Precise eased camera moves over generated footage; reverse clips retrace the same frames. Direct Veo zoom attempts rejected after visual review because some changed landmarks or dissolved between views.",
   "assets": [
     {
       "path": "apps/control/public/world/neighbourhood-loop.mp4",
-      "bytes": 3568031,
-      "sha256": "4202322ca4788fde16e780783f1d81fdd0ea8ebe3d1b9aeb16ab30ef5acf223e"
+      "bytes": 3526486,
+      "sha256": "d210a42a2e74bd720ac3ed234735cc238fe69e3bc7a3f90082db865c9dee5a67"
     },
     {
       "path": "apps/control/public/world/zoom-practice.mp4",
-      "bytes": 2760463,
-      "sha256": "c96e5c3ea322a862fb97d4116e5e138d58dc8cc4ae56e1c76d4383568f18ada7"
+      "bytes": 2715429,
+      "sha256": "e6918a133631b3409fc55fbea95216cbd701c70a98216e90990d1024ff0eb7aa"
     },
     {
       "path": "apps/control/public/world/return-practice.mp4",
-      "bytes": 2720408,
-      "sha256": "943af74c40d033897f9f82ac72e9475b704674619db4a747356459256e23f0e4"
+      "bytes": 2674412,
+      "sha256": "243d12d51d15d0c1cc94bf65b7bd9273024b92da4e0464b25b1e8a7a531e0829"
     },
     {
       "path": "apps/control/public/world/zoom-hospital.mp4",
-      "bytes": 2633772,
-      "sha256": "9b48b853fad45940725e304ffd3b9f363186ca7c84a0812279fd19fa68bb79de"
+      "bytes": 2661115,
+      "sha256": "682afd352bffce0d38b64af95ad8ce36bef30744f87e79fe345fe5fb2d622c01"
     },
     {
       "path": "apps/control/public/world/return-hospital.mp4",
-      "bytes": 2607031,
-      "sha256": "32336fda79ebdede4db12c18187b1ce6b3c8bb5b0f2fab74e61d3fb5fa43cf8c"
+      "bytes": 2593026,
+      "sha256": "0ceb0666ac7c51fd1e76725940549615286d038e6ec5f3c2d768dc83261d746e"
     },
     {
       "path": "apps/control/public/world/zoom-community.mp4",
-      "bytes": 2704523,
-      "sha256": "d24384fff060d6ae8e87d8bf85ef67ae86476c088eca4413828c35c030e45ac5"
+      "bytes": 2721908,
+      "sha256": "6d196bb42afe0b8446bfc19689aac6d68ed12e594e7870b9d7ed7bf6822cee17"
     },
     {
       "path": "apps/control/public/world/return-community.mp4",
-      "bytes": 2625943,
-      "sha256": "cf357cffc767700f2c7f31343787fa880b45f6da8c1d3dcc8605d94aeecface5"
+      "bytes": 2655621,
+      "sha256": "adc37c71d6af9966fe0a99505bc1f7cc3ea77a0ad93692223147b2b63fbb33e9"
     },
     {
       "path": "apps/control/public/world/zoom-pharmacy.mp4",
-      "bytes": 2749377,
-      "sha256": "97d49f7d7c1f05ca924be372b96d76ef2db66acb214ea9eaf67134a531b8f003"
+      "bytes": 2704226,
+      "sha256": "9d4653e644790101141e66522f0fb183e54f22b24ae36d588d80bac6e9ee5873"
     },
     {
       "path": "apps/control/public/world/return-pharmacy.mp4",
-      "bytes": 2671437,
-      "sha256": "958ab59d3d8e1890154caa0e608dfbd64e74a5f535618b85f4b0f48999974c08"
+      "bytes": 2589714,
+      "sha256": "b9300acfaa1efa8bbbab6a3efb0e5ce6d614b1045d14a714ce24684e3dfc6c6c"
     },
     {
       "path": "apps/control/public/world/zoom-home.mp4",
-      "bytes": 2711647,
-      "sha256": "4f65d8dfeefc4384fc2d3729ddfc0e62fc9c5dddd88fd1092bff4fd2825c217e"
+      "bytes": 2689415,
+      "sha256": "44f368f414ec887bba40d1118fa8b89fa73d2adf96a4d7a1c7b409b7a1c9d8a1"
     },
     {
       "path": "apps/control/public/world/return-home.mp4",
-      "bytes": 2725817,
-      "sha256": "c1f31d8e50f033e5145dc4df5c44b2f7af86c870b1b67ff6389df96ff98fa8df"
+      "bytes": 2665558,
+      "sha256": "6b7a0645bf96a4c4cc723951adf93733dc1369671a63aad43d1958e132780abc"
     },
     {
       "path": "apps/control/public/world/arrived-practice.jpg",
-      "bytes": 342735,
-      "sha256": "a3542a67bc3afb2170206a137113ab51885b55a2b8380a85ca4f91662203ac44"
+      "bytes": 343971,
+      "sha256": "ede8785f2ddb28a766166595cc8a1cbc26063a6ba14b5031b091cf7cd02eb5b3"
     },
     {
       "path": "apps/control/public/world/arrived-hospital.jpg",
-      "bytes": 332448,
-      "sha256": "c1650691a032c1767224ca590089405f75e7d7fee98195ad8e61c64cac764c19"
+      "bytes": 332733,
+      "sha256": "2fd69b932ec37f78b368dd01a5755c6cd82e32f022f284e6f363736bfa7a176f"
     },
     {
       "path": "apps/control/public/world/arrived-community.jpg",
-      "bytes": 342147,
-      "sha256": "61902a80b09eb413201832037dc0dfc15cd560f884c22be5596574388166f4cc"
+      "bytes": 344362,
+      "sha256": "bf04e3bf57a0218568ab37e0db088a56372163a792f5dde1c61a786fe3503bd0"
     },
     {
       "path": "apps/control/public/world/arrived-pharmacy.jpg",
-      "bytes": 336437,
-      "sha256": "f02ac3edef825839ed0dd4df0ec63baa7fdd6e61a4300629aed481b88940c0ed"
+      "bytes": 337331,
+      "sha256": "924aa834e9f93970b41a9e193f3708615669c44246be75e7b0171088ec7317d8"
     },
     {
       "path": "apps/control/public/world/arrived-home.jpg",
-      "bytes": 338818,
-      "sha256": "9d8abd51dc564c57bdd09949cff4bd1b03fa9ad0faa8d9559847ca83e19fbde8"
+      "bytes": 341203,
+      "sha256": "03bf94a7118d4dea942b37d70afa5fa57d096b63ba1dda14143e2a03042b79db"
     }
   ]
 }
