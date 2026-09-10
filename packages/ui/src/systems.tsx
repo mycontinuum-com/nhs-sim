@@ -2,6 +2,10 @@ import { RecordAttribution } from "./record-attribution.tsx";
 import React, { useState } from "react";
 import { z } from "zod";
 import { AppointmentBook, Consultations, type WorkflowApi } from "./gp-workflows.tsx";
+import { Problems } from "./gp-problems.tsx";
+import { Allergies } from "./gp-allergies.tsx";
+import { patientProblems } from "../../contracts/src/problems.ts";
+import { patientAllergies } from "../../contracts/src/allergies.ts";
 import type { Action, Patient, Resource, SiteId } from "../../contracts/src/index.ts";
 
 type Props = {
@@ -50,7 +54,7 @@ const date = (time: number | string) =>
   });
 const finished = (r: Resource) => ["completed", "collected", "cancelled"].includes(r.status);
 const nextAction = (r: Resource): { type: Action["type"]; label: string } | undefined => {
-  if (r.kind === "ehr-record") return;
+  if (["ehr-record", "problem", "allergy"].includes(r.kind)) return;
   if (r.kind === "prescription") {
     if (r.status === "approved") return { type: "dispense", label: "Dispense" };
     if (r.status === "dispensed") return { type: "collect", label: "Confirm collection" };
@@ -96,8 +100,15 @@ function ActionButton({
   record,
   act,
   pending,
-}: { record: Resource } & Pick<Props, "act" | "pending">) {
+  siteId = "gp",
+}: { record: Resource; siteId?: SiteId } & Pick<Props, "act" | "pending">) {
   const action = nextAction(record);
+  const service = record.kind === "referral" && record.owner === "referrals" && record.visibleTo.includes("hospital") ? "hospital" : record.owner;
+  if (action && service !== siteId && !(siteId === "gp" && record.kind === "test" && record.status === "available")) {
+    return ["gp", "hospital", "pharmacy", "community", "wearables"].includes(service)
+      ? <a className="ehr-record-link" href={`/${service}/?patient=${encodeURIComponent(record.patientId ?? "")}`}>Open in {service}</a>
+      : <span className="ehr-terminal">{record.status} · managed by {service}</span>;
+  }
   return action ? (
     <button className="ehr-action" disabled={pending} onClick={() => act(action.type, record)}>
       {action.label}
@@ -153,9 +164,7 @@ function PatientFinder(props: Props) {
   );
 }
 function Banner({ patient, rows }: { patient: Patient | undefined; rows: Resource[] }) {
-  const parsed = ehrSchema.safeParse(
-    rows.find((r) => r.patientId === patient?.id && r.kind === "ehr-record")?.data,
-  );
+  const allergies = patient ? patientAllergies(rows, patient.id).filter((allergy) => allergy.status === "active") : [];
   return (
     <div className="ehr-patient-banner">
       <div className="ehr-patient-name">
@@ -173,9 +182,7 @@ function Banner({ patient, rows }: { patient: Patient | undefined; rows: Resourc
       <div className="ehr-allergy">
         <small>Recorded allergies</small>
         <b>
-          {parsed.success
-            ? parsed.data.allergies.map((a) => a.term).join(", ") || "None recorded"
-            : "Record not available"}
+          {patient ? allergies.map((allergy) => allergy.term).join(", ") || "No active allergies recorded" : "Select a patient"}
         </b>
       </div>
       <span className="ehr-synthetic">SYNTHETIC</span>
@@ -364,7 +371,7 @@ function Detail({
         ))}
       </dl>
       <footer>
-        <ActionButton record={record} act={act} pending={pending} />
+        <ActionButton record={record} act={act} pending={pending} siteId={siteId} />
         <button
           disabled={pending || record.visibleTo.includes(siteId === "gp" ? "hospital" : "gp")}
           onClick={() => act("share_record", record, siteId === "gp" ? "hospital" : "gp")}
@@ -379,26 +386,29 @@ function ClinicalCollections({
   rows,
   patientId,
   collection,
+  select,
+  patient,
 }: {
   rows: Resource[];
   patientId: string;
   collection: string;
+  select?: (id: string) => void;
+  patient?: Patient;
 }) {
   const parsed = ehrSchema.safeParse(
     rows.find((r) => r.kind === "ehr-record" && r.patientId === patientId)?.data,
   );
   const [page, setPage] = useState(0);
-  if (!parsed.success)
-    return <p className="ehr-empty">No structured record available for this patient.</p>;
+  const prescriptions = rows.filter((record) => record.patientId === patientId && record.kind === "prescription");
   const entries =
-    collection === "Problems"
-      ? parsed.data.problems.map((x) => ({
+    collection === "Problems" && patient
+      ? patientProblems(rows, patient).map((x) => ({
           title: x.term,
-          date: x.date,
+          date: x.onsetDate,
           detail: x.code,
           status: x.status,
         }))
-      : collection === "Medication"
+      : !parsed.success ? [] : collection === "Medication"
         ? parsed.data.medications.map((x) => ({
             title: x.term,
             date: x.issueDate,
@@ -413,6 +423,16 @@ function ClinicalCollections({
           }));
   return (
     <>
+      {collection === "Medication" && <section>
+        <h3>Prescription requests</h3>
+        {prescriptions.length ? <table className="ehr-table"><thead><tr><th>Request</th><th>Status</th><th>Service</th></tr></thead><tbody>
+          {prescriptions.map((record) => <tr key={record.id}><td>
+            <button className="ehr-record-link" onClick={() => select?.(record.id)}>{record.title}</button>
+            <RecordAttribution record={record} />
+          </td><td>{record.status}</td><td>Pharmacy</td></tr>)}
+        </tbody></table> : <p className="ehr-empty">No prescription requests. Use Prescription above to create one.</p>}
+        <h3>Medication history</h3>
+      </section>}
       <table className="ehr-table">
         <thead>
           <tr>
@@ -592,7 +612,7 @@ function Handover({
                     {r.owner} · {r.status}
                   </small>
                   <div className="ehr-inline-actions">
-                    <ActionButton record={r} act={act} pending={pending} />
+                    <ActionButton record={r} act={act} pending={pending} siteId="hospital" />
                     {section.title === "01" && !r.visibleTo.includes("gp") && (
                       <button disabled={pending} onClick={() => act("share_record", r, "gp")}>
                         Send to GP
@@ -772,7 +792,7 @@ function CareCoordination({
                 </td>
                 <td>{r.status}</td>
                 <td>
-                  <ActionButton record={r} act={act} pending={pending} />
+                  <ActionButton record={r} act={act} pending={pending} siteId={r.owner} />
                 </td>
               </tr>
             ))}
@@ -808,6 +828,7 @@ function PracticeWorkspace(props: Props) {
   );
   const [recordId, setRecordId] = useState("");
   const [operation, setOperation] = useState<Operation | null>(null);
+  const [newNoteRequest, setNewNoteRequest] = useState<{id: number; patientId: string}>();
   const patient = props.patients.find((p) => p.id === props.selectedPatient);
   const rows = props.rows.filter((r) => r.patientId === patient?.id);
   const coordinationRows = [
@@ -826,6 +847,7 @@ function PracticeWorkspace(props: Props) {
         "Consultations",
         "Appointment book",
         "Problems",
+        "Allergies",
         "Medication",
         "Results",
         "Documents",
@@ -857,6 +879,7 @@ function PracticeWorkspace(props: Props) {
             onClick={() => {
               setTab("Consultations");
               setRecordId("");
+              if (patient) setNewNoteRequest({ id: Date.now(), patientId: patient.id });
             }}
           >
             New consultation
@@ -946,6 +969,7 @@ function PracticeWorkspace(props: Props) {
                 rows={rows}
                 api={props.api}
                 siteId={props.siteId}
+                newNoteRequest={newNoteRequest}
               />
             ) : tab === "Care coordination" ? (
               <CareCoordination
@@ -956,12 +980,17 @@ function PracticeWorkspace(props: Props) {
                 select={setRecordId}
                 open={setOperation}
               />
-            ) : ["Problems", "Medication", "Coded history"].includes(tab) ? (
+            ) : tab === "Problems" ? (
+              <Problems key={props.view.id + patient.id} patient={patient} rows={rows} api={props.api} siteId={props.siteId} />
+            ) : tab === "Allergies" ? (
+              <Allergies key={props.view.id + patient.id} patient={patient} rows={rows} api={props.api} siteId={props.siteId} />
+            ) : ["Medication", "Coded history"].includes(tab) ? (
               <ClinicalCollections
                 key={patient.id + tab}
                 rows={rows}
                 patientId={patient.id}
                 collection={tab}
+                select={setRecordId}
               />
             ) : (
               <Journal key={patient.id + tab} rows={rows} tab={tab} select={setRecordId} />
@@ -1036,7 +1065,7 @@ function HospitalWorkspace(props: Props) {
   const patientRows = allRows.filter((r) => r.patientId === patient?.id);
   const record = allRows.find((r) => r.id === recordId);
   const operational = props.rows.filter(
-    (r) => !["ehr-record", "staff", "capacity", "robot"].includes(r.kind) && !finished(r),
+    (r) => !["ehr-record", "problem", "allergy", "staff", "capacity", "robot"].includes(r.kind) && !finished(r),
   );
   const search = props.patientSearch.trim().toLowerCase();
   const visible = operational.filter(
@@ -1324,6 +1353,8 @@ function HospitalWorkspace(props: Props) {
                   rows={patientRows}
                   patientId={patient.id}
                   collection={drawerTab}
+                  patient={patient}
+                  select={(id) => { setRecordId(id); setDrawerTab("Encounter"); }}
                 />
               ) : (
                 <Journal

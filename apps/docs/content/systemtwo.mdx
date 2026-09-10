@@ -13,7 +13,21 @@ Select a patient, then choose **New consultation**. Enter a title, contact type 
 
 The **Consultations** tab lists previous contacts. Expand an entry to read its narrative. Entries created through this editor have **Open for editing**. Saving an edit updates that record and its version. A conflicting edit is rejected, so reload the entry before trying again.
 
-Unsubmitted title and note text remain in the current browser session for that patient. Use **Save draft** before moving to another device. The simulator does not provide clinical recommendations or a production clinical signing process.
+Unsubmitted title, contact type and note text remain in the current browser session for that patient. Use **Save draft** before moving to another device. **New consultation** starts a separate note. The simulator does not provide clinical recommendations or a production clinical signing process.
+
+## Maintain problems and allergies
+
+Open **Problems**, then **Add problem**. Enter the problem name and optionally a code and onset date. Saving updates the patient's active-problem summary. **Edit / resolve** lets you correct or resolve an entry; choose **Active and resolved** to see its history or reactivate it.
+
+Open **Allergies**, then **Add allergy** to record an allergen and optional reaction. Active entries appear in the patient banner. Inactive entries remain in history. An empty list means no allergy information has been recorded; it does not confirm that the patient has no allergies.
+
+Problem and allergy changes carry team attribution and version history and are visible to the hospital, community and pharmacy in the same team world. Historical entries without a recorded author retain that distinction.
+
+## Follow up requests
+
+**Medication** shows new prescription requests and their pharmacy status alongside recorded medication history. **Open in pharmacy** takes you to the receiving system. **Refer to hospital** creates a referral the hospital can review and accept.
+
+After requesting a test and advancing simulation time, open its entry in **Results** and choose **Mark reviewed**. GP review is recorded with your team's attribution. Follow-up tasks can be reviewed, accepted and completed from their record details.
 
 ## Work the appointment book
 
@@ -34,5 +48,7 @@ Try Nina Brooks, a child whose appointment arrangements involve her parent; Yasm
 Use `POST /api/sites/gp/actions` with your bearer key. A consultation action contains `type: "save_consultation"`, `patientId`, `title`, `text`, `mode` and `consultationStatus`, either `draft` or `saved`. Updates also require `resourceId` and `expectedVersion`.
 
 A `book_appointment` action accepts `startsAt` in epoch milliseconds, `durationMinutes`, `clinician` and `mode`. Existing clients that omit them receive the next available slot. `arrive_appointment` and `cancel_appointment` take a resource ID and support `expectedVersion`.
+
+Use `save_problem` with `patientId`, `title`, and `problemStatus` (`active` or `resolved`); `problemCode` and `onsetDate` are optional. Use `save_allergy` with `patientId`, `title`, and `allergyStatus` (`active` or `inactive`); `reaction` is optional. Editing either resource requires `resourceId` and `expectedVersion`. Their records remain in history after resolution or deactivation.
 
 Read the book with `GET /api/sites/gp/appointments?date=2026-09-10`. It returns appointments and the names needed to display them. Patient consultation records remain available through the normal patient view.

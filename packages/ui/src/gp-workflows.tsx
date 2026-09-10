@@ -15,18 +15,24 @@ export function Consultations({
   api,
   siteId,
   worldId,
+  newNoteRequest,
 }: {
   patient: Patient;
   rows: Resource[];
   api: WorkflowApi;
   siteId: SiteId;
   worldId: string;
+  newNoteRequest?: { id: number; patientId: string };
 }) {
   const client = useQueryClient();
   const storageKey = `consultation-draft:${worldId}:${siteId}:${patient.id}`;
   const [title, setTitle] = useState(() => sessionStorage.getItem(storageKey + ":title") ?? "");
   const [text, setText] = useState(() => sessionStorage.getItem(storageKey + ":text") ?? "");
-  const [mode, setMode] = useState<Action["mode"]>("in-person");
+  const [mode, setMode] = useState<Action["mode"]>(() => {
+    const saved = sessionStorage.getItem(storageKey + ":mode");
+    const record = rows.find((r) => r.id === sessionStorage.getItem(storageKey + ":record"));
+    return modes.find((value) => value === (saved ?? record?.data.mode)) ?? "in-person";
+  });
   const [editing, setEditing] = useState<Resource | null>(
     () => rows.find((r) => r.id === sessionStorage.getItem(storageKey + ":record")) ?? null,
   );
@@ -35,7 +41,25 @@ export function Consultations({
   useEffect(() => {
     sessionStorage.setItem(storageKey + ":title", title);
     sessionStorage.setItem(storageKey + ":text", text);
-  }, [storageKey, title, text]);
+    sessionStorage.setItem(storageKey + ":mode", mode ?? "in-person");
+  }, [storageKey, title, text, mode]);
+  function newNote() {
+    setEditing(null);
+    sessionStorage.removeItem(storageKey + ":record");
+    setTitle("");
+    setText("");
+    setMode("in-person");
+    setNotice("");
+  }
+  useEffect(() => {
+    if (
+      newNoteRequest?.patientId === patient.id &&
+      sessionStorage.getItem(storageKey + ":new-request") !== String(newNoteRequest.id)
+    ) {
+      sessionStorage.setItem(storageKey + ":new-request", String(newNoteRequest.id));
+      newNote();
+    }
+  }, [storageKey, patient.id, newNoteRequest]);
   const save = useMutation({
     mutationFn: (consultationStatus: "draft" | "saved") =>
       api<Resource>(`/api/sites/${siteId}/actions`, {
@@ -90,13 +114,7 @@ export function Consultations({
             <button
               type="button"
               disabled={save.isPending}
-              onClick={() => {
-                setEditing(null);
-                sessionStorage.removeItem(storageKey + ":record");
-                setTitle("");
-                setText("");
-                setNotice("");
-              }}
+              onClick={newNote}
             >
               New note
             </button>

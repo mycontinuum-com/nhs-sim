@@ -174,6 +174,8 @@ export const actionSchema = z
       "arrive_appointment",
       "cancel_appointment",
       "save_consultation",
+      "save_problem",
+      "save_allergy",
       "send_message",
       "schedule_visit",
       "dispatch_robot",
@@ -195,12 +197,35 @@ export const actionSchema = z
     expectedVersion: z.number().int().positive().optional(),
     text: z.string().trim().min(1).max(20000).optional(),
     consultationStatus: z.enum(["draft", "saved"]).optional(),
+    allergyStatus: z.enum(["active", "inactive"]).optional(),
+    reaction: z.string().trim().max(2000).optional(),
+    sourceAllergyKey: z.string().min(1).max(600).optional(),
+    problemStatus: z.enum(["active", "resolved"]).optional(),
+    problemCode: z.string().trim().max(100).optional(),
+    onsetDate: z.iso.date().optional(),
+    sourceProblemKey: z.string().min(1).max(600).optional(),
     startsAt: z.number().int().nonnegative().max(8640000000000000).optional(),
     durationMinutes: z.number().int().min(5).max(120).optional(),
     clinician: z.string().trim().min(1).max(100).optional(),
     mode: z.enum(["in-person", "telephone", "video", "online"]).optional(),
   })
   .superRefine((action, context) => {
+    if (action.type === "save_allergy") {
+      for (const field of ["patientId", "title", "allergyStatus"] as const)
+        if (!action[field]?.trim()) context.addIssue({ code: "custom", path: [field], message: field + " is required for an allergy" });
+      if (action.resourceId && action.expectedVersion === undefined)
+        context.addIssue({ code: "custom", path: ["expectedVersion"], message: "expectedVersion is required when editing an allergy" });
+      if (action.resourceId && action.sourceAllergyKey)
+        context.addIssue({ code: "custom", path: ["sourceAllergyKey"], message: "Choose an existing allergy or a historical source" });
+    }
+    if (action.type === "save_problem") {
+      for (const field of ["patientId", "title", "problemStatus"] as const)
+        if (!action[field]?.trim()) context.addIssue({ code: "custom", path: [field], message: field + " is required for a problem" });
+      if (action.resourceId && action.expectedVersion === undefined)
+        context.addIssue({ code: "custom", path: ["expectedVersion"], message: "expectedVersion is required when editing a problem" });
+      if (action.resourceId && action.sourceProblemKey)
+        context.addIssue({ code: "custom", path: ["sourceProblemKey"], message: "Choose an existing problem or a historical source" });
+    }
     if (action.type === "save_consultation") {
       for (const field of ["patientId", "title", "text", "consultationStatus"] as const)
         if (!action[field]?.trim())

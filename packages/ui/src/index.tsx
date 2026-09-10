@@ -301,7 +301,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const act = (type: Action["type"], resource: Resource, target?: SiteId) => {
     const embedded = handovers.data?.resources.some((item) => item.id === resource.id);
     const actor =
-      embedded && ["community", "pharmacy", "diagnostics"].includes(resource.owner)
+      !(siteId === "gp" && type === "review" && resource.kind === "test") && embedded && ["community", "pharmacy", "diagnostics"].includes(resource.owner)
         ? resource.owner
         : siteId;
     mutation.mutate({

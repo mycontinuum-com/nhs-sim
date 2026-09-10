@@ -10,6 +10,8 @@ import {
   type SiteId,
   type World,
 } from "../../contracts/src/index.ts";
+import { patientAllergies } from "../../contracts/src/allergies.ts";
+import { patientProblems } from "../../contracts/src/problems.ts";
 import { populateHistories } from "./population.ts";
 
 function resourceSnapshot(w: World) {
@@ -647,7 +649,7 @@ export class Engine {
       const existingId = r?.id;
       const create: Partial<Record<Action["type"], [string, SiteId]>> = {
         create_task: ["task", site],
-        create_referral: ["referral", "referrals"],
+        create_referral: ["referral", a.target ?? "hospital"],
         order_test: ["test", "diagnostics"],
         draft_prescription: ["prescription", "pharmacy"],
         book_appointment: ["appointment", a.target ?? "gp"],
@@ -655,7 +657,53 @@ export class Engine {
         schedule_visit: ["visit", "community"],
         dispatch_robot: ["robot-job", "robotics"],
       };
-      if (a.type === "save_consultation") {
+      if (a.type === "save_allergy") {
+        if (site !== "gp" && site !== "control")
+          throw new SimError("Only primary care may maintain the allergy record", 403);
+        if (!a.patientId || !a.title?.trim() || !a.allergyStatus)
+          throw new SimError("Allergy patient, allergen and status are required");
+        const allergies = patientAllergies(resourceSnapshot(w), a.patientId);
+        if (a.sourceAllergyKey && !allergies.some((allergy) => allergy.key === a.sourceAllergyKey && !allergy.record))
+          throw new SimError("Historical allergy has changed. Refresh the allergy record", 409);
+        if (allergies.some((allergy) => allergy.key !== (a.sourceAllergyKey ?? r?.id) && allergy.status === "active" && a.allergyStatus === "active" && allergy.term.toLowerCase() === a.title!.trim().toLowerCase()))
+          throw new SimError("This allergy is already active. Edit the existing allergy", 409);
+        if (r) {
+          if (r.kind !== "allergy" || r.owner !== "gp" || r.patientId !== a.patientId)
+            throw new SimError("Allergy must belong to this patient and primary care", 409);
+          r.title = a.title.trim(); r.version++;
+        } else r = this.add(w, "allergy", a.title.trim(), "gp", a.patientId);
+        r.visibleTo = [...new Set([...r.visibleTo, "gp", "hospital", "pharmacy", "community", "patient"] satisfies SiteId[])];
+        r.status = a.allergyStatus;
+        r.data = { ...r.data, reaction: a.reaction ?? "",
+          ...(a.sourceAllergyKey ? { sourceAllergyKey: a.sourceAllergyKey } : {}) };
+      } else if (a.type === "save_problem") {
+        if (site !== "gp" && site !== "control")
+          throw new SimError("Only primary care may maintain the problem list", 403);
+        if (!a.patientId || !a.title?.trim() || !a.problemStatus)
+          throw new SimError("Problem patient, title and status are required");
+        const patientIndex = (original(w)?.patients ?? w.patients).findIndex((p) => p.id === a.patientId);
+        const patient = w.patients[patientIndex]!;
+        const problems = patientProblems(resourceSnapshot(w), patient);
+        if (a.sourceProblemKey && !problems.some((problem) => problem.key === a.sourceProblemKey && !problem.record))
+          throw new SimError("Historical problem has changed. Refresh the problem list", 409);
+        if (problems.some((problem) => problem.key !== (a.sourceProblemKey ?? r?.id) && problem.status === "active" && a.problemStatus === "active" && problem.term.toLowerCase() === a.title!.trim().toLowerCase()))
+          throw new SimError("This problem is already active. Edit the existing problem", 409);
+        if (r) {
+          if (r.kind !== "problem" || r.owner !== "gp" || r.patientId !== a.patientId)
+            throw new SimError("Problem must belong to this patient and primary care", 409);
+          r.title = a.title.trim();
+          r.version++;
+        } else r = this.add(w, "problem", a.title.trim(), "gp", a.patientId);
+        r.visibleTo = [...new Set([...r.visibleTo, "gp", "hospital", "pharmacy", "community", "patient"] satisfies SiteId[])];
+        r.status = a.problemStatus;
+        r.data = { ...r.data, code: a.problemCode ?? "", onsetDate: a.onsetDate ?? "",
+          ...(a.sourceProblemKey ? { sourceProblemKey: a.sourceProblemKey } : {}) };
+        const replacedKey = a.sourceProblemKey ?? existingId;
+        patient.conditions = [...new Set([
+          ...problems.filter((problem) => problem.key !== replacedKey && problem.status === "active").map((problem) => problem.term),
+          ...(r.status === "active" ? [r.title] : []),
+        ])];
+      } else if (a.type === "save_consultation") {
         if (site !== "gp" && site !== "control")
           throw new SimError("Only primary care may save a GP consultation", 403);
         if (!a.patientId || !a.title?.trim() || !a.text || !a.consultationStatus)
@@ -739,8 +787,8 @@ export class Engine {
         }
         r = this.add(w, kind, a.title ?? a.type.replaceAll("_", " "), owner, a.patientId);
         r.visibleTo = [...new Set<SiteId>([owner, site, "patient"])];
-        if (a.type === "create_referral" && a.target)
-          r.visibleTo = [...new Set([...r.visibleTo, a.target])];
+        if (a.type === "create_referral")
+          r.visibleTo = [...new Set<SiteId>([...r.visibleTo, "referrals"])];
         if (appointment) {
           r.data = appointment;
           r.status = "booked";
@@ -759,6 +807,8 @@ export class Engine {
         }
       } else {
         if (!r) throw new SimError("resourceId required");
+        if (["problem", "allergy"].includes(r.kind) && a.type !== "share_record")
+          throw new SimError(`Use the ${r.kind} editor to change this record`, 409);
         if (a.type === "share_record") {
           if (r.data.planLab === "digital")
             throw new SimError("Use challenge sharing controls", 409);
@@ -775,7 +825,10 @@ export class Engine {
           if (
             site !== "control" &&
             r.owner !== site &&
-            !(a.type === "collect" && site === "patient")
+            !(a.type === "collect" && site === "patient") &&
+            !(a.type === "review" && site === "gp" && r.kind === "test" && r.status === "available") &&
+            !(r.kind === "referral" && ["review", "accept", "reject", "complete"].includes(a.type) &&
+              (site === "referrals" || (site === "hospital" && r.owner === "referrals")))
           )
             throw new SimError("Only owning service may change this record", 403);
           const transitions: Partial<Record<Action["type"], [string[], string]>> = {
@@ -845,7 +898,7 @@ export class Engine {
       const change: RecordChange = {
         actor: attribution, source: site, action: a.type, time: w.now, version: r!.version,
       };
-      if (r!.id !== existingId) r!.provenance = { created: change, changes: [change] };
+      if (r!.id !== existingId) r!.provenance = { created: (a.type === "save_problem" && a.sourceProblemKey) || (a.type === "save_allergy" && a.sourceAllergyKey) ? null : change, changes: [change] };
       else {
         r!.provenance ??= { created: null, changes: [] };
         r!.provenance.changes.push(change);

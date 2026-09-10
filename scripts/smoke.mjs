@@ -23,6 +23,8 @@ if (process.env.SMOKE_RESTORE === "1") {
   });
   assert.deepEqual(notes.data.resources.find((r) => r.id === previous.noteId)?.provenance,
     previous.provenance, "consultation attribution survives process restart");
+  assert.equal(notes.data.resources.find((r) => r.id === previous.problemId)?.status, "resolved");
+  assert.equal(notes.data.resources.find((r) => r.id === previous.allergyId)?.status, "active");
   console.log("PASS: team key, world clock and resource state survive application restart");
   process.exit(0);
 }
@@ -77,6 +79,33 @@ assert.equal(consultation.status, 200);
 const consultationView = await call("/api/sites/gp/view?patient=SIM-000001", {headers});
 assert.equal(consultationView.data.resources.find(r => r.id === consultation.data.id)?.data.text,
   "Fictional person requested an accessible follow-up time.");
+const problem = await call("/api/sites/gp/actions", { method: "POST", headers,
+  body: JSON.stringify({ type: "save_problem", patientId: "SIM-000003", title: "Workflow QA problem", problemStatus: "active" }) });
+assert.equal(problem.status, 200);
+const activePatient = await call("/api/sites/gp/patients?q=SIM-000003", { headers });
+assert.ok(activePatient.data.items.find((patient) => patient.id === "SIM-000003").conditions.includes("Workflow QA problem"));
+const resolved = await call("/api/sites/gp/actions", { method: "POST", headers,
+  body: JSON.stringify({ type: "save_problem", patientId: "SIM-000003", resourceId: problem.data.id,
+    expectedVersion: 1, title: "Workflow QA problem", problemStatus: "resolved" }) });
+assert.equal(resolved.status, 200);
+const resolvedPatient = await call("/api/sites/gp/patients?q=SIM-000003", { headers });
+assert.ok(!resolvedPatient.data.items.find((patient) => patient.id === "SIM-000003").conditions.includes("Workflow QA problem"));
+const allergy = await call("/api/sites/gp/actions", { method: "POST", headers,
+  body: JSON.stringify({ type: "save_allergy", patientId: "SIM-000003", title: "QA synthetic allergen",
+    allergyStatus: "active", reaction: "Fictional test reaction" }) });
+assert.equal(allergy.status, 200);
+const sharedClinical = await call("/api/sites/hospital/view?patient=SIM-000003", { headers });
+assert.equal(sharedClinical.data.resources.find((record) => record.id === problem.data.id)?.status, "resolved");
+assert.equal(sharedClinical.data.resources.find((record) => record.id === allergy.data.id)?.status, "active");
+const referral = await call("/api/sites/gp/actions", { method: "POST", headers,
+  body: JSON.stringify({ type: "create_referral", patientId: "SIM-000003", title: "QA hospital referral", target: "hospital" }) });
+assert.equal(referral.status, 200);
+assert.equal(referral.data.owner, "hospital");
+for (const type of ["review", "accept"]) {
+  const received = await call("/api/sites/hospital/actions", { method: "POST", headers,
+    body: JSON.stringify({ type, resourceId: referral.data.id }) });
+  assert.equal(received.status, 200, "hospital can process the GP referral");
+}
 assert.equal((await call("/api/plan-lab")).status, 401);
 assert.equal((await call("/api/plan-lab", { headers })).data.challenges.length, 3);
 for (const action of ["start", "permit"]) {
@@ -177,6 +206,8 @@ writeFileSync(
     resourceId: order.data.id,
     noteId: created.data.id,
     provenance: edited.data.provenance,
+    problemId: problem.data.id,
+    allergyId: allergy.data.id,
   }),
 );
 console.log(
