@@ -1,0 +1,97 @@
+name: Deploy simulator
+on:
+  workflow_run:
+    workflows: [Verify ecosystem]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: simulator-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      AWS_REGION: eu-west-2
+      REVISION: ${{ github.event.workflow_run.head_sha || github.sha }}
+      ECR_REPOSITORY: ${{ vars.SIM_ECR_REPOSITORY }}
+      ARTIFACT_BUCKET: ${{ vars.SIM_ARTIFACT_BUCKET }}
+      INSTANCE_ID: ${{ vars.SIM_INSTANCE_ID }}
+      DEPLOY_DOCUMENT: ${{ vars.SIM_DEPLOY_DOCUMENT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REVISION }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Reject superseded releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)" = "$REVISION"
+      - name: Verify manual deployment before publishing
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          docker compose up -d --build --wait --wait-timeout 240
+          node scripts/smoke.mjs
+          docker compose down
+      - name: Verify deployment inputs
+        run: |
+          test -n "$ECR_REPOSITORY" && test -n "$ARTIFACT_BUCKET"
+          test -n "$INSTANCE_ID" && test -n "$DEPLOY_DOCUMENT"
+          bash -n deploy/deploy.sh deploy/backup.sh
+          node scripts/validate-skills.mjs
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SIM_DEPLOY_ROLE_ARN }}
+          aws-region: eu-west-2
+          role-session-name: nhs-sim-${{ github.run_id }}
+      - name: Build and publish immutable application
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws ecr get-login-password | docker login --username AWS --password-stdin "${ECR_REPOSITORY%%/*}"
+          digest=$(aws ecr describe-images --repository-name nhs-sim --image-ids imageTag="$REVISION" --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || true)
+          if [[ ! "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            docker build --tag "$ECR_REPOSITORY:$REVISION" .
+            docker push "$ECR_REPOSITORY:$REVISION"
+            digest=$(aws ecr describe-images --repository-name nhs-sim --image-ids imageTag="$REVISION" --query 'imageDetails[0].imageDigest' --output text)
+          fi
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Publish runtime configuration
+        run: |
+          tar -czf /tmp/runtime.tgz -C deploy compose.yaml Caddyfile deploy.sh backup.sh
+          aws s3 cp /tmp/runtime.tgz "s3://$ARTIFACT_BUCKET/releases/$REVISION.tgz" --only-show-errors
+      - name: Deploy through Systems Manager
+        id: deploy
+        env:
+          IMAGE_DIGEST: ${{ steps.image.outputs.digest }}
+        run: bash deploy/dispatch.sh "$IMAGE_DIGEST"
+      - name: Verify public participant journey
+        id: public
+        run: |
+          node .agents/skills/verify-nhs-sim/control-nhs-sim.mjs doctor --origin https://sim.animahacks.com
+          node .agents/skills/verify-nhs-sim/control-nhs-sim.mjs journey --origin https://sim.animahacks.com
+          sleep 2
+          TEST_ORIGIN=https://sim.animahacks.com node scripts/smoke.mjs
+      - name: Roll back if public verification failed
+        if: failure() && steps.public.outcome == 'failure' && steps.deploy.outputs.previous_digest != ''
+        env:
+          PREVIOUS_DIGEST: ${{ steps.deploy.outputs.previous_digest }}
+        run: bash deploy/dispatch.sh "$PREVIOUS_DIGEST"
+      - name: Save workflow evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-deployment-${{ github.run_id }}
+          path: .verification/evidence/
+          if-no-files-found: ignore

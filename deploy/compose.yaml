@@ -1,0 +1,64 @@
+name: nhs-sim
+
+x-logging: &logging
+  driver: awslogs
+  options:
+    awslogs-region: ${AWS_REGION:?}
+    awslogs-group: ${LOG_GROUP:?}
+    awslogs-create-group: "false"
+    tag: "{{.Name}}"
+
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: nhssim
+      POSTGRES_DB: nhssim
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+    volumes:
+      - /srv/nhs-sim/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U nhssim -d nhssim]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+    logging: *logging
+
+  app:
+    image: ${APP_IMAGE:?}
+    init: true
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      PUBLIC_ORIGIN: https://sim.animahacks.com
+      DATABASE_URL: postgres://nhssim:${POSTGRES_PASSWORD:?}@postgres:5432/nhssim
+      OPERATOR_TOKEN: ${OPERATOR_TOKEN:?}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8080/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+    restart: unless-stopped
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/nhs-sim/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/nhs-sim/caddy/data:/data
+      - /srv/nhs-sim/caddy/config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
