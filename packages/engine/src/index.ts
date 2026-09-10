@@ -811,7 +811,7 @@ export class Engine {
           throw new SimError(`Use the ${r.kind} editor to change this record`, 409);
         if (a.type === "share_record") {
           if (r.data.planLab === "digital")
-            throw new SimError("Use challenge sharing controls", 409);
+            throw new SimError("Sharing is restricted for this historical simulation record", 409);
           if (!a.target) throw new SimError("target required");
           r.visibleTo = [...new Set([...r.visibleTo, a.target])];
         } else if (["report_absence", "restore_staff", "allocate_shift"].includes(a.type)) {

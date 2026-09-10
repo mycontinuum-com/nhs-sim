@@ -30,6 +30,9 @@ if (process.env.SMOKE_RESTORE === "1") {
   process.exit(0);
 }
 const { data: catalogue } = await call("/api/catalogue");
+const retiredChallengePage = await fetch(base + "/control/?challenges=1", { redirect: "manual" });
+assert.equal(retiredChallengePage.status, 302);
+assert.equal(retiredChallengePage.headers.get("location"), "/control/");
 assert.deepEqual(catalogue.sites.map((site) => site.id), ["control", "gp", "hospital", "pharmacy", "community", "wearables"]);
 for (const path of ["/icb/", "/messaging/"])
   assert.equal((await fetch(base + path)).status, 404, path + " is retired");
@@ -107,20 +110,13 @@ for (const type of ["review", "accept"]) {
     body: JSON.stringify({ type, resourceId: referral.data.id }) });
   assert.equal(received.status, 200, "hospital can process the GP referral");
 }
-assert.equal((await call("/api/plan-lab")).status, 401);
-assert.equal((await call("/api/plan-lab", { headers })).data.challenges.length, 3);
-for (const action of ["start", "permit"]) {
-  assert.equal((await call("/api/plan-lab", {
-    method: "POST", headers, body: JSON.stringify({challenge: "digital", action}),
-  })).status, 200);
-}
-const sharedLab = await call("/api/sites/community/view?patient=SIM-000002", {headers});
-assert.ok(sharedLab.data.resources.some(resource => resource.data.planLab === "digital"));
+assert.equal((await call("/api/plan-lab")).status, 410);
+const beforeRetiredAction = await call("/api/clock", { headers });
 assert.equal((await call("/api/plan-lab", {
-  method: "POST", headers, body: JSON.stringify({challenge: "digital", action: "revoke"}),
-})).status, 200);
-const revokedLab = await call("/api/sites/community/view?patient=SIM-000002", {headers});
-assert.ok(!revokedLab.data.resources.some(resource => resource.data.planLab === "digital"));
+  method: "POST", headers, body: JSON.stringify({challenge: "digital", action: "start"}),
+})).status, 410);
+assert.deepEqual((await call("/api/clock", { headers })).data, beforeRetiredAction.data,
+  "retired challenges cannot change team records or time");
 assert.equal((await call("/api/sites/control/view", { headers })).status, 403);
 assert.equal((await call("/api/sites/legacy/view", { headers })).status, 501);
 assert.equal((await call("/api/sites/gp/view")).status, 401);

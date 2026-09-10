@@ -141,6 +141,6 @@ Read [hackathon projects and coverage](docs/hackathon.md), [API contracts](docs/
 CI builds the image, starts PostgreSQL and the app, runs all single-origin smoke checks and restarts the app. Container testing requires Docker; local unit tests do not.
 
 
-## Ten-year plan lab
+## Explore the ten-year plan
 
-Open `/control/?challenges=1` to explore three persisted challenges in your team world: discharge coordination, controlled sharing and inclusive prevention outreach. Each has actions, prerequisites, a decision trail and links to receiving workplaces. `GET /api/plan-lab` exposes the workbook; POST an action's `input` to the same endpoint. These are fictional operational models, not clinical outcome forecasts. See `/docs/ten-year-plan/` for scope and assumptions.
+The neighbourhood map links to the ten-year health plan for England. Open `/control/?explore=plan` for optional questions tied to its three shifts and links into existing patient records. Participants choose their own problems and approaches. The explorer does not seed records, prescribe solutions or track completion. See `/docs/ten-year-plan/` for context and model limits.

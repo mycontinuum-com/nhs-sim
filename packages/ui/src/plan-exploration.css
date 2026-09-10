@@ -1,0 +1,29 @@
+.plan-exploration {
+  background: #fbfaf3;
+  border-bottom: 1px solid #d3d5c8;
+  padding: 28px max(28px, calc((100vw - 1200px) / 2));
+  color: #283b32;
+}
+.plan-exploration-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.plan-exploration-intro h2 { margin: 8px 0; font-size: 26px; }
+.plan-exploration-intro p { max-width: 760px; line-height: 1.55; }
+.plan-exploration-intro a { display: inline-block; margin: 0 24px 12px 0; font-size: 14px; }
+.plan-shifts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 14px; align-items: start; }
+.plan-shifts details { border: 1px solid #cdd3c7; background: #fffef9; padding: 16px; }
+.plan-shifts summary { cursor: pointer; font-weight: 700; font-size: 16px; }
+.plan-shifts h3 { font-size: 18px; line-height: 1.35; margin: 18px 0 8px; }
+.plan-shifts p { font-size: 14px; line-height: 1.6; }
+.plan-shifts nav { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.plan-shifts nav a { padding: 7px 0; font-size: 14px; }
+.plan-exploration-note { color: #637066; font-size: 12px; line-height: 1.5; margin: 18px 0 0; }
+@media (max-width: 700px) {
+  .plan-exploration { padding: 20px 16px; }
+  .plan-exploration-intro { gap: 8px; }
+  .plan-exploration-intro h2 { font-size: 21px; }
+  .plan-shifts { grid-template-columns: 1fr; gap: 8px; }
+}

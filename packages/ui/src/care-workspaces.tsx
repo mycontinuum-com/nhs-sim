@@ -358,7 +358,7 @@ export function CareWorkspace(props: Props) {
                 <p className="care-eyebrow">Shared record inbox</p>
                 <h2>From the practice</h2>
               </div>
-              <a href="/control/?challenges=1">Sharing challenge ↗</a>
+              <a href="/docs/api/">Record sharing guide ↗</a>
             </div>
             {props.rows
               .filter(

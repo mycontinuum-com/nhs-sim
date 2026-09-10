@@ -23,7 +23,6 @@ import {
   MockOIDC,
 } from "../../../packages/nhs-mocks/src/index.ts";
 import { handleCis2 } from "./cis2.ts";
-import { getPlanLab, runPlanLab } from "../../../packages/engine/src/plan-lab.ts";
 import { ModelAgent } from "../../../packages/agents/src/index.ts";
 
 const port = Number(process.env.PORT ?? 8080);
@@ -81,6 +80,11 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", origin),
       path = url.pathname,
       method = req.method ?? "GET";
+    if (path === "/control/" && url.searchParams.has("challenges") && (method === "GET" || method === "HEAD")) {
+      url.searchParams.delete("challenges");
+      res.writeHead(302, { Location: url.pathname + url.search, "Cache-Control": "no-store" });
+      return res.end();
+    }
     if (
       method !== "GET" &&
       method !== "HEAD" &&
@@ -286,18 +290,7 @@ const server = createServer(async (req, res) => {
       );
     }
     if (path === "/api/plan-lab") {
-      const id = authenticated();
-      if (
-        !admin &&
-        !["gp", "hospital", "community", "pharmacy"].every((scope) => key!.scopes.includes(scope))
-      )
-        throw new SimError("Plan challenges require a full cross-service team key", 403);
-      if (method === "GET") return send(res, 200, getPlanLab(store.engine, id));
-      if (method === "POST") {
-        const input = await json(req);
-        return send(res, 200, await store.run(() => runPlanLab(store.engine, id, input)));
-      }
-      return send(res, 405, { error: "Method not allowed" });
+      return send(res, 410, { error: "The challenge workbook has been retired. Explore the neighbourhood and use the service APIs.", href: "/control/" });
     }
     if (path === "/api/clock" && (method === "GET" || method === "POST")) {
       const id = authenticated();

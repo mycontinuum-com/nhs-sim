@@ -5,47 +5,38 @@ hide_table_of_contents: true
 
 # Explore the ten-year plan
 
-<a href="/control/?challenges=1">Open the practical lab</a> with your team's key. Each challenge adds a small set of fictional records to the existing world. Repeat visits keep your progress. No challenge resets the world.
+Read the [ten-year health plan for England](https://www.gov.uk/government/publications/10-year-health-plan-for-england-fit-for-the-future/fit-for-the-future-10-year-health-plan-for-england-executive-summary), then bring a problem that interests you into the <a href="/control/?explore=plan">virtual neighbourhood</a>.
 
-The [2025 ten-year plan for England](https://www.gov.uk/government/publications/10-year-health-plan-for-england-fit-for-the-future/fit-for-the-future-10-year-health-plan-for-england-executive-summary) centres on three shifts: hospital to community, analogue to digital, and sickness to prevention. It also discusses coordinated neighbourhood care, patient control of records and reducing inequalities in access. The following exercises are our simplified interpretations of implementation problems.
+The plan describes three shifts: hospital to community, analogue to digital, and sickness to prevention. The map offers places to investigate questions related to those shifts. You choose the problem and what to build. There are no assigned challenges, scores or completion requirements.
 
-## Coordinate care beyond the hospital
+## Hospital to community
 
-Start the discharge challenge. Inspect the outstanding prerequisites, agree the support plan, make the handover visible to the GP, complete pharmacy supply and arrange community follow-up. Try the readiness check before everything is in place, then repeat it after resolving the missing steps.
+What information and support does a person need when their care moves between services?
 
-Open the linked workplaces to inspect the same records. You can use their normal actions for prescription and visit transitions. The lab reports operational prerequisites only. It does not decide whether a person is medically fit for discharge, predict readmissions or estimate saved bed days.
+Amira Khan (`SIM-000001`) has records across the hospital, practice and pharmacy. Open the same patient in each workplace. Compare the information each service can see, who recorded it, and the work still waiting. The community visit board offers another view of support at home.
 
-## Make sharing controllable
+Use the ordinary record actions and APIs if you want to test an idea. Opening the plan explorer or a workplace does not add scenario records or change your team's world.
 
-Start the digital challenge. Attempt to read the dedicated handover as the community team before permission, allow access, read again, then revoke it. Compare the decision trail and the record's visibility to the receiving service.
+## Analogue to digital
 
-This exercise applies a deliberately simple permission rule to one dedicated document. It is not a model of NHS legal bases for data processing, a production consent service, or a claim that all NHS record access requires consent. Revocation prevents future reads through the model; it cannot erase copies a recipient already made.
+Does information reach the person who needs it, with enough context to use it?
 
-## Reach people before a care gap grows
+Eleanor Chen (`SIM-000006`) has a home dashboard, a practice record and community care records. Compare the home readings with the information available to staff. Inspect record visibility and the activity trail. The CIS2 emulator lets you explore staff sign-in and role selection separately from the team's API access.
 
-Start the prevention challenge. Compare app outreach with phone or letter outreach for the authored cohort. Book and complete follow-up within the finite appointment allowance. Inspect who was reached and who still has no appointment.
+Record sharing in this simulator is a simplified visibility model. It does not model NHS legal bases for processing or a production consent service.
 
-The contact preferences and capacity are fictional scenario settings. The exercise models access and coordination, not clinical eligibility, diagnosis, treatment effects or national prevention performance. A larger count of app messages does not imply that everyone received them.
+## Sickness to prevention
 
-## Build an agent against the lab
+What might reveal an unmet need before someone asks for help? Who might the available data miss?
 
-Use your full team bearer key:
+Explore Eleanor's history, appointments and home readings. Consider missing context and who would need to follow up. Search the wider synthetic population if a different patient is more useful for the question you chose.
 
-```http
-GET /api/plan-lab
-Authorization: Bearer sim_...
-```
+The simulator models records and operational actions. It does not determine clinical eligibility, recommend treatment or predict the health effects of an intervention.
 
-The response contains `now` and `challenges`. Each challenge includes its checks, metrics, available actions, workplace links and decision trail. Send an action's `input` object unchanged:
+## Work in your own team world
 
-```http
-POST /api/plan-lab
-Authorization: Bearer sim_...
-Content-Type: application/json
+The explorer links into existing patient records and preserves the destination when you create or connect a team. Use the same team key across workplaces. Changes made through a portal or the API are visible in that team's world, subject to each service's record visibility.
 
-{"challenge":"discharge","action":"start"}
-```
+For navigation and record actions, see [patient workflows](./challenges.mdx). For requests, authentication and failure responses, see the [API reference](./api.md). Use Simulation controls inside a workplace to observe delayed results and the activity trail.
 
-The response is the updated workbook. Disabled actions include an explanation; server-side validation also enforces prerequisites. Cross-service challenges require GP, hospital, community and pharmacy scopes. Service-specific keys cannot use this endpoint.
-
-Demonstrate both a blocked attempt and a completed path. Explain the model's assumptions, show the receiving record and identify a person or step your solution still misses. The model does not award clinical outcome scores.
+These exploration questions are interpretations of selected themes in the plan. Read the source for its proposals and wider context.

@@ -18,7 +18,7 @@ export default {
       title: 'NHS-SIM / Handbook',
       items: [
         { to: '/quickstart/', label: 'Start', position: 'right' },
-        { to: '/challenges/', label: 'Challenges', position: 'right' },
+        { to: '/ten-year-plan/', label: 'Explore the plan', position: 'right' },
         { to: '/api/', label: 'API', position: 'right' },
         { to: '/data/', label: 'Data', position: 'right' },
         { href: 'pathname:///control/', autoAddBaseUrl: false, label: 'Open simulator ↗', position: 'right' },

@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Engine } from "../packages/engine/src/index.ts";
-import { runPlanLab } from "../packages/engine/src/plan-lab.ts";
 
 test("throwing a transaction restores its original state without leaked records or events", () => {
   const engine = new Engine();
@@ -46,25 +45,24 @@ test("editing one consultation retains unrelated rows and leaves earlier snapsho
   assert.equal(before.worlds.default.resources.find((r) => r.id === draft.id)?.status, "draft");
 });
 
-test("nested plan-lab completion commits together and rolls back with its outer transaction", () => {
+test("nested visit completion commits together and rolls back with its outer transaction", () => {
   const engine = new Engine();
-  runPlanLab(engine, "default", { challenge: "discharge", action: "start" });
-  runPlanLab(engine, "default", { challenge: "discharge", action: "agree-support" });
+  const booked = engine.action("default", "gp", { type: "schedule_visit", patientId: "SIM-000001", title: "Community follow-up" }, "test");
   const visit = () => engine.require("default").resources.find(
-    (r) => r.data.planLab === "discharge" && r.data.labRole === "visit",
+    (r) => r.id === booked.id,
   );
   assert.equal(visit()?.status, "scheduled");
   const before = engine.state;
   const content = JSON.stringify(before);
   assert.throws(() => engine.transaction("default", () => {
-    runPlanLab(engine, "default", { challenge: "discharge", action: "complete-visit" });
+    engine.action("default", "community", { type: "complete", resourceId: booked.id }, "test");
     assert.equal(visit()?.status, "completed");
     throw new Error("Abort nested completion");
   }), /Abort nested completion/);
   assert.equal(engine.state, before);
   assert.equal(JSON.stringify(engine.state), content);
   assert.equal(visit()?.status, "scheduled");
-  runPlanLab(engine, "default", { challenge: "discharge", action: "complete-visit" });
+  engine.transaction("default", () => engine.action("default", "community", { type: "complete", resourceId: booked.id }, "test"));
   assert.equal(visit()?.status, "completed");
   assert.equal(before.worlds.default.resources.find((r) => r.id === visit()?.id)?.status, "scheduled");
 });
