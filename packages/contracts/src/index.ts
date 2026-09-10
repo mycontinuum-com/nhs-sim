@@ -53,6 +53,9 @@ export const sites = [
     color: "#63516f",
     kind: "clinical",
   },
+  { id: "pharmacy", name: "Dispensary", subtitle: "High Street Pharmacy", color: "#11675e", kind: "clinical" },
+  { id: "community", name: "Neighbourhood Care", subtitle: "Community visiting team", color: "#976039", kind: "clinical" },
+  { id: "wearables", name: "At home", subtitle: "Personal health journal", color: "#6d71cb", kind: "consumer" },
 ] as const;
 export const activeServices: SiteId[] = [
   "control",
@@ -62,6 +65,7 @@ export const activeServices: SiteId[] = [
   "pharmacy",
   "diagnostics",
   "referrals",
+  "wearables",
   "legacy",
 ];
 

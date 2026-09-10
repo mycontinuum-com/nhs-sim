@@ -389,7 +389,9 @@ button.primary {
   font-size: 11px;
   padding: 4px 8px;
 }
+.map-mobile-hint { display: none; }
 @media (max-width: 700px) {
+  .map-mobile-hint { display: inline; }
   .world-header {
     padding: 0 14px;
     height: 58px;

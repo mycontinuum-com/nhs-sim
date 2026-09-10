@@ -5,6 +5,19 @@ import { MockOIDC, bundle, matchAdapterPath } from "../packages/nhs-mocks/src/in
 import { createHash } from "node:crypto";
 import { actionSchema } from "../packages/contracts/src/index.ts";
 
+test("home dashboard receives stored history and new readings as time advances", () => {
+  const engine = new Engine();
+  const world = engine.require("default");
+  const readings = () => world.resources.filter(r => r.owner === "wearables" && r.kind === "observation" && r.patientId === "SIM-000006");
+  assert.equal(readings().length, 22);
+  assert.deepEqual([...new Set(readings().map(r => r.data.unit))].sort(), ["bpm", "h", "steps/day"]);
+  assert.ok(readings().every(r => r.createdAt <= world.now));
+  engine.clock("default", { advanceMinutes: 15 });
+  assert.equal(readings().length, 23);
+  assert.equal(readings().at(-1)?.data.metric, "steps");
+  assert.equal(readings().at(-1)?.data.quality, "good");
+});
+
 test("focused EHRs can hand over to community and hospital services", () => {
   const engine = new Engine();
   const visit = engine.action("default", "hospital", actionSchema.parse({

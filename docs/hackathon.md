@@ -2,7 +2,7 @@
 
 Start at the neighbourhood map. Riverside Practice opens SystemTwo for primary care. Northbank General opens Millbank EPR for secondary care. Use the same team key in both.
 
-Community, pharmacy, diagnostics and referrals own supporting records and expose scoped APIs. There are no separate portals for them. Query those services when you need to distinguish a completed handover from a request.
+Community and pharmacy have their own workspaces and scoped APIs. Diagnostics and referrals expose supporting APIs. Query those services when you need to distinguish a completed handover from a request.
 
 ## Discharge to primary care
 
@@ -28,10 +28,23 @@ Show the original referral identifier and final status. Creating another referra
 
 ## Test an identity integration
 
-Use the [CIS2 emulator](/cis2/) for a separate staff sign-in exercise. Its identity tokens and a team's API key have different purposes. See the [API reference](/docs/api/) for the implemented protocol and operator controls.
+Use the <a href="/cis2/">CIS2 emulator</a> for a separate staff sign-in exercise. Its identity tokens and a team's API key have different purposes. See the [API reference](/docs/api/) for the implemented protocol and operator controls.
 
 ## What comes next
 
-These two EPRs demonstrate primary-to-secondary handovers and support after discharge. Deeper community and pharmacy workplaces are future work. The current simulation has finite visit capacity and a prescription lifecycle, but does not model travel, home access, medication adherence or clinical outcomes.
+The EPRs, pharmacy dispensing bench and community visit board demonstrate handovers and support after discharge. The current simulation has finite visit capacity and a prescription lifecycle, but does not model travel, home access, medication adherence or clinical outcomes.
 
 Keep the seed and intervention sequence fixed when comparing runs. Present initial records, actions, rejected requests and final states. Test the expected number of concurrent team worlds before the event.
+
+
+## Try a complete journey in ten minutes
+
+1. Create a team from the map. In SystemTwo, choose Amira Khan, `SIM-000001`, and send a referral to the hospital.
+2. Open Millbank from the map. Select Amira and find your referral in the discharge chart.
+3. Open High Street Pharmacy. Select the discharge prescription, dispense it and confirm collection. A newly drafted prescription must first be reviewed and approved.
+4. Open Neighbourhood Care, select Amira and schedule a home visit. Open Simulation controls and advance 121 minutes. The visit changes to completed after its 90-minute delay.
+5. Open Eleanor's home from the map. Compare the stored activity, sleep and heart-rate readings. Advance 15 minutes to receive a new activity reading. The home monitor produces readings hourly after its first scheduled reading at 08:10.
+
+Build an agent that closes one of these loops. Demonstrate the changed record in the receiving workspace, and show how your agent handles a rejected action or missing reading.
+
+The home readings are authored synthetic examples. They do not provide health assessments. A new team includes the wearable history and scope; older teams keep their original data and permissions. If your old key lacks wearable access, create a new team to try the whole journey.

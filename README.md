@@ -45,10 +45,13 @@ Open `/control/` to enter the map, then choose a workplace. The map leaves the s
 | `/control/` | Neighbourhood map and simulation controls |
 | `/gp/` | SystemTwo at Riverside Practice, a fictional primary-care EPR |
 | `/hospital/` | Millbank EPR at Northbank General, a fictional secondary-care EPR |
+| `/pharmacy/` | Dispensary prescription queue and dispensing bench |
+| `/community/` | Neighbourhood Care visit board |
+| `/wearables/` | At home wearable dashboard |
 | `/docs/` | Participant handbook, API contracts and organiser guide |
 | `/cis2/` | Staff identity emulator |
 
-SystemTwo and Millbank demonstrate two different ways of working with the same synthetic population. Community, pharmacy, diagnostics and referrals are supporting services in their journeys, with scoped APIs and owned records. They do not have separate portals. The browser-only letter transfer remains at `/browser/legacy` as an integration exercise.
+SystemTwo and Millbank demonstrate two different ways of working with the same synthetic population. Pharmacy and community have dedicated workplaces. At home shows stored synthetic wearable history. Diagnostics and referrals remain supporting APIs. The browser-only letter transfer remains at `/browser/legacy` as an integration exercise.
 
 The interfaces are fictional interpretations of EPR categories. They do not reproduce vendor branding or claim compatibility with SystmOne or Cerner.
 

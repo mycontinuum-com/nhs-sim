@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider, useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -11,6 +11,10 @@ import {
   type SimEvent,
 } from "../../contracts/src/index.ts";
 import { SystemWorkspace } from "./systems.tsx";
+import { CareWorkspace } from "./care-workspaces.tsx";
+import { HomeWorkspace } from "./home-workspace.tsx";
+import "./care-workspaces.css";
+import "./home-workspace.css";
 import "./style.css";
 import "./systems.css";
 
@@ -53,10 +57,10 @@ const places = [
     title: "Neighbourhood Care",
     label: "Community",
     description: "Arrange home visits and follow the handover from hospital to home.",
-    href: "/gp/?care=community",
+    href: "/community/",
     x: 49,
     y: 64,
-    system: "SystemTwo · care coordination",
+    system: "Neighbourhood Care",
   },
   {
     id: "pharmacy",
@@ -64,11 +68,12 @@ const places = [
     label: "Pharmacy",
     description:
       "Review, approve and dispense a synthetic prescription as part of the shared care journey.",
-    href: "/gp/?care=pharmacy",
+    href: "/pharmacy/",
     x: 37,
     y: 79,
-    system: "SystemTwo · care coordination",
+    system: "Dispensary",
   },
+  { id: "home", title: "Eleanor’s home", label: "At home", description: "Explore a week of synthetic activity, sleep and heart-rate readings. Advance time to receive the next watch reading.", href: "/wearables/?patient=SIM-000006", x: 17, y: 73, system: "At home" },
   {
     id: "identity",
     title: "Staff identity",
@@ -105,6 +110,24 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const [operatorToken, setOperatorToken] = useState("");
   const [place, setPlace] = useState<string | null>(null);
   const isMap = siteId === "control";
+  const Workspace = siteId === "pharmacy" || siteId === "community" ? CareWorkspace : siteId === "wearables" ? HomeWorkspace : SystemWorkspace;
+  const dialogRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!drawer) return;
+    const previous = document.activeElement;
+    const dialog = dialogRef.current;
+    dialog?.querySelector<HTMLElement>("button, input")?.focus();
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDrawer(null);
+      if (event.key !== "Tab" || !dialog) return;
+      const items = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), a[href], summary, select, textarea')).filter(item => item.getClientRects().length > 0);
+      const first = items[0], last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => { document.removeEventListener("keydown", handleKey); if (previous instanceof HTMLElement) previous.focus(); };
+  }, [drawer]);
   async function api<T>(path: string, data?: unknown, credential = key): Promise<T> {
     const response = await fetch(path, {
       method: data === undefined ? "GET" : "POST",
@@ -143,7 +166,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     queryKey: ["patients", key, search],
     queryFn: () =>
       api<{ items: Patient[]; total: number }>(
-        "/api/sites/gp/patients?q=" + encodeURIComponent(search),
+        `/api/sites/${isMap ? "gp" : siteId}/patients?q=` + encodeURIComponent(search),
       ),
     enabled: !!key && !isMap,
   });
@@ -151,7 +174,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     queryKey: ["selected-patient", key, patient],
     queryFn: () =>
       api<{ items: Patient[]; total: number }>(
-        "/api/sites/gp/patients?q=" + encodeURIComponent(patient),
+        `/api/sites/${isMap ? "gp" : siteId}/patients?q=` + encodeURIComponent(patient),
       ),
     enabled: !!key && !!patient && !isMap,
   });
@@ -269,7 +292,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
             <div className="map-intro">
               <span>A SYNTHETIC HEALTH NEIGHBOURHOOD</span>
               <h1>Where would you like to work?</h1>
-              <p>Choose a building to enter its system.</p>
+              <p>Choose a building to enter its system.<span className="map-mobile-hint"> Swipe the map or open Places below.</span></p>
             </div>
             <div className="map-landscape">
               <img
@@ -344,7 +367,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               </button>
             </main>
           ) : view.data ? (
-            <SystemWorkspace
+            <Workspace
               siteId={siteId}
               view={view.data}
               rows={[
@@ -378,6 +401,8 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               pending={mutation.isPending}
               exitToMap={() => location.assign("/control/")}
             />
+          ) : view.error ? (
+            <main className="access-gate"><h1>Unable to open this workspace</h1><p>{view.error.message}</p><p>An older or service-specific key may not include this workspace. Connect a full team key or create a new team.</p><button onClick={() => { saveKey(""); setDestination(location.pathname + location.search); setDrawer("team"); }}>Connect another team</button><a href="/control/">Back to neighbourhood</a></main>
           ) : (
             <p className="loading">Opening the patient record…</p>
           )}
@@ -430,6 +455,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
       {drawer && (
         <div className="dialog-scrim" onClick={() => setDrawer(null)}>
           <section
+            ref={dialogRef}
             className="world-dialog"
             role="dialog"
             aria-modal="true"
