@@ -1,7 +1,9 @@
+import { ClinicalJournal, ClinicalRecordBody } from "./clinical-journal.tsx";
+import { HospitalNoteEditor } from "./hospital-note-editor.tsx";
+import { HospitalOrderComposer } from "./hospital-order-composer.tsx";
 import { BloodResults } from "./blood-results.tsx";
 import { ProductBrand } from "./product-brand.tsx";
 import { DocumentWorkspace } from "./document-workspace.tsx";
-import { dischargeDocumentSchema, dischargeSectionLabels, dischargeSectionsSchema } from "../../contracts/src/documents.ts";
 import { HospitalTracking } from "./hospital-tracking.tsx";
 import { RecordAttribution } from "./record-attribution.tsx";
 import React, { useEffect, useRef, useState } from "react";
@@ -347,7 +349,6 @@ function Detail({
   close,
   siteId,
 }: { record: Resource; close: () => void } & Pick<Props, "act" | "pending" | "siteId">) {
-  const letter = record.kind === "discharge-summary" ? dischargeDocumentSchema.safeParse(record.data) : null;
   const fields = Object.entries(record.data).filter(([, value]) =>
     ["string", "number", "boolean"].includes(typeof value),
   );
@@ -365,7 +366,7 @@ function Detail({
         </button>
       </header>
       <RecordAttribution record={record} history />
-      {letter?.success && <article className="document-letter">{dischargeSectionsSchema.keyof().options.map(key => <section key={key}><h3>{dischargeSectionLabels[key]}</h3><p>{letter.data.sections[key] || "Not entered"}</p></section>)}</article>}
+      <ClinicalRecordBody record={record} />
       <dl>
         <dt>Service</dt>
         <dd>{record.owner}</dd>
@@ -382,7 +383,7 @@ function Detail({
           </React.Fragment>
         ))}
       </dl>
-      {record.kind === "discharge-summary" ? <p>Process this letter in {siteId === "gp" ? "DocuMañana" : "Discharge summaries"}.</p> : <footer>
+      {record.kind === "hospital-note" ? <p>Use Documentation to edit a draft or add an addendum to a signed note.</p> : record.kind === "discharge-summary" ? <p>Process this letter in {siteId === "gp" ? "DocuMañana" : "Discharge summaries"}.</p> : <footer>
         <ActionButton record={record} act={act} pending={pending} siteId={siteId} />
         <button
           disabled={pending || record.visibleTo.includes(siteId === "gp" ? "hospital" : "gp")}
@@ -478,90 +479,6 @@ function ClinicalCollections({
         <button disabled={(page + 1) * 30 >= entries.length} onClick={() => setPage(page + 1)}>
           Next
         </button>
-      </div>
-    </>
-  );
-}
-function Journal({
-  rows,
-  tab,
-  select,
-}: {
-  rows: Resource[];
-  tab: string;
-  select: (id: string) => void;
-}) {
-  const [filter, setFilter] = useState("");
-  const [limit, setLimit] = useState(30);
-  const filtered = rows
-    .filter(
-      (r) =>
-        r.kind !== "ehr-record" &&
-        (tab !== "Results" || ["test", "report", "observation"].includes(r.kind)) &&
-        (tab !== "Documents" ||
-          ["document", "discharge", "discharge-summary", "handover", "referral"].includes(r.kind)) &&
-        (tab !== "Tasks" || ["task", "visit", "appointment", "prescription"].includes(r.kind)) &&
-        r.title.toLowerCase().includes(filter.toLowerCase()),
-    )
-    .sort((a, b) => b.createdAt - a.createdAt);
-  return (
-    <>
-      <div className="ehr-section-heading">
-        <h2>
-          {tab === "Journal" ? "Clinical journal" : tab}
-          <small>Most recent first</small>
-        </h2>
-        <input
-          aria-label="Filter clinical journal"
-          placeholder="Filter entries"
-          value={filter}
-          onChange={(e) => {
-            setFilter(e.target.value);
-            setLimit(30);
-          }}
-        />
-      </div>
-      <div className="ehr-table-wrap">
-        <table className="ehr-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>Detail</th>
-              <th>Service / status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.slice(0, limit).map((r) => (
-              <tr key={r.id}>
-                <td>{date(r.createdAt)}</td>
-                <td>{r.kind}</td>
-                <td>
-                  <button className="ehr-record-link" onClick={() => select(r.id)}>
-                    {r.title}
-                  </button>
-                  <RecordAttribution record={r} />
-                </td>
-                <td>
-                  <span>{r.owner}</span>
-                  <small className={r.priority === "urgent" ? "ehr-urgent" : ""}>
-                    {r.status}
-                    {r.priority === "urgent" ? " · urgent" : ""}
-                  </small>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {!filtered.length && <p className="ehr-empty">No entries match this view.</p>}
-      <div className="ehr-pagination">
-        <span>
-          {Math.min(limit, filtered.length)} of {filtered.length} entries
-        </span>
-        {limit < filtered.length && (
-          <button onClick={() => setLimit(limit + 30)}>Show 30 more</button>
-        )}
       </div>
     </>
   );
@@ -990,7 +907,7 @@ function PracticeWorkspace(props: Props) {
                 select={setRecordId}
               />
             ) : (
-              <Journal key={patient.id + tab} rows={rows} tab={tab} select={setRecordId} />
+              <ClinicalJournal variant="gp" key={patient.id + tab} rows={rows} tab={tab} select={setRecordId} />
             )}
             {selectedRecord && (
               <Detail
@@ -1051,6 +968,7 @@ function HospitalWorkspace(props: Props) {
   const [drawerOpen, setDrawerOpen] = useState(Boolean(props.selectedPatient));
   const [urgentOnly, setUrgentOnly] = useState(false);
   const [operation, setOperation] = useState<Operation | null>(null);
+  const [noteEditor, setNoteEditor] = useState<{ kind: "new" } | { kind: "edit"; record: Resource } | null>(null);
   const allRows = [
     ...props.rows,
     ...(props.handoverRows ?? []).filter(
@@ -1061,6 +979,7 @@ function HospitalWorkspace(props: Props) {
   const patientRows = allRows.filter((r) => r.patientId === patient?.id);
   const record = allRows.find((r) => r.id === recordId && (!r.patientId || r.patientId === props.selectedPatient));
   const openRecord = (r: Resource) => {
+    setNoteEditor(null);
     props.selectPatient(r.patientId ?? "");
     setRecordId(r.id);
     setDrawerTab("Encounter");
@@ -1101,6 +1020,7 @@ function HospitalWorkspace(props: Props) {
           {...props}
           selectPatient={(id) => {
             props.selectPatient(id);
+            setNoteEditor(null);
             setRecordId("");
             setDrawerTab("Summary");
             setDrawerOpen(section !== "Discharge summaries");
@@ -1129,7 +1049,8 @@ function HospitalWorkspace(props: Props) {
           ) : section === "Hospital operations" ? (
             <HospitalTracking api={props.api} worldId={props.view.id} urgentOnly={urgentOnly} openPatient={(id) => { props.selectPatient(id); setRecordId(""); setDrawerTab("Summary"); setDrawerOpen(true); }} />
           ) : (
-            <Journal
+            <ClinicalJournal
+              variant="hospital"
               rows={props.rows.filter((r) => !urgentOnly || r.priority === "urgent")}
               tab="Journal"
               select={(id) => {
@@ -1149,9 +1070,10 @@ function HospitalWorkspace(props: Props) {
             <Banner patient={patient} rows={allRows} />
             {patient && (
               <div className="ehr-toolbar hospital-chart-actions">
+                <button onClick={() => { setOperation(null); setDrawerTab("Documentation"); setNoteEditor({ kind: "new" }); }}>New note</button>
                 <button onClick={() => { setSection("Discharge summaries"); setDrawerOpen(false); }}>Write discharge summary</button>
                 {operations.filter((x) => x.type !== "create_referral").map((x) => (
-                  <button key={x.type} disabled={props.pending} onClick={() => setOperation(x)}>{x.label}</button>
+                  <button key={x.type} disabled={props.pending} onClick={() => { setNoteEditor(null); setOperation(x); }}>{x.label}</button>
                 ))}
                 <span>{patient.conditions.join(", ") || "No problems recorded"}</span>
               </div>
@@ -1164,6 +1086,8 @@ function HospitalWorkspace(props: Props) {
                     "Summary",
                     "Encounter",
                     "Journal",
+                    "Documentation",
+                    "Orders",
                     "Results",
                     "Medication",
                     "Problems",
@@ -1176,16 +1100,20 @@ function HospitalWorkspace(props: Props) {
                   className={drawerTab === name ? "active" : ""}
                   aria-current={drawerTab === name ? "page" : undefined}
                   key={name}
-                  onClick={() => setDrawerTab(name)}
+                  onClick={() => { setNoteEditor(null); setOperation(null); setDrawerTab(name); }}
                 >
                   {name}
                 </button>
               ))}
             </nav>
             <div className="hospital-chart-document">
-            <nav className="hospital-document-tabs" aria-label="Chart views">{[{ label: "Inpatient summary", tab: "Summary" }, { label: "Results review", tab: "Results" }, { label: "Medication review", tab: "Medication" }, { label: "Discharge", tab: "Handover" }].map((item) => <button key={item.tab} className={drawerTab === item.tab ? "active" : ""} onClick={() => setDrawerTab(item.tab)}>{item.label}</button>)}</nav>
+            <nav className="hospital-document-tabs" aria-label="Chart views">{[{ label: "Inpatient summary", tab: "Summary" }, { label: "Results review", tab: "Results" }, { label: "Medication review", tab: "Medication" }, { label: "Discharge", tab: "Handover" }].map((item) => <button key={item.tab} className={drawerTab === item.tab ? "active" : ""} onClick={() => { setNoteEditor(null); setOperation(null); setDrawerTab(item.tab); }}>{item.label}</button>)}</nav>
             <div className="hospital-encounter-content">
-              {drawerTab === "Summary" && patient ? (
+              {operation && patient && (operation.type === "draft_prescription" || operation.type === "order_test") ? (
+                <HospitalOrderComposer key={patient.id + operation.type} api={props.api} worldId={props.view.id} patient={patient} kind={operation.type === "draft_prescription" ? "prescription" : "test"} close={(saved?: Resource) => { setOperation(null); if (saved) { setDrawerTab("Orders"); setRecordId(saved.id); } }} />
+              ) : noteEditor && patient ? (
+                <HospitalNoteEditor key={patient.id + (noteEditor.kind === "edit" ? noteEditor.record.id : "new")} api={props.api} worldId={props.view.id} patient={patient} record={noteEditor.kind === "edit" ? noteEditor.record : undefined} close={(saved?: Resource) => { setNoteEditor(null); setOperation(null); setDrawerTab("Documentation"); if (saved) setRecordId(saved.id); }} />
+              ) : drawerTab === "Summary" && patient ? (
                 <HospitalSummary patient={patient} rows={patientRows} openSection={setDrawerTab} select={(id) => { setRecordId(id); setDrawerTab("Encounter"); }} />
               ) : drawerTab === "Encounter" ? (
                 record ? (
@@ -1218,7 +1146,7 @@ function HospitalWorkspace(props: Props) {
                   }}
                 />
               ) : drawerTab === "Results" && patient ? (
-                <BloodResults key={patient.id} rows={patientRows} patientName={patient.name} select={(id) => { setRecordId(id); setDrawerTab("Encounter"); }} />
+                <BloodResults variant="hospital" key={patient.id} rows={patientRows} patientName={patient.name} select={(id) => { setRecordId(id); setDrawerTab("Encounter"); }} />
               ) : ["Medication", "Problems"].includes(drawerTab) && patient ? (
                 <ClinicalCollections
                   key={patient.id + drawerTab}
@@ -1229,8 +1157,12 @@ function HospitalWorkspace(props: Props) {
                   select={(id) => { setRecordId(id); setDrawerTab("Encounter"); }}
                 />
               ) : (
-                <Journal
+                <ClinicalJournal
+              variant="hospital"
                   key={(patient?.id ?? "service") + drawerTab}
+                  selectedId={recordId}
+                  onNewNote={patient ? () => setNoteEditor({ kind: "new" }) : undefined}
+                  onEditNote={patient ? (note) => setNoteEditor({ kind: "edit", record: note }) : undefined}
                   rows={
                     drawerTab === "Results"
                       ? patientRows.filter((r) =>
@@ -1258,15 +1190,7 @@ function HospitalWorkspace(props: Props) {
           {props.view.staffing.nurses} nurses
         </span>
       </footer>
-      {operation && patient && (
-        <Composer
-          operation={operation}
-          patient={patient}
-          create={props.create}
-          pending={props.pending}
-          close={() => setOperation(null)}
-        />
-      )}
+      {operation && patient && operation.type !== "draft_prescription" && operation.type !== "order_test" && <Composer operation={operation} patient={patient} create={props.create} pending={props.pending} close={() => setOperation(null)} />}
     </section>
   );
 }

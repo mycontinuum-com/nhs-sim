@@ -90,3 +90,14 @@ export function seedPatientBloodResults(world: World, patientId: string): void {
   world.resources.push(...sample.resources.filter(resource => !ids.has(resource.id)));
   world.counters[`bloodPatient:${patientId}`] = 1;
 }
+
+export function orderedBloodResult(panelName: string, patientId: string, collectedAt: number): BloodResult | undefined {
+  const normalized = panelName.toLowerCase().replace(/\s*\([^)]*\)/g, "").trim();
+  const panel = bloodPanels.find(item => item.id === panelName || item.name.toLowerCase().replace(/\s*\([^)]*\)/g, "").trim() === normalized);
+  if (!panel) return;
+  const analytes = templates[panel.id].map(({ baseline, variation, decimals, ...analyte }) => ({ ...analyte, value: Number(Math.max(0.1, baseline + variation * ((hash(`${patientId}:${analyte.id}:${collectedAt}`) % 201 / 100 - 1) * 0.5)).toFixed(decimals)) }));
+  const whiteCells = analytes.find(analyte => analyte.id === "white-cell-count");
+  const neutrophils = analytes.find(analyte => analyte.id === "neutrophils");
+  if (whiteCells && neutrophils) neutrophils.value = Number(Math.min(neutrophils.value, whiteCells.value * 0.75).toFixed(1));
+  return { kind: "blood-result", panel: { ...panel }, collectedAt, analytes, laboratory: "Northbank training laboratory", synthetic: true };
+}

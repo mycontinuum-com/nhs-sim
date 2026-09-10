@@ -1,5 +1,6 @@
+import { bloodTestOrderSchema } from "../../contracts/src/clinical-orders.ts";
 import { hospitalNoteSchema } from "../../contracts/src/clinical-notes.ts";
-import { seedBloodResults } from "./blood-results.ts";
+import { seedBloodResults, orderedBloodResult } from "./blood-results.ts";
 import { applyMessaging } from "./messaging.ts";
 import { seedMessaging } from "./messaging-seed.ts";
 import { documentSnomedConcepts } from "../../contracts/src/document-terminology.ts";
@@ -636,6 +637,7 @@ export class Engine {
       ? { kind: "team", name: identity } : identity;
     const actor = attribution.name;
     const a = actionSchema.parse(input);
+    key ??= a.clientRequestId;
     return this.transaction(id, (w) => {
       const fingerprint = JSON.stringify({ site, actor: attribution, a });
       if (key) {
@@ -1475,6 +1477,10 @@ export class Engine {
         }
         r.status = "available";
         r.data.report = "Synthetic result ready for review. No clinical decision implied.";
+        const request = bloodTestOrderSchema.safeParse(r.data.bloodTestOrder);
+        const panelIdentifier = request.success ? request.data.panelId ?? request.data.panel : "";
+        const bloodResult = r.patientId && panelIdentifier ? orderedBloodResult(panelIdentifier, r.patientId, job.at - 120 * minute) : undefined;
+        if (bloodResult) r.data = { ...r.data, ...bloodResult };
         r.version++;
         if (w.faults["pathology-outage"]) r.visibleTo = ["diagnostics"];
         this.event(w, "result.available", "laboratory", r.title, r);

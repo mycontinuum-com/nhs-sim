@@ -1,0 +1,23 @@
+.hospital-order-composer{background:#f0f2f4;color:#203640;font:13px Tahoma,Arial,sans-serif;border:1px solid #8096a4;min-width:0;width:100%;text-align:left}
+.hospital-order-composer .hoc-title{display:flex;justify-content:space-between;gap:12px;background:linear-gradient(#227d9d,#075171);color:white;padding:9px 12px;font-weight:bold}
+.hospital-order-composer .hoc-title>span:last-child{font-size:11px;font-weight:normal}
+.hoc-patient{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:9px 12px;background:#d3e6ef;border-bottom:1px solid #92acbb;font-size:12px}
+.hoc-patient strong{font-size:15px}.hoc-patient b{margin-left:auto;font-size:10px;color:#405969}
+.hoc-steps{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:9px 12px;border-bottom:1px solid #a8b7c0;background:#e4e9ed;font-size:12px}
+.hoc-steps span{color:#4e6372}
+.hoc-layout{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:420px}
+.hoc-catalog{background:#e4e9ed;border-right:1px solid #91a6b3;padding:0;min-width:0}
+.hoc-catalog h3{font-size:12px;margin:0;padding:8px 10px;background:#9eafb9;color:#152e3c}
+.hoc-catalog>label{padding:10px;display:block}.hoc-catalog>p{padding:10px;color:#61717a;font-size:11px}
+.hoc-catalog-group{background:#c5d2dc;border-block:1px solid #a5b6c2;padding:5px 10px;font-weight:bold;font-size:11px}
+.hoc-catalog-list{display:flex;flex-direction:column}.hoc-catalog-list>button{display:flex;align-items:center;gap:9px;border:0;border-bottom:1px solid #d4dde3;border-radius:0;background:#f4f6f8;color:#1b4a6b;padding:10px;text-align:left;font:12px Tahoma,Arial,sans-serif;box-shadow:none}
+.hoc-catalog-list>button[aria-pressed=true]{background:#167eaf;color:white}.hoc-catalog-list>button:hover{background:#c5e4f1;color:#183e54}.hoc-catalog-list>p{padding:10px}
+.hoc-details{padding:18px 22px;background:white;min-width:0}.hoc-details h2,.hoc-review h2{font-size:17px;margin:0 0 8px}.hoc-required{font-size:11px;color:#637581;margin:0 0 18px}
+.hoc-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin-top:14px}.hoc-wide{grid-column:1/-1}
+.hospital-order-composer label{font-size:12px;font-weight:bold;color:#304b5c}
+.hospital-order-composer input,.hospital-order-composer select,.hospital-order-composer textarea{display:block;width:100%;box-sizing:border-box;font:13px Tahoma,Arial,sans-serif;border:1px solid #91a8b9;border-radius:0;background:white;color:#172e3f;padding:8px;margin-top:5px;min-height:33px}
+.hospital-order-composer input:focus,.hospital-order-composer select:focus,.hospital-order-composer textarea:focus{outline:2px solid #1187b8;outline-offset:1px}
+.hoc-footer{display:flex;justify-content:flex-end;align-items:center;gap:8px;background:linear-gradient(#e7ecf0,#cdd7df);padding:10px 12px;border-top:1px solid #94a8b5}.hoc-footer>span{margin-right:auto;font-size:12px;overflow-wrap:anywhere}
+.hoc-footer button{font:12px Tahoma,Arial,sans-serif;border:1px solid #839caf;border-radius:2px;padding:8px 14px;background:linear-gradient(white,#dae4eb);color:#173b52}.hoc-footer .hoc-primary{background:linear-gradient(#2c87ad,#0b567b);border-color:#0c5273;color:white}.hoc-footer button:disabled{opacity:.55}
+.hoc-review{background:white;padding:18px 22px 0}.hoc-review>p{font-size:12px}.hospital-order-composer .hoc-review dl{display:block;margin:20px 0;max-width:780px;border:1px solid #bdcbd5}.hoc-review dl>div{display:grid;grid-template-columns:150px minmax(0,1fr);border-bottom:1px solid #d5dfe6}.hoc-review dl>div:last-child{border:0}.hoc-review dt{background:#e7eef3;font-weight:bold;padding:10px}.hoc-review dd{margin:0;padding:10px;white-space:pre-wrap;overflow-wrap:anywhere}.hoc-review .hoc-footer{margin:20px -22px 0}.hoc-advisory{padding:12px;background:#edf4f8;border-left:3px solid #387697}.hoc-error{background:#fff0ed;padding:10px;color:#9f2919}
+@media(max-width:700px){.hoc-layout{grid-template-columns:1fr}.hoc-catalog{border-right:0;border-bottom:1px solid #91a6b3}.hoc-catalog-list{max-height:145px;overflow:auto}.hoc-catalog>p{display:none}.hoc-fields{grid-template-columns:1fr}.hoc-details{padding:16px}.hoc-footer{flex-wrap:wrap}.hoc-footer>span{flex-basis:100%}.hoc-title>span:last-child{display:none}.hoc-review dl>div{grid-template-columns:110px minmax(0,1fr)}}

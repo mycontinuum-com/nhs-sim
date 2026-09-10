@@ -5,7 +5,9 @@ import "./blood-results.css";
 
 type Point = BloodAnalyte & { time: number; reportId: string };
 const date = (time: number) => new Date(time).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
-export function BloodResults({ rows, patientName, select }: { rows: Resource[]; patientName: string; select: (id: string) => void }) {
+export function BloodResults({ rows, patientName, select, variant = "gp" }: { rows: Resource[]; patientName: string; select: (id: string) => void; variant?: "gp" | "hospital" }) {
+  const [layout, setLayout] = useState(variant === "hospital" ? "flowsheet" : "list");
+  const [sampleLimit, setSampleLimit] = useState(6);
   const [panel, setPanel] = useState("all");
   const [chosen, setChosen] = useState<string[]>([]);
   const [graph, setGraph] = useState(false);
@@ -19,19 +21,23 @@ export function BloodResults({ rows, patientName, select }: { rows: Resource[]; 
   }
   const panels = [...new Map(reports.map(report => [report.panel.id, report.panel.name])).entries()];
   const other = rows.filter(resource => ["test", "report", "genomic-test"].includes(resource.kind) && !bloodResultSchema.safeParse(resource.data).success);
-  return <section className="blood-results" aria-label="Blood test results">
+  const samples = [...new Set(reports.filter(report => panel === "all" || report.panel.id === panel).map(report => report.collectedAt))].sort((a, b) => b - a);
+  return <section className={`blood-results blood-results-${variant}`} aria-label="Blood test results">
+    {variant === "hospital" && <div className="results-module-bar">⌂ &nbsp; Results Review</div>}
     <div className="ehr-section-heading"><h2>Blood test results<small>{patientName} · Synthetic laboratory history</small></h2><button disabled={!chosen.length} onClick={() => setGraph(true)}>Graph selected ({chosen.length})</button></div>
-    <nav className="blood-panels" aria-label="Blood test panels"><button aria-pressed={panel === "all"} onClick={() => setPanel("all")}>All panels</button>{panels.map(([id, name]) => <button key={id} aria-pressed={panel === id} onClick={() => setPanel(id)}>{name}</button>)}</nav>
-    <p className="blood-hint">Select tests to compare their history. Reference intervals and values are fictional simulation data.</p>
-    <div className="blood-table-scroll"><table className="ehr-table"><thead><tr><th>Select</th><th>Test / panel</th><th>Latest result</th><th>Reference interval</th><th>Sample date</th><th>Previous result</th><th>History</th></tr></thead><tbody>{[...series].filter(([, entry]) => panel === "all" || entry.panelId === panel).map(([key, entry]) => {
+    {variant === "hospital" && <div className="results-view-controls"><label>Flowsheet <select value={layout} onChange={event => setLayout(event.target.value)}><option value="flowsheet">Quick view · by sample time</option><option value="list">Latest and previous results</option></select></label><span>Laboratory · {reports.length} result panels</span></div>}
+    <div className="results-browser"><nav className="blood-panels" aria-label="Blood test panels"><button aria-pressed={panel === "all"} onClick={() => setPanel("all")}>All panels</button>{panels.map(([id, name]) => <button key={id} aria-pressed={panel === id} onClick={() => setPanel(id)}>{name}</button>)}</nav>
+    <div className="results-values"><p className="blood-hint">Select tests to compare their history. Reference intervals and values are fictional simulation data.</p>
+    {layout === "flowsheet" ? <div className="blood-table-scroll results-flowsheet"><table className="ehr-table"><thead><tr><th>Measurement / reference interval</th>{samples.slice(0, sampleLimit).map(time => <th key={time}>{date(time)}<small>{new Date(time).toLocaleTimeString("en-GB", {hour:"2-digit",minute:"2-digit",timeZone:"UTC"})} UTC</small></th>)}</tr></thead>{panels.filter(([id]) => panel === "all" || panel === id).map(([id, name]) => <tbody key={id}><tr className="results-panel-row"><th colSpan={Math.min(samples.length, sampleLimit) + 1}>{name}</th></tr>{[...series].filter(([, entry]) => entry.panelId === id).map(([key, entry]) => { const first = entry.points[0]; if (!first) return null; return <tr key={key}><th><label><input type="checkbox" aria-label={`Select ${first.name}`} checked={chosen.includes(key)} onChange={event => setChosen(event.target.checked ? [...chosen, key] : chosen.filter(value => value !== key))} />{first.name}</label><small>{first.referenceLow}–{first.referenceHigh} {first.unit}</small></th>{samples.slice(0, sampleLimit).map(time => { const point = entry.points.find(value => value.time === time); const flag = point && (point.value < point.referenceLow ? "Low" : point.value > point.referenceHigh ? "High" : ""); return <td key={time}>{point ? <button className={flag ? "result-value result-abnormal" : "result-value"} title={`Open ${first.name} result for ${date(time)}`} onClick={() => select(point.reportId)}>{point.value} {point.unit}{flag && <b> {flag}</b>}</button> : <span aria-label="No sample">—</span>}</td>; })}</tr>; })}</tbody>)}</table>{samples.length > sampleLimit && <button onClick={() => setSampleLimit(sampleLimit + 6)}>Show earlier samples</button>}</div> : <div className="blood-table-scroll"><table className="ehr-table"><thead><tr><th>Select</th><th>Test / panel</th><th>Latest result</th><th>Reference interval</th><th>Sample date</th><th>Previous result</th><th>History</th></tr></thead><tbody>{[...series].filter(([, entry]) => panel === "all" || entry.panelId === panel).map(([key, entry]) => {
       const latest = entry.points[0];
       if (!latest) return null;
       const previous = entry.points[1];
       const flag = latest.value < latest.referenceLow ? "Low" : latest.value > latest.referenceHigh ? "High" : "";
       return <tr key={key}><td><input type="checkbox" aria-label={`Select ${latest.name}`} checked={chosen.includes(key)} onChange={event => setChosen(event.target.checked ? [...chosen, key] : chosen.filter(value => value !== key))} /></td><td><strong>{latest.name}</strong><small>{entry.panelName}</small></td><td>{latest.value} {latest.unit} {flag && <span className="blood-flag">{flag}</span>}</td><td>{latest.referenceLow}–{latest.referenceHigh} {latest.unit}</td><td>{date(latest.time)}</td><td>{previous ? <>{previous.value} {previous.unit}<small>{date(previous.time)}</small></> : "No previous result"}</td><td><button onClick={() => { setChosen([key]); setGraph(true); }}>View trend</button></td></tr>;
-    })}</tbody></table></div>
+    })}</tbody></table></div>}
     {!reports.length && <p>No blood test results are available for this patient.</p>}
     {other.length > 0 && <details className="blood-other"><summary>Other investigations and pending requests ({other.length})</summary>{other.map(resource => <p key={resource.id}><button onClick={() => select(resource.id)}>{resource.title}</button> · {resource.status}</p>)}</details>}
+    </div></div>
     {graph && <TrendModal patientName={patientName} series={chosen.flatMap(key => { const entry = series.get(key); return entry ? [entry.points] : []; })} close={() => setGraph(false)} />}
   </section>;
 }

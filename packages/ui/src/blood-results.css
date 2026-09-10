@@ -19,3 +19,25 @@
 .blood-trend h3 small { font-weight: normal; }
 .blood-trend svg { display: block; width: 100%; max-height: 280px; font: 12px Arial, sans-serif; }
 .blood-trend summary { cursor: pointer; padding: 6px 0; }
+.hospital-operations .blood-results-hospital { background: #f0f0f0; border: 1px solid #a1acb3; }
+.hospital-operations .results-module-bar { background: linear-gradient(#1776a2, #064e75); color: white; padding: 6px 12px; font-weight: bold; }
+.hospital-operations .blood-results-hospital .ehr-section-heading { padding: 8px 12px; margin: 0; background: #fff; }
+.hospital-operations .blood-results-hospital .ehr-section-heading h2 { font-size: 13px; }
+.results-view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; padding: 8px 12px; border-block: 1px solid #adb6be; font: 12px Tahoma, Arial, sans-serif; }
+.results-view-controls label { display: flex; align-items: center; gap: 8px; }
+.hospital-operations .blood-results-hospital .results-browser { display: grid; grid-template-columns: 180px minmax(0, 1fr); }
+.hospital-operations .blood-results-hospital .blood-panels { display: flex; flex-direction: column; align-items: stretch; margin: 8px; gap: 0; border: 1px solid #a5afb7; align-self: start; }
+.hospital-operations .blood-results-hospital .blood-panels button { text-align: left; border: 0; border-bottom: 1px solid #bec7cf; border-radius: 0; padding: 8px; background: #e2e7eb; }
+.hospital-operations .blood-results-hospital .blood-panels button[aria-pressed="true"] { background: #b8d5e8; box-shadow: inset 3px 0 #0875ad; }
+.results-values { min-width: 0; }
+.blood-results-hospital .results-values { padding: 0 8px 8px 0; }
+.hospital-operations .results-flowsheet .ehr-table { font: 11px Tahoma, Arial, sans-serif; min-width: 650px; border-collapse: collapse; background: white; }
+.hospital-operations .results-flowsheet .ehr-table th, .hospital-operations .results-flowsheet .ehr-table td { padding: 4px 6px; border: 1px solid #c3cbd1; }
+.hospital-operations .results-flowsheet .ehr-table thead th { background: #dce7ef; color: #213a4e; font-weight: normal; white-space: nowrap; }
+.hospital-operations .results-flowsheet .ehr-table tbody th { background: #e8edf2; font-weight: normal; min-width: 170px; text-align: left; }
+.hospital-operations .results-flowsheet .ehr-table .results-panel-row th { background: #bccfdf; font-weight: bold; }
+.results-flowsheet th small { display: block; font-size: 10px; color: #536572; }
+.results-flowsheet th label { display: flex; align-items: center; gap: 6px; }
+.hospital-operations .results-flowsheet button.result-value { border: 0; background: none; color: #154b74; padding: 1px; font: inherit; white-space: nowrap; }
+.hospital-operations .results-flowsheet button.result-abnormal { color: #9b2b24; }
+@media(max-width: 750px) { .hospital-operations .blood-results-hospital .results-browser { grid-template-columns: 1fr; } .hospital-operations .blood-results-hospital .blood-panels { flex-direction: row; overflow-x: auto; flex-wrap: nowrap; } .hospital-operations .blood-results-hospital .blood-panels button { flex-shrink: 0; } .blood-results-hospital .results-values { padding: 0 8px 8px; } }

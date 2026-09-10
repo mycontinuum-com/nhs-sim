@@ -1,0 +1,51 @@
+.system-ui .clinical-journal { color: #172d42; font: 13px Arial, sans-serif; min-width: 0; }
+.system-ui .journal-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; }
+.system-ui .journal-titlebar h2 { margin: 0; font-size: 15px; color: inherit; }
+.system-ui .journal-titlebar span { font-size: 11px; }
+.system-ui .journal-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #aab9c7; padding: 7px 10px; background: #f0f1f3; }
+.system-ui .journal-toolbar label { display: flex; align-items: center; gap: 5px; }
+.system-ui .journal-toolbar select, .system-ui .journal-toolbar input { min-height: 27px; font-size: 12px; width: auto; padding: 4px 7px; border: 1px solid #9facbb; border-radius: 0; }
+.system-ui .journal-toolbar input { margin-left: auto; width: 235px; }
+.system-ui .clinical-journal button { border: 1px solid #a1b1c0; border-radius: 1px; background: linear-gradient(#fff, #e8edf2); color: #184d7d; padding: 5px 9px; font-size: 12px; cursor: pointer; }
+.system-ui .clinical-journal button:hover { background: #e0edf9; }
+.system-ui .clinical-journal button:focus-visible { outline: 2px solid #0879c1; outline-offset: 2px; }
+.system-ui .journal-gp .journal-titlebar { background: #dce7f8; border: 1px solid #b0c3df; color: #173e76; }
+.system-ui .journal-date-heading { margin: 0; padding: 6px 12px; font-size: 13px; background: #cadcf3; color: #164782; border-top: 1px solid #a5bcda; }
+.system-ui .journal-contact { padding: 0 14px 10px; background: #fff; border-left: 4px solid #aac0df; border-bottom: 1px solid #c5d0de; }
+.system-ui .journal-contact:nth-of-type(even) { background: #f8fafe; }
+.system-ui .journal-contact > header { display: flex; align-items: baseline; gap: 20px; padding: 9px 0; border-bottom: 1px dotted #ced7e2; background: transparent; }
+.system-ui .journal-contact time { font-size: 12px; color: #315a8f; white-space: nowrap; }
+.system-ui .journal-contact h4 { margin: 0 0 4px; font-size: 14px; }
+.system-ui .journal-contact header span { font-size: 11px; color: #54687f; }
+.system-ui .journal-narrative { display: block; margin: 12px 0; }
+.system-ui .journal-narrative > div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 16px; padding: 5px 0; }
+.system-ui .journal-narrative dt { padding: 0; border: 0; color: #425c78; font-weight: bold; font-size: 12px; }
+.system-ui .journal-narrative dd { padding: 0; border: 0; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
+.system-ui .journal-entry-details { margin: 7px 0 0; font-size: 11px; color: #435c76; }
+.system-ui .journal-entry-details summary { cursor: pointer; }
+.system-ui .journal-hospital .journal-titlebar { background: linear-gradient(#2384a9, #084363); color: #fff; }
+.system-ui .journal-documentation { display: grid; grid-template-columns: minmax(220px, 30%) minmax(0, 1fr); min-height: 520px; border: 1px solid #a8b4bf; }
+.system-ui .journal-document-list { background: #f7f8fa; border-right: 4px double #9eabb8; max-height: 750px; overflow-y: auto; }
+.system-ui .journal-list-heading { display: flex; justify-content: space-between; padding: 7px 9px; font-size: 11px; background: #d9e1e7; border-bottom: 1px solid #9caab6; }
+.system-ui .journal-document-list > button { display: flex; flex-direction: column; text-align: left; border: 0; border-bottom: 1px solid #c5cdd6; border-radius: 0; padding: 9px 10px; gap: 4px; width: 100%; background: #fff; color: #172c3e; }
+.system-ui .journal-document-list > button:nth-child(odd) { background: #eef2f6; }
+.system-ui .journal-document-list > button.selected { background: #2583c8; color: white; box-shadow: inset 3px 0 #084065; }
+.system-ui .journal-document-list strong { font-size: 12px; }
+.system-ui .journal-document-list time, .system-ui .journal-document-list span, .system-ui .journal-document-list small { font-size: 11px; }
+.system-ui .journal-paper { background: white; min-width: 0; }
+.system-ui .journal-preview-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 7px 10px; background: #e9ecef; border-bottom: 1px solid #acb7c1; }
+.system-ui .journal-preview-actions > span { margin-right: auto; font-size: 11px; }
+.system-ui .journal-paper-content { padding: 22px 26px; }
+.system-ui .journal-paper-content > h3 { font: bold 17px Georgia, serif; color: #111; margin: 0 0 14px; }
+.system-ui .journal-paper-content > p { font-size: 12px; }
+.system-ui .journal-paper-context { font-weight: bold; color: #334c63; }
+.system-ui .journal-hospital .journal-narrative > div { display: block; padding: 6px 0; }
+.system-ui .journal-hospital .journal-narrative dt { color: #101820; font-size: 13px; margin-bottom: 4px; }
+.system-ui .journal-hospital .journal-narrative dd { font-family: Arial, sans-serif; color: #17212b; }
+.system-ui .journal-signature { border-top: 1px solid #ccd2d7; margin-top: 28px; padding-top: 15px; font-size: 12px; }
+.system-ui .journal-addendum { border-top: 1px dashed #9babb8; margin-top: 20px; padding-top: 12px; }
+.system-ui .journal-addendum p { white-space: pre-wrap; }
+.system-ui .journal-paper-attribution { border-top: 1px solid #c8d1da; margin-top: 24px; padding-top: 14px; }
+.system-ui .journal-no-body { padding: 16px; color: #546477; }
+.system-ui .journal-load-more { display: block; margin: 12px auto; }
+@media (max-width: 800px) { .system-ui .journal-documentation { grid-template-columns: 1fr; } .system-ui .journal-document-list { max-height: 240px; border-right: 0; border-bottom: 3px double #9eabb8; } .system-ui .journal-paper-content { padding: 16px; } .system-ui .journal-narrative > div { grid-template-columns: 110px minmax(0, 1fr); gap: 8px; } .system-ui .journal-toolbar input { margin-left: 0; width: 100%; } }

@@ -1,0 +1,56 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { Engine } from "../packages/engine/src/index.ts";
+import { bloodResultSchema } from "../packages/contracts/src/blood-results.ts";
+import { hospitalNoteSchema } from "../packages/contracts/src/clinical-notes.ts";
+
+test("Hospital notes preserve signed text, version edits and attribute addenda", () => {
+  const engine = new Engine();
+  const command = { type: "hospital_note", patientId: "SIM-000001", title: "Progress note", hospitalNoteCommand: { kind: "save", template: "progress", sections: [{ id: "history", heading: "Interval history", text: "Fictional bedside review." }] } };
+  let note = engine.action("default", "hospital", command, "Ward team", "note-draft");
+  assert.equal(engine.action("default", "hospital", command, "Ward team", "note-draft").id, note.id);
+  assert.equal(note.status, "draft");
+  assert.equal(note.provenance?.created?.actor.name, "Ward team");
+  assert.throws(() => engine.action("default", "hospital", { ...command, resourceId: note.id, expectedVersion: note.version + 1 }, "Ward team"), /Stale/);
+  note = engine.action("default", "hospital", { type: "hospital_note", resourceId: note.id, expectedVersion: note.version, hospitalNoteCommand: { kind: "sign" } }, "Signing team");
+  assert.equal(note.status, "signed");
+  const original = hospitalNoteSchema.parse(note.data);
+  assert.throws(() => engine.action("default", "hospital", { ...command, resourceId: note.id, expectedVersion: note.version }, "Ward team"), /immutable/);
+  assert.throws(() => engine.action("default", "hospital", { type: "complete", resourceId: note.id }, "Ward team"), /documentation editor/);
+  assert.throws(() => engine.action("default", "hospital", { type: "share_record", resourceId: note.id, target: "gp" }, "Ward team"), /documentation editor/);
+  note = engine.action("default", "hospital", { type: "hospital_note", resourceId: note.id, expectedVersion: note.version, hospitalNoteCommand: { kind: "addendum", text: "Additional fictional history confirmed." } }, "Evening team");
+  const final = hospitalNoteSchema.parse(note.data);
+  assert.equal(final.text, original.text);
+  assert.deepEqual(final.sections, original.sections);
+  assert.equal(final.stage, "signed");
+  if (final.stage !== "signed") throw new Error("Expected a signed note");
+  assert.equal(final.signedBy, "Signing team");
+  assert.equal(final.addenda[0].author, "Evening team");
+  assert.equal(note.provenance?.changes.at(-1)?.actor.name, "Evening team");
+  assert.throws(() => engine.action("default", "gp", command, "GP team"), /hospital/);
+});
+
+test("Typed hospital orders retain prescription details and delayed blood test results", () => {
+  const engine = new Engine();
+  const medicationOrder = { drug: "Simulated medicine", dose: "1", unit: "tablet", route: "Oral", frequency: "Once daily", duration: "7 days", quantity: 7, indication: "Fictional scenario" };
+  const input = { type: "draft_prescription", patientId: "SIM-000001", title: "Simulated medicine", medicationOrder };
+  let prescription = engine.action("default", "hospital", input, "Ward team", "rx-order");
+  assert.equal(engine.action("default", "hospital", input, "Ward team", "rx-order").id, prescription.id);
+  assert.deepEqual(prescription.data.medicationOrder, medicationOrder);
+  assert.equal(prescription.status, "draft");
+  prescription = engine.action("default", "pharmacy", { type: "review", resourceId: prescription.id, expectedVersion: prescription.version }, "Pharmacy team");
+  assert.deepEqual(prescription.data.medicationOrder, medicationOrder);
+  const bloodTestOrder = { panelId: "fbc", panel: "FBC", specimen: "Blood", priority: "routine", collection: "next-round", clinicalDetails: "Fictional monitoring" };
+  const order = engine.action("default", "hospital", { type: "order_test", patientId: "SIM-000001", title: bloodTestOrder.panel, bloodTestOrder }, "Ward team");
+  assert.deepEqual(order.data.bloodTestOrder, bloodTestOrder);
+  engine.clock("default", { advanceMinutes: 121 });
+  assert.notEqual(engine.require("default").resources.find(item => item.id === order.id)?.status, "available");
+  engine.clock("default", { advanceMinutes: 120 });
+  const completed = engine.require("default").resources.find(item => item.id === order.id);
+  assert.equal(completed?.status, "available");
+  const results = bloodResultSchema.parse(completed?.data);
+  assert.equal(results.panel.id, "fbc");
+  assert.equal(results.analytes.length, 5);
+  assert.deepEqual(completed?.data.bloodTestOrder, bloodTestOrder);
+  assert.equal(completed?.provenance?.created?.actor.name, "Ward team");
+});

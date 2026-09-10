@@ -227,6 +227,7 @@ export const actionSchema = z
       "restore_staff",
       "allocate_shift",
     ]),
+    clientRequestId: z.string().uuid().optional(),
     hospitalNoteCommand: hospitalNoteCommandSchema.optional(),
     medicationOrder: medicationOrderSchema.optional(),
     bloodTestOrder: bloodTestOrderSchema.optional(),

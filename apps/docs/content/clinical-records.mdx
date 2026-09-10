@@ -1,0 +1,30 @@
+---
+title: Clinical records and hospital orders
+sidebar_position: 8
+---
+
+SystemTwo's **Journal** shows dated contacts with their recorded narrative and authors. Search includes note text. Expand **Record details and activity** to inspect the history or open an action.
+
+## Hospital documentation
+
+Open a patient in Millenni-ish and choose **Documentation** or **New note**. Select a free-text, history-and-physical or progress-note template. The section navigator moves between parts of the note.
+
+**Save draft** stores an editable note. **Review & sign** previews the note before **Confirm & sign** records the signature. Signed text is preserved. Use **Add addendum** to append further information with its own attribution. Drafts and signed notes remain in the documentation list after reload.
+
+## Prescriptions and blood tests
+
+**Prescription** opens the medication catalogue and order details. Enter the medicine, dose, unit, route, frequency, duration, quantity and indication. Review the details before sending the draft to pharmacy. Pharmacy review and approval are still required before dispensing.
+
+**Request test** opens the laboratory catalogue. Choose a supported panel, specimen, priority, collection round and clinical details. Review and sign the request. Results become available after 120 simulation minutes for collection now, or 240 minutes for the next round.
+
+The **Orders** view retains the submitted details. **Results** shows measurements against sample dates. Use the panel navigator to filter the grid, or select measurements and choose **Graph selected** to inspect trends. Values and reference intervals are synthetic.
+
+## Agent requests
+
+These workflows use `POST /api/sites/hospital/actions` with the team's API key. Patient records are read through `GET /api/sites/hospital/view?patient=SIM-000006`.
+
+- Notes use `type: "hospital_note"` and `hospitalNoteCommand`. The command is `{kind: "save", template, sections}` for drafts, `{kind: "sign"}` for signing, or `{kind: "addendum", text}` for additions. Each section contains `id`, `heading` and `text`. Creation also requires `patientId` and `title`; edits require `resourceId` and `expectedVersion`.
+- Prescriptions use `type: "draft_prescription"`, `patientId`, `title` and `medicationOrder`, containing `drug`, `dose`, `unit`, `route`, `frequency`, `duration`, `quantity` and `indication`.
+- Laboratory requests use `type: "order_test"`, `patientId`, `title` and `bloodTestOrder`, containing `panel`, `panelId`, `specimen`, `priority`, `collection` and `clinicalDetails`. Supported panel IDs are `fbc`, `ue`, `hba1c`, `lft`, `crp` and `lipids`. Collection is `now` or `next-round`.
+
+Supply an `Idempotency-Key` header or a `clientRequestId` UUID and reuse it for an identical retry. Stale edits and attempts to overwrite signed notes fail without changing the record.
