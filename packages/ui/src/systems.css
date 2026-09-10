@@ -1191,6 +1191,26 @@
   .practice-window-title { flex-wrap: wrap; }
 }
 
+.systemtwo.immersive-ehr {
+  position: fixed;
+  inset: 0 0 var(--workspace-status-height, 40px);
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.systemtwo.immersive-ehr > * { flex-shrink: 0; }
+.systemtwo .ehr-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.systemtwo .ehr-main { min-height: 0; overflow: hidden; }
+.systemtwo .ehr-content,
+.systemtwo .practice-record-tree { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.systemtwo .ehr-summary-disclosure { max-height: 30%; overflow: auto; flex-shrink: 0; }
+.systemtwo .ehr-table-wrap { overflow: visible; }
+.systemtwo .ehr-table th { position: sticky; top: 0; z-index: 2; }
+
 @media (min-width: 901px) and (min-height: 601px) {
   .immersive-ehr {
     height: calc(100dvh - var(--workspace-status-height));
