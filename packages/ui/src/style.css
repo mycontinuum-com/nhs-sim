@@ -498,3 +498,5 @@ button.primary:focus-visible {
 .workspace-tour p { font-size: 14px; line-height: 1.55; }
 .workspace-tour .control-row { justify-content: flex-end; }
 .tour-highlight { outline: 3px solid #b27614 !important; outline-offset: 2px; }
+
+.place-detail .place-documents { margin-top: 10px; background: #34354b; color: #fff; }

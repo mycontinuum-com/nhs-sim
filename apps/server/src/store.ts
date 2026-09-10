@@ -153,7 +153,7 @@ export class Store {
             ...target,
             patients: baseline.patients,
             resources: baseline.resources,
-            counters: { ...target.counters, hospitalAttendanceVersion: 0, pharmacyVersion: 0, documentVersion: 0 },
+            counters: { ...target.counters, hospitalAttendanceVersion: 0, pharmacyVersion: 0, documentVersion: 0, documentAuthorVersion: 0 },
             nextId: Math.max(target.nextId, this.engine.require("default").nextId),
           }))));
           this.persistence.attachPopulation(world, "default");

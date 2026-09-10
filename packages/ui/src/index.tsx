@@ -1,3 +1,4 @@
+import { DocumentWorkspace } from "./document-workspace.tsx";
 import { PharmacyWorkspace } from "./pharmacy-workspace.tsx";
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
@@ -41,7 +42,7 @@ const places = [
     id: "practice",
     title: "Riverside Practice",
     label: "Primary care",
-    description: "Open the clinical journal, review results and arrange follow-up in SystemTwo.",
+    description: "Open the patient record in SystemTwo, or process incoming letters in DocuMañana.",
     href: "/gp/",
     x: 23,
     y: 44,
@@ -128,6 +129,8 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const [operatorToken, setOperatorToken] = useState("");
   const [place, setPlace] = useState<string | null>(null);
   const isMap = siteId === "control";
+  const isDocuments = siteId === "gp" && location.pathname.replace(/\/$/, "") === "/gp/documents";
+  useEffect(() => { if (isDocuments) document.title = "DocuMañana | NHS-SIM"; }, [isDocuments]);
   const [tourStep, setTourStep] = useState<number | null>(() =>
     siteId !== "control" && sessionStorage.getItem("sim-key") && sessionStorage.getItem("sim-tour-world") ? 0 : null,
   );
@@ -143,7 +146,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     history.replaceState(null, "", url.pathname + url.search + url.hash);
   }, [isMap, explorePlan]);
   const Workspace =
-    siteId === "pharmacy" ? PharmacyWorkspace : siteId === "community"
+    isDocuments ? DocumentPortal : siteId === "pharmacy" ? PharmacyWorkspace : siteId === "community"
       ? CareWorkspace
       : siteId === "wearables"
         ? HomeWorkspace
@@ -188,11 +191,11 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     }
   }
   const view = useQuery({
-    queryKey: ["view", siteId, key, patient, offset],
+    queryKey: ["view", siteId, key, patient, offset, isDocuments],
     placeholderData: (previous) => previous,
     queryFn: () =>
       api<View>(
-        `/api/sites/${isMap ? "gp" : siteId}/view?${patient ? "patient=" + encodeURIComponent(patient) : "limit=200&offset=" + offset}`,
+        `/api/sites/${isMap ? "gp" : siteId}/view?${isDocuments ? "limit=1" : patient ? "patient=" + encodeURIComponent(patient) : "limit=200&offset=" + offset}`,
       ),
     enabled: !!key,
     refetchInterval: 3000,
@@ -224,7 +227,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
       api<{ items: Patient[]; total: number }>(
         `/api/sites/${isMap ? "gp" : siteId}/patients?q=` + encodeURIComponent(patient),
       ),
-    enabled: !!key && !!patient && !isMap,
+    enabled: !!key && !!patient && !isMap && !isDocuments,
   });
   const overview = useQuery({
     queryKey: ["hospital-overview", key, offset],
@@ -262,7 +265,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
         ),
       };
     },
-    enabled: !!key && !!patient && !isMap,
+    enabled: !!key && !!patient && !isMap && !isDocuments,
     refetchInterval: 3000,
   });
   const operatorView = useQuery({
@@ -475,6 +478,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                 <button className="primary" onClick={() => enter(selectedPlace.href)}>
                   Enter {selectedPlace.system}
                 </button>
+                {selectedPlace.id === "practice" && <button className="primary place-documents" onClick={() => enter("/gp/documents/")}>Open DocuMañana · Document inbox</button>}
               </section>
             )}
             <footer className="map-footer">
@@ -488,6 +492,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                       <small>{item.system}</small>
                     </button>
                   ))}
+                  <button onClick={() => enter("/gp/documents/")}>Riverside document office<small>DocuMañana</small></button>
                 </nav>
               </details>
             </footer>
@@ -498,7 +503,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
           {!key ? (
             <main className="access-gate">
               <a href="/control/">Back to neighbourhood</a>
-              <h1>{sites.find((s) => s.id === siteId)?.name}</h1>
+              <h1>{isDocuments ? "DocuMañana" : sites.find((s) => s.id === siteId)?.name}</h1>
               <p>Join a team world to open this workspace.</p>
               <button
                 className="primary"
@@ -583,7 +588,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
             <a href="/docs/">Handbook</a>
             <span className="synthetic-label">SIMULATION</span>
           </footer>
-          {!patient && view.data && view.data.resourceTotal > 200 && (
+          {!isDocuments && !patient && view.data && view.data.resourceTotal > 200 && (
             <div className="resource-pager">
               <button disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 200))}>
                 Previous records
@@ -847,4 +852,8 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
       )}
     </div>
   );
+}
+
+function DocumentPortal(props: Parameters<typeof SystemWorkspace>[0]) {
+  return <DocumentWorkspace api={props.api} worldId={props.view.id} mode="gp" selectedPatient={props.selectedPatient} patients={props.patients} standalone />;
 }

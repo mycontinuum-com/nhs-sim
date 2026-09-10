@@ -878,7 +878,7 @@ function PracticeWorkspace(props: Props) {
     document.addEventListener("pointerdown", dismiss);
     return () => document.removeEventListener("pointerdown", dismiss);
   }, [menu]);
-  const navigate = (name: string) => { setTab(name); setRecordId(""); setMenu(""); };
+  const navigate = (name: string) => { if (name === "DocuMañana") { location.assign(`/gp/documents/${props.selectedPatient ? "?patient=" + encodeURIComponent(props.selectedPatient) : ""}`); return; } setTab(name); setRecordId(""); setMenu(""); };
   const findPatient = () => { setMenu(""); document.getElementById("ehr-patient-search")?.focus(); };
   const shortcuts = [
     { label: "Search", icon: "search", run: findPatient },
@@ -932,8 +932,6 @@ function PracticeWorkspace(props: Props) {
                 <section className="practice-shortcuts"><h2>Riverside Practice</h2><p>Clinical workspace</p><div>{shortcuts.map((shortcut) => <button key={shortcut.label} onClick={shortcut.run}><DesktopIcon name={shortcut.icon} />{shortcut.label}</button>)}</div></section>
                 <section className="practice-recent"><h2>Open a patient record</h2><p>Search the directory or select a patient below.</p>{props.patients.slice(0, 8).map((person) => <button key={person.id} onClick={() => { props.selectPatient(person.id); navigate("Journal"); }}><b>{person.name}</b><span>{person.id} · {date(person.birthDate)}</span></button>)}</section>
               </div>
-            ) : tab === "DocuMañana" ? (
-              <DocumentWorkspace api={props.api} worldId={props.view.id} mode="gp" selectedPatient={props.selectedPatient} patients={props.patients} />
             ) : tab === "Appointment book" ? (
               <AppointmentBook
                 now={props.view.now}

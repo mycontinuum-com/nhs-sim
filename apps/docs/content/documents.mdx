@@ -3,7 +3,7 @@ title: DocuMañana and discharge letters
 sidebar_position: 7
 ---
 
-DocuMañana is the GP practice's simulated document inbox. Hospital teams write discharge summaries in their discharge correspondence workspace and explicitly send them to the GP practice in the same team world.
+<a href="/gp/documents/">Open DocuMañana</a>, the GP practice's document office. It opens as a separate workspace with its own inbox, letter reader and processing panel. The GP building on the neighbourhood map offers separate SystemTwo and DocuMañana entrances. Hospital teams write discharge summaries in their discharge correspondence workspace and explicitly send them to the GP practice in the same team world.
 
 ## Hospital handover
 
@@ -13,7 +13,7 @@ Select any patient in the hospital directory, then open **Discharge summaries**.
 
 ## GP document processing
 
-Open **DocuMañana** and select an incoming letter. Read the complete letter and its authorship history. You can assign it to a named clinician or team.
+Open **DocuMañana** from the map or the SystemTwo Workflow menu and select an incoming letter. Search by patient or letter title, then narrow the queue by processing stage or priority. Read the complete letter and its authorship history. You can assign it to a named clinician or team.
 
 Enter a review note and choose **Confirm reviewed**. Then enter the filing outcome and choose **File to patient history**. Filing requires a recorded review. Filed letters remain accessible in the **filed** queue, including the original hospital text and the GP review and filing notes. Assignment records responsibility; it does not impersonate a clinician or change access permissions.
 
@@ -31,3 +31,7 @@ Use your team API key with the existing authenticated site action endpoints. Doc
 - The GP action endpoint accepts document commands `assign` (with `clinician`), `review` (with `text`) and `file` (with `text`). Each requires `resourceId` and `expectedVersion`.
 
 Use a fresh idempotency key for each operation and reuse it when retrying the identical request. Stale resource versions and invalid stage changes return an error without changing the letter.
+
+## Default correspondence
+
+New and existing team worlds receive 61 fictional letters across multiple patients and specialties. The population includes awaiting-review, reviewed, filed and hospital-only draft letters, with named synthetic authors, assignments and processing history. Existing letters and team edits are preserved when the seed population is added. Hospital drafts remain hidden from the GP inbox until sent.
