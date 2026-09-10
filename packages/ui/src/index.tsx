@@ -56,9 +56,23 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const [offset, setOffset] = useState(0);
   const [notice, setNotice] = useState("");
   const [drawer, setDrawer] = useState<"team" | "simulation" | "operator" | null>(null);
-  const [destination, setDestination] = useState(
-    () => siteId === "control" ? "/gp/" : location.pathname + location.search,
+  const [destination, setDestination] = useState<string | null>(
+    () => siteId === "control" ? null : location.pathname + location.search,
   );
+  const [place, setPlace] = useState(() => new URLSearchParams(location.search).get("place"));
+  const teamRequestActive = useRef(false);
+  useEffect(() => {
+    const restore = () => setPlace(new URLSearchParams(location.search).get("place"));
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
+  function choosePlace(value: string | null) {
+    const url = new URL(location.href);
+    if (value) url.searchParams.set("place", value);
+    else url.searchParams.delete("place");
+    history.pushState(null, "", url.pathname + url.search + url.hash);
+    setPlace(value);
+  }
   const [team, setTeam] = useState("");
   const [keyInput, setKeyInput] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
@@ -255,14 +269,34 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
         setCopyStatus("");
       } else {
         sessionStorage.removeItem("sim-tour-world");
-        location.assign(destination);
+        saveKey(result.apiKey);
+        if (teamRequestActive.current && destination) location.assign(destination);
+        else setDrawer(null);
+        issue.reset();
+      }
+      if (!teamRequestActive.current) {
+        saveKey(result.apiKey);
+        issue.reset();
       }
     },
   });
   const readyTeam = issue.isSuccess && issue.data.kind === "created" ? issue.data : null;
+  function continueToWorkspace() {
+    if (!readyTeam) return;
+    saveKey(readyTeam.apiKey);
+    issue.reset();
+    setDrawer(null);
+    if (destination) location.assign(destination);
+  }
   function closeControls() {
-    if (drawer === "team" && readyTeam) location.assign(destination);
-    else setDrawer(null);
+    if (drawer === "team") {
+      teamRequestActive.current = false;
+      if (readyTeam) saveKey(readyTeam.apiKey);
+      issue.reset();
+      setDestination(null);
+      if (isMap && !key) choosePlace(null);
+    }
+    setDrawer(null);
   }
   useEffect(() => {
     if (!drawer) return;
@@ -371,7 +405,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               planToggleRef.current?.focus();
             }} /></Suspense>
           )}
-          <Neighbourhood enter={enter} suspended={drawer !== null} now={clock.data?.now} openTeam={() => setDrawer("team")} />
+          <Neighbourhood enter={enter} suspended={drawer !== null} connected={!!key} place={place} choose={choosePlace} now={clock.data?.now} openTeam={() => { setDestination(null); setDrawer("team"); }} />
         </>
       ) : (
         <>
@@ -534,8 +568,8 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                     <button className="primary" onClick={() => copyKey(readyTeam.apiKey)}>Copy API key</button>
                     <p role="status">{copyStatus}</p>
                     <details key="new-team-key"><summary>Reveal API key</summary><code className="api-key">{readyTeam.apiKey}</code></details>
-                    <p>You can find it again in <strong>Team &amp; API key</strong> in the bottom bar. A short tour will show you where.</p>
-                    <button className="primary" onClick={() => location.assign(destination)}>Enter workspace</button>
+                    <p>You can find it again in <strong>Team &amp; API key</strong> in the bottom bar. The tour starts after you launch an app.</p>
+                    <button className="primary" onClick={continueToWorkspace}>{isMap ? place ? "Continue to desktop" : "Continue to map" : "Enter workspace"}</button>
                   </>
                 ) : key ? (
                   <>
@@ -549,6 +583,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                     <button
                       onClick={() => {
                         saveKey("");
+                        if (isMap) choosePlace(null);
                         setDrawer(null);
                       }}
                     >
@@ -560,6 +595,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                     <form
                       onSubmit={(event) => {
                         event.preventDefault();
+                        teamRequestActive.current = true;
                         issue.mutate({ kind: "create", teamName: team.trim() });
                       }}
                     >
@@ -584,6 +620,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                       <form
                         onSubmit={(event) => {
                           event.preventDefault();
+                          teamRequestActive.current = true;
                           issue.mutate({ kind: "connect", apiKey: keyInput.trim() });
                         }}
                       >

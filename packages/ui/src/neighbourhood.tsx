@@ -83,30 +83,21 @@ const installed: Record<string, (keyof typeof apps)[]> = {
   pharmacy: ["pharmacy", "identity"],
   home: ["health", "messages"],
 };
-export function Neighbourhood({ enter, suspended, now, openTeam }: { enter: (href: string) => void; suspended: boolean; now?: number; openTeam: () => void }) {
-  const [place, setPlace] = useState(() => new URLSearchParams(location.search).get("place"));
+export function Neighbourhood({ enter, suspended, connected, place, choose, now, openTeam }: { enter: (href: string) => void; suspended: boolean; connected: boolean; place: string | null; choose: (place: string | null) => void; now?: number; openTeam: () => void }) {
   const desktopRef = useRef<HTMLDialogElement>(null);
   const [startOpen, setStartOpen] = useState(false);
   const time = now ? new Date(now).toLocaleTimeString("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" }) : "09:41";
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const selected = places.find((item) => item.id === place);
   useEffect(() => {
-    const restore = () => setPlace(new URLSearchParams(location.search).get("place"));
-    window.addEventListener("popstate", restore);
-    return () => window.removeEventListener("popstate", restore);
-  }, []);
+    if (selected && !connected && !suspended) openTeam();
+  }, [selected, connected, suspended, openTeam]);
   useEffect(() => {
     const dialog = desktopRef.current;
-    if (selected && !suspended) { if (dialog && !dialog.open) dialog.showModal(); }
+    if (selected && connected && !suspended) { if (dialog && !dialog.open) dialog.showModal(); }
     else { dialog?.close(); if (!selected) triggerRef.current?.focus(); }
-  }, [selected, suspended]);
-  function choose(id: string | null) {
-    const url = new URL(location.href);
-    if (id) url.searchParams.set("place", id); else url.searchParams.delete("place");
-    history.pushState(null, "", url.pathname + url.search);
-    setPlace(id);
-    setStartOpen(false);
-  }
+  }, [selected, connected, suspended]);
+  useEffect(() => { setStartOpen(false); }, [place]);
   return <>
     <main className="world-map" aria-label="Interactive neighbourhood map">
       <div className="map-intro">
