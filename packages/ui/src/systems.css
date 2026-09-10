@@ -994,3 +994,527 @@
 .ehr-coordination .ehr-action {
   font-size: 11px;
 }
+
+/* Hospital operations uses resource lanes; it does not imply bed allocation. */
+.hospital-operations {
+  --ehr-accent: #006ecb;
+  --ehr-line: #dce6ef;
+  --ehr-pale: #edf6fd;
+  --ehr-ink: #122c47;
+  background: #f1f6fa;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.hospital-operations button {
+  background: #fff;
+  box-shadow: none;
+  border-color: #d7e3ee;
+  border-radius: 4px;
+}
+.hospital-masthead {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #183951;
+  color: #fff;
+  padding: 15px 24px;
+  margin: 0;
+  border: 0;
+}
+.hospital-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.hospital-brand > span {
+  font-size: 35px;
+  color: #55c2ff;
+  line-height: 1;
+}
+.hospital-brand strong {
+  display: block;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+}
+.hospital-brand small {
+  display: block;
+  color: #bad4e7;
+  margin-top: 4px;
+}
+.hospital-masthead nav {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+.hospital-masthead button {
+  color: #d5e7f5;
+  border: 0;
+  background: transparent;
+  padding: 9px 0;
+  border-radius: 0;
+  white-space: nowrap;
+}
+.hospital-masthead button:hover {
+  color: white;
+  background: transparent;
+}
+.hospital-masthead nav button.active {
+  color: #fff;
+  box-shadow: 0 2px #35b9ff;
+}
+.hospital-masthead > span {
+  font-size: 11px;
+  color: #c1d9eb;
+  max-width: 180px;
+}
+.hospital-overview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 26px 28px 20px;
+}
+.hospital-overview h1 {
+  font-size: 25px;
+  margin: 5px 0;
+  letter-spacing: -0.6px;
+}
+.hospital-overview small,
+.hospital-overview time {
+  color: #617b93;
+  font-size: 11px;
+}
+.hospital-overview dl {
+  display: flex;
+  gap: 36px;
+  flex-wrap: wrap;
+}
+.hospital-overview dl > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 4px;
+}
+.hospital-overview dt,
+.hospital-overview dd {
+  border: 0;
+  padding: 0;
+}
+.hospital-overview dd {
+  font-size: 25px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.hospital-overview dt {
+  color: #647e95;
+  font-size: 11px;
+}
+.hospital-tools {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 0 28px 22px;
+}
+.hospital-tools .ehr-finder {
+  flex: 1;
+  max-width: 540px;
+}
+.hospital-tools .ehr-finder input {
+  flex: 1;
+  width: auto;
+}
+.hospital-tools > label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.hospital-tools a {
+  margin-left: auto;
+  color: #426787;
+  white-space: nowrap;
+}
+.hospital-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
+  align-items: start;
+}
+.hospital-stage.with-encounter {
+  grid-template-columns: minmax(0, 1fr) minmax(370px, 32%);
+}
+.hospital-board {
+  min-width: 0;
+  padding: 0 22px 24px;
+}
+.hospital-lanes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.hospital-lane {
+  min-width: 0;
+  padding: 12px;
+  background: #ffffff87;
+  border: 1px solid #e3ecf4;
+  border-radius: 5px;
+}
+.hospital-lane > header {
+  padding: 6px 3px 16px;
+  margin: 0;
+  border: 0;
+  display: block;
+}
+.hospital-lane h2 {
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.hospital-lane h2 span {
+  color: #6a849a;
+  font-size: 12px;
+  font-weight: normal;
+}
+.hospital-lane > header small {
+  display: block;
+  margin-top: 6px;
+  color: #687e91;
+}
+.hospital-operations .hospital-case {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 11px 8px;
+  border: 1px solid #dce8f2;
+  border-left: 4px solid #48b4d7;
+  border-radius: 4px;
+  margin: 0 0 8px;
+  color: #17344d;
+  background: #fff;
+}
+.hospital-operations .hospital-case:hover {
+  border-color: #75b9e9;
+  background: #f5fbff;
+}
+.hospital-operations .hospital-case.selected {
+  background: #e6f5ff;
+  border-color: #159be9;
+}
+.hospital-case.urgent {
+  border-left-color: #f34562;
+}
+.hospital-case-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.hospital-case-meta > span {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #647b91;
+}
+.hospital-case-meta b {
+  font-size: 10px;
+  font-weight: 500;
+  background: #e8f5ef;
+  color: #29734e;
+  padding: 3px 7px;
+  border-radius: 3px;
+}
+.hospital-case.urgent .hospital-case-meta b {
+  background: #ffe0e5;
+  color: #b82d47;
+}
+.hospital-case > strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.hospital-case > p {
+  font-size: 12px;
+  line-height: 1.5;
+  margin-bottom: 7px;
+  overflow-wrap: anywhere;
+}
+.hospital-case > small {
+  color: #5a7790;
+  text-transform: capitalize;
+}
+.hospital-case-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  color: #678297;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid #edf2f7;
+}
+.hospital-case-footer > span {
+  color: #0074c2;
+}
+.hospital-activity {
+  margin-top: 20px;
+  background: #fff;
+  border: 1px solid #e2ebf3;
+  padding: 17px;
+  border-radius: 5px;
+}
+.hospital-activity header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 14px;
+  border: 0;
+  padding: 0;
+}
+.hospital-activity h2 {
+  font-size: 14px;
+}
+.hospital-activity header button {
+  border: 0;
+  color: #0074c2;
+  font-size: 11px;
+}
+.hospital-activity > button {
+  display: grid;
+  grid-template-columns: 95px minmax(0, 1fr) 85px;
+  width: 100%;
+  text-align: left;
+  gap: 12px;
+  border: 0;
+  border-top: 1px solid #eaf0f5;
+  border-radius: 0;
+  padding: 12px 0;
+  align-items: baseline;
+}
+.hospital-activity time,
+.hospital-activity small {
+  font-size: 10px;
+  color: #667e91;
+}
+.hospital-encounter {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  border-left: 1px solid #d7e4ef;
+  box-shadow: -5px 0 16px #183f5f05;
+  min-width: 0;
+  max-height: 100dvh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.hospital-encounter > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 21px;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid #e0eaf3;
+}
+.hospital-encounter > header small {
+  color: #63809a;
+}
+.hospital-encounter h2 {
+  font-size: 21px;
+  margin: 8px 0;
+}
+.hospital-encounter > header p {
+  color: #526e86;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.hospital-encounter > header button {
+  border: 0;
+  font-size: 22px;
+  padding: 0 5px;
+}
+.hospital-encounter > nav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin: 15px 16px;
+  background: #f5f8fb;
+  border-radius: 4px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.hospital-encounter > nav button {
+  border: 0;
+  white-space: nowrap;
+  background: transparent;
+  padding: 9px;
+  font-size: 11px;
+}
+.hospital-encounter > nav button.active {
+  background: #fff;
+  box-shadow: 0 2px #007acd;
+  color: #006dbb;
+}
+.hospital-encounter-content {
+  padding: 0 17px 20px;
+  flex: 1;
+  min-width: 0;
+}
+.hospital-encounter .ehr-record-detail {
+  position: static;
+  margin: 0;
+  max-height: none;
+  box-shadow: none;
+  border: 0;
+}
+.hospital-encounter .ehr-record-detail header {
+  background: #f4f9fd;
+  border-radius: 3px;
+}
+.hospital-encounter .ehr-record-detail footer {
+  flex-wrap: wrap;
+}
+.hospital-encounter .ehr-table {
+  font-size: 11px;
+}
+.hospital-encounter .ehr-handover {
+  padding: 0;
+  background: white;
+}
+.hospital-encounter .ehr-chart-heading h2 {
+  font-family: inherit;
+  font-size: 21px;
+}
+.hospital-encounter .ehr-chart-heading small {
+  color: #6c879b;
+}
+.hospital-encounter .ehr-handover section,
+.hospital-encounter .ehr-chart-heading {
+  border-color: #e0eaf3;
+}
+.hospital-encounter .ehr-handover .ehr-add-row {
+  color: #0074c2;
+}
+.hospital-encounter .ehr-section-heading {
+  flex-wrap: wrap;
+}
+.hospital-encounter > footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid #e0eaf3;
+  padding: 16px;
+  margin: 0;
+}
+.hospital-encounter > footer small {
+  display: block;
+  color: #637e94;
+  margin-bottom: 9px;
+}
+.hospital-encounter > footer > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.hospital-encounter > footer button {
+  font-size: 11px;
+}
+.hospital-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 25px;
+  margin: 0;
+  border-top: 1px solid #dce6ef;
+  font-size: 10px;
+  color: #648096;
+  background: #fff;
+}
+@media (max-width: 1200px) {
+  .hospital-masthead {
+    gap: 18px;
+    padding: 13px 18px;
+    flex-wrap: wrap;
+  }
+  .hospital-masthead > span {
+    display: none;
+  }
+  .hospital-stage.with-encounter {
+    grid-template-columns: minmax(0, 1fr) 370px;
+  }
+  .with-encounter .hospital-lanes {
+    grid-template-columns: 1fr;
+  }
+  .hospital-overview dl {
+    gap: 20px;
+  }
+}
+@media (max-width: 760px) {
+  .hospital-brand strong {
+    font-size: 16px;
+  }
+  .hospital-masthead nav {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .hospital-masthead > button {
+    margin-left: auto;
+    font-size: 11px;
+  }
+  .hospital-overview {
+    align-items: start;
+    flex-direction: column;
+    padding: 22px 16px;
+    gap: 18px;
+  }
+  .hospital-overview dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 30px;
+    width: 100%;
+  }
+  .hospital-overview h1 {
+    font-size: 23px;
+  }
+  .hospital-tools {
+    flex-wrap: wrap;
+    padding: 0 16px 18px;
+    gap: 12px;
+  }
+  .hospital-tools .ehr-finder {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .hospital-tools .ehr-finder label {
+    font-size: 12px;
+  }
+  .hospital-board {
+    padding: 0 12px 20px;
+  }
+  .hospital-lanes {
+    grid-template-columns: 1fr;
+  }
+  .hospital-stage.with-encounter {
+    display: block;
+  }
+  .hospital-stage.with-encounter .hospital-encounter {
+    position: fixed;
+    inset: 0;
+    max-height: 100dvh;
+    z-index: 30;
+    border: 0;
+  }
+  .hospital-activity > button {
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+  }
+  .hospital-activity > button time {
+    grid-column: 1 / -1;
+  }
+  .hospital-status {
+    flex-wrap: wrap;
+  }
+}

@@ -27,7 +27,7 @@ type Props = {
   exitToMap?: () => void;
   identityLabel?: string;
 };
-type Filter = "active" | "ready" | "done" | "all";
+type Filter = "active" | "received" | "review" | "ready" | "done" | "all";
 const terminal = (record: Resource) =>
   ["collected", "completed", "cancelled"].includes(record.status);
 const date = (time: number | string) =>
@@ -222,7 +222,8 @@ export function CareWorkspace(props: Props) {
   const pharmacy = props.siteId === "pharmacy";
   const [filter, setFilter] = useState<Filter>("active");
   const [selectedId, setSelectedId] = useState("");
-  const [composing, setComposing] = useState(false);
+  const [draft, setDraft] = useState<{ patient: Patient | undefined } | null>(null);
+  const composing = draft !== null;
   const kind = pharmacy ? "prescription" : "visit";
   const records = props.rows.filter(
     (record) =>
@@ -237,22 +238,31 @@ export function CareWorkspace(props: Props) {
   );
   const matches = (record: Resource, value: Filter) =>
     value === "all" ||
+    (value === "received" && ["draft", "open", "available"].includes(record.status)) ||
+    (value === "review" && ["reviewed", "rejected"].includes(record.status)) ||
     (value === "done"
       ? terminal(record)
       : value === "ready"
         ? ["approved", "dispensed"].includes(record.status)
-        : !terminal(record));
+        : value === "active" && !terminal(record));
   const visible = records.filter((record) => matches(record, filter));
-  const selected = records.find((record) => record.id === selectedId) ?? visible[0];
+  if (!pharmacy) visible.sort((a, b) => (a.dueAt ?? a.createdAt) - (b.dueAt ?? b.createdAt));
+  const selected = visible.find((record) => record.id === selectedId) ?? visible[0];
   const patient = props.patients.find(
     (person) => person.id === (selected?.patientId ?? props.selectedPatient),
   );
-  const draftingPatient =
-    props.patients.find((person) => person.id === props.selectedPatient) ?? patient;
+  const draftingPatient = draft?.patient;
+  const startDraft = (
+    person = props.patients.find((person) => person.id === props.selectedPatient) ?? patient,
+  ) => {
+    if (!draft) setDraft({ patient: person });
+  };
   const next = selected ? actionFor(selected) : undefined;
   const filters: { id: Filter; label: string }[] = pharmacy
     ? [
-        { id: "active", label: "In progress" },
+        { id: "active", label: "All active" },
+        { id: "received", label: "Received" },
+        { id: "review", label: "Clinical check" },
         { id: "ready", label: "Dispensing & collection" },
         { id: "done", label: "Finished" },
         { id: "all", label: "All prescriptions" },
@@ -296,12 +306,20 @@ export function CareWorkspace(props: Props) {
               : "Plan home visits around the person and the care they need."}
           </p>
         </div>
-        <button className="care-primary" onClick={() => setComposing(true)}>
+        <button className="care-primary" onClick={() => startDraft()}>
           {pharmacy ? "+ New prescription" : "+ Arrange a visit"}
         </button>
       </div>
       <div className="care-directory-bar">
-        <PatientSearch {...props} />
+        <PatientSearch
+          {...props}
+          selectPatient={(id) => {
+            props.selectPatient(id);
+            if (draft && !draft.patient) {
+              setDraft({ patient: props.patients.find((person) => person.id === id) });
+            }
+          }}
+        />
         <div className="care-scope">
           {props.selectedPatient ? (
             <>
@@ -364,16 +382,14 @@ export function CareWorkspace(props: Props) {
           </section>
         )}
       {!pharmacy && (
-        <section className="care-incoming" aria-label="Incoming care handovers">
-          <div className="care-incoming-heading">
-            <div>
-              <p className="care-eyebrow">Incoming handovers</p>
-              <h2>Before the first visit</h2>
-            </div>
+        <details className="care-incoming care-incoming-disclosure">
+          <summary>
+            <strong>Incoming care handovers</strong>
             <span>
-              {carePlans.length} care {carePlans.length === 1 ? "plan" : "plans"} in this view
+              {carePlans.length} care {carePlans.length === 1 ? "plan" : "plans"} · Review before a
+              first visit
             </span>
-          </div>
+          </summary>
           {carePlans.length ? (
             <div className="care-handover-strip">
               {carePlans.map((plan) => (
@@ -411,7 +427,7 @@ export function CareWorkspace(props: Props) {
                       onClick={() => {
                         if (plan.patientId) props.selectPatient(plan.patientId);
                         setSelectedId("");
-                        setComposing(true);
+                        startDraft(props.patients.find((person) => person.id === plan.patientId));
                       }}
                     >
                       Plan a visit
@@ -426,14 +442,85 @@ export function CareWorkspace(props: Props) {
               directory.
             </p>
           )}
-        </section>
+        </details>
+      )}
+      {pharmacy && (
+        <nav className="dispensing-stages" aria-label="Dispensing stages">
+          {filters
+            .filter((item) => ["received", "review", "ready", "done"].includes(item.id))
+            .map((item, index) => (
+              <button
+                key={item.id}
+                aria-pressed={filter === item.id}
+                onClick={() => {
+                  setFilter(item.id);
+                  setSelectedId("");
+                }}
+              >
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <b>{item.label}</b>
+                <strong>{records.filter((record) => matches(record, item.id)).length}</strong>
+              </button>
+            ))}
+        </nav>
       )}
       <main className="care-main">
+        {!pharmacy && (
+          <section className="community-route" aria-label="Schematic visit route">
+            <div className="community-route-heading">
+              <h2>Neighbourhood route</h2>
+              <p>Schematic · loaded visits, no geographic coordinates</p>
+            </div>
+            <div className="community-route-canvas">
+              <svg viewBox="0 0 300 600" preserveAspectRatio="none" aria-hidden="true">
+                <path className="route-river" d="M-30 190 Q160 260 330 170" />
+                <path
+                  className="route-street"
+                  d="M40 0 L120 600 M230 0 L180 600 M0 90 L300 110 M0 350 L300 290 M0 520 L300 540"
+                />
+                <path className="route-trail" d="M80 60 Q240 140 150 240 T100 420 T220 560" />
+              </svg>
+              {visible.slice(0, 6).map((record, index) => (
+                <button
+                  key={record.id}
+                  className={`community-stop stop-${index} ${selected?.id === record.id ? "is-selected" : ""}`}
+                  aria-pressed={selected?.id === record.id}
+                  onClick={() => setSelectedId(record.id)}
+                >
+                  <b>{index + 1}</b>
+                  <span>
+                    {props.patients.find((person) => person.id === record.patientId)?.name ??
+                      record.patientId}
+                    <small>
+                      {record.dueAt === undefined
+                        ? "Unscheduled"
+                        : new Date(record.dueAt).toLocaleTimeString("en-GB", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            timeZone: "UTC",
+                          })}{" "}
+                      · {record.status}
+                    </small>
+                  </span>
+                </button>
+              ))}
+              {!visible.length && (
+                <p className="route-empty">Arrange a visit to start your route.</p>
+              )}
+            </div>
+            <p className="route-disclaimer">
+              {visible.length > 6
+                ? "First six visits shown. All visits are available in the agenda."
+                : "Illustrative placement, not travel directions."}
+            </p>
+          </section>
+        )}
+
         <section className="care-queue" aria-label={pharmacy ? "Prescription queue" : "Visit list"}>
           {!pharmacy && (
             <div className="care-ledger-heading">
               <p className="care-eyebrow">Field visits</p>
-              <h2>Your visit ledger</h2>
+              <h2>Visit agenda</h2>
               <p>Open a visit to see the person's needs and record its completion.</p>
             </div>
           )}
@@ -463,8 +550,6 @@ export function CareWorkspace(props: Props) {
               aria-pressed={selected?.id === record.id}
               onClick={() => {
                 setSelectedId(record.id);
-                setComposing(false);
-                if (record.patientId) props.selectPatient(record.patientId);
               }}
             >
               <span className="care-record-index" aria-hidden="true">
@@ -472,8 +557,8 @@ export function CareWorkspace(props: Props) {
                   "Rx"
                 ) : (
                   <>
-                    <small>Added</small>
-                    {new Date(record.createdAt).toLocaleTimeString("en-GB", {
+                    <small>{record.dueAt === undefined ? "Created" : "Due"}</small>
+                    {new Date(record.dueAt ?? record.createdAt).toLocaleTimeString("en-GB", {
                       hour: "2-digit",
                       minute: "2-digit",
                       timeZone: "UTC",
@@ -491,7 +576,7 @@ export function CareWorkspace(props: Props) {
                 <small>
                   {pharmacy
                     ? `Received ${date(record.createdAt)}`
-                    : `Created ${date(record.createdAt)}`}{" "}
+                    : `${record.dueAt === undefined ? "Created" : "Due"} ${date(record.dueAt ?? record.createdAt)}`}{" "}
                   · {record.id}
                 </small>
               </span>
@@ -515,7 +600,7 @@ export function CareWorkspace(props: Props) {
                   ? "Select a patient and draft a prescription, or change the filter to see another stage."
                   : "Select a person and arrange a visit. Completed visits remain in the visit history."}
               </p>
-              <button onClick={() => setComposing(true)}>
+              <button onClick={() => startDraft()}>
                 {pharmacy ? "Draft a prescription" : "Arrange a visit"}
               </button>
             </div>
@@ -532,7 +617,7 @@ export function CareWorkspace(props: Props) {
               patient={draftingPatient}
               props={props}
               close={() => {
-                setComposing(false);
+                setDraft(null);
                 setFilter("active");
                 setSelectedId("");
               }}
@@ -586,7 +671,9 @@ export function CareWorkspace(props: Props) {
                   <p>
                     {selected.status === "scheduled"
                       ? "Scheduled visits complete after 90 simulation minutes, or when you record completion below."
-                      : "Record the outcome using the visit action below."}
+                      : terminal(selected)
+                        ? "This visit remains available in your team's history."
+                        : "Record the outcome using the visit action below."}
                   </p>
                 </div>
               )}
@@ -613,7 +700,51 @@ export function CareWorkspace(props: Props) {
               )}
             </section>
           ) : null}
-          <PersonContext patient={composing ? draftingPatient : patient} />
+          {!pharmacy && <PersonContext patient={composing ? draftingPatient : patient} />}
+        </div>
+        {pharmacy && (
+          <aside className="pharmacy-label-column">
+            <section className="pharmacy-label-preview">
+              <h2>Dispensing label preview</h2>
+              <div className="pharmacy-paper-label">
+                <h3>High Street Pharmacy</h3>
+                <p className="care-eyebrow">SIMULATION LABEL</p>
+                <h2>{(composing ? draftingPatient : patient)?.name ?? "Select a prescription"}</h2>
+                <p>
+                  {(composing ? draftingPatient?.id : selected?.patientId) ?? "No patient selected"}
+                </p>
+                <hr />
+                <strong>
+                  {composing
+                    ? "Draft prescription · label available after saving"
+                    : selected && typeof selected.data.drug === "string"
+                      ? selected.data.drug
+                      : (selected?.title ?? "Prescription details appear here")}
+                </strong>
+                <p>{composing ? "Unsaved draft" : (selected?.id ?? "—")}</p>
+                <small>Synthetic record · Not for dispensing</small>
+              </div>
+            </section>
+            <PersonContext patient={composing ? draftingPatient : patient} />
+          </aside>
+        )}
+        <div className="care-supply-history" hidden={!pharmacy || !selected}>
+          <h2>Prescription history</h2>
+          {records
+            .filter((record) => record.patientId === selected?.patientId)
+            .map((record) => (
+              <button
+                key={record.id}
+                onClick={() => {
+                  setFilter("all");
+                  setSelectedId(record.id);
+                }}
+              >
+                <span>{date(record.createdAt)}</span>
+                <strong>{record.title}</strong>
+                <span>{record.status}</span>
+              </button>
+            ))}
         </div>
       </main>
     </div>

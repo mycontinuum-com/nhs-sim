@@ -1015,3 +1015,549 @@
     text-align: right;
   }
 }
+
+/* Location workspaces follow the dispensing bench and field visit mockups. */
+.care-pharmacy {
+  background: #f7f8f7;
+  --care-ink: #172b38;
+  --care-accent: #176149;
+}
+.care-pharmacy .care-header {
+  min-height: 58px;
+  padding: 8px 24px;
+}
+.care-pharmacy .care-brand strong {
+  font:
+    25px Georgia,
+    serif;
+}
+.care-pharmacy .care-heading {
+  padding: 12px 24px 10px;
+}
+.care-pharmacy .care-heading h1 {
+  font-size: 24px;
+}
+.care-pharmacy .care-directory-bar {
+  margin: 0 24px 10px;
+  padding: 7px 12px;
+}
+.dispensing-stages {
+  display: flex;
+  margin: 0 auto 12px;
+  max-width: 1452px;
+  padding: 0 24px;
+  gap: 1px;
+}
+.dispensing-stages button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-radius: 0;
+  text-align: left;
+}
+.dispensing-stages button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+.dispensing-stages button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+.dispensing-stages button[aria-pressed="true"] {
+  background: #dff0e7;
+  border-color: #8bc4ac;
+}
+.dispensing-stages button > span {
+  color: #5b8575;
+  font: 20px monospace;
+}
+.dispensing-stages button > strong {
+  margin-left: auto;
+  font-size: 22px;
+}
+.care-pharmacy .care-main {
+  grid-template-columns: minmax(230px, 0.72fr) minmax(330px, 1.5fr) minmax(240px, 0.9fr);
+  gap: 16px;
+  padding: 0 24px 32px;
+}
+.care-pharmacy .care-queue {
+  grid-row: span 2;
+}
+.care-pharmacy .care-filters {
+  flex-wrap: wrap;
+  padding: 4px 8px;
+}
+.care-pharmacy .care-filters button {
+  padding: 8px 6px;
+  font-size: 10px;
+}
+.care-pharmacy .care-filters span {
+  margin-left: 4px;
+}
+.care-pharmacy .care-record {
+  position: relative;
+  padding: 16px 12px;
+  gap: 8px;
+  align-items: start;
+  flex-wrap: wrap;
+}
+.care-pharmacy .care-record-index {
+  display: none;
+}
+.care-pharmacy .care-record-name {
+  width: 100%;
+}
+.care-pharmacy .care-record-name > span {
+  font-size: 11px;
+}
+.care-pharmacy .care-status {
+  margin-left: 0;
+  font-size: 10px;
+}
+.care-pharmacy .care-detail-card {
+  min-height: 370px;
+  padding: 24px;
+}
+.care-pharmacy .care-detail-person {
+  padding: 22px 0;
+}
+.care-pharmacy .care-detail-person h3 {
+  font-size: 23px;
+}
+.pharmacy-label-column {
+  display: grid;
+  gap: 18px;
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+.pharmacy-label-preview {
+  background: white;
+  border: 1px solid var(--care-border);
+  padding: 16px;
+  border-radius: 6px;
+}
+.pharmacy-label-preview > h2,
+.care-supply-history h2 {
+  font-size: 16px;
+  margin: 0 0 16px;
+}
+.pharmacy-paper-label {
+  border: 1px dashed #b8c4bc;
+  padding: 20px 16px;
+  background: #fdfdf9;
+  overflow-wrap: anywhere;
+}
+.pharmacy-paper-label h3 {
+  font:
+    19px Georgia,
+    serif;
+  margin-top: 0;
+}
+.pharmacy-paper-label h2 {
+  font-size: 21px;
+  margin-top: 28px;
+}
+.pharmacy-paper-label hr {
+  border: 0;
+  border-top: 1px dashed #a4b5aa;
+  margin: 20px 0;
+}
+.pharmacy-paper-label > strong {
+  font-size: 17px;
+}
+.pharmacy-paper-label > small {
+  display: block;
+  margin-top: 34px;
+  font-size: 10px;
+}
+.care-supply-history {
+  grid-column: 2;
+  border: 1px solid var(--care-border);
+  background: white;
+  padding: 20px;
+  border-radius: 6px;
+}
+.care-supply-history[hidden] {
+  display: none;
+}
+.care-supply-history > button {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 90px 1fr auto;
+  gap: 12px;
+  padding: 12px 0;
+  text-align: left;
+  font-size: 11px;
+  border: 0;
+  border-top: 1px solid var(--care-border);
+  border-radius: 0;
+}
+.care-community {
+  --care-ink: #123d48;
+  --care-accent: #dc5d59;
+  --care-soft: #e8f2f3;
+  --care-border: #dce6e7;
+  background: #fbfdfd;
+}
+.care-community .care-header {
+  background: white;
+  padding: 8px 24px;
+  min-height: 58px;
+}
+.care-community .care-brand strong {
+  font-size: 23px;
+}
+.care-community .care-brand-mark {
+  border: 0;
+  color: #dc5d59;
+  background: #123d48;
+  border-radius: 9px;
+}
+.care-community .care-heading {
+  padding: 12px 24px 10px;
+}
+.care-community .care-heading h1 {
+  font:
+    650 29px/1.2 -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+.care-community .care-directory-bar {
+  margin: 0 24px 12px;
+  padding: 7px 12px;
+}
+.care-community .care-main {
+  grid-template-columns: minmax(230px, 1fr) minmax(270px, 1fr) minmax(300px, 1.1fr);
+  padding: 0 24px 30px;
+  gap: 18px;
+}
+.care-community .care-details {
+  border: 1px solid var(--care-border);
+  border-radius: 7px;
+  padding: 0;
+  background: white;
+  gap: 0;
+}
+.care-community .care-detail-card {
+  border: 0;
+}
+.care-community .care-person-context {
+  background: white;
+  border-top: 1px solid var(--care-border);
+  border-radius: 0;
+}
+.care-community .care-incoming {
+  padding: 0 24px;
+  margin-bottom: 20px;
+}
+.care-community .care-incoming-heading h2 {
+  font:
+    600 18px -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+.care-community .care-handover-card {
+  padding: 12px 18px;
+}
+.care-community .care-record.is-selected .care-record-name {
+  background: #ffebe7;
+}
+.care-community .care-record::before {
+  background: #d9e4e6;
+}
+.care-community .care-record::after {
+  background: #fff;
+  border-color: #dc5d59;
+}
+.care-community .care-record.is-selected::after {
+  background: #dc5d59;
+  border-color: #dc5d59;
+}
+.care-community .care-record-index {
+  color: #385a65;
+}
+.care-community .care-record-name {
+  border-color: #dce6e7;
+}
+.care-community .care-status {
+  white-space: normal;
+  max-width: 75px;
+}
+.care-community .care-ledger-heading h2 {
+  font:
+    650 22px -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+.community-route {
+  border: 1px solid var(--care-border);
+  border-radius: 7px;
+  overflow: hidden;
+  background: #edf2e8;
+}
+.community-route-heading {
+  padding: 18px;
+  background: #fff;
+}
+.community-route-heading h2 {
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+.community-route-heading p,
+.route-disclaimer {
+  font-size: 10px;
+  margin: 0;
+  color: #557078;
+}
+.community-route-canvas {
+  position: relative;
+  height: 570px;
+  background:
+    repeating-linear-gradient(30deg, transparent, transparent 45px, #fff9 46px, #fff9 49px),
+    repeating-linear-gradient(115deg, #e5edde, #e5edde 58px, #d5e2cc 59px, #d5e2cc 85px);
+}
+.community-route-canvas svg {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+.route-river {
+  fill: none;
+  stroke: #b4d7e4;
+  stroke-width: 48px;
+}
+.route-street {
+  fill: none;
+  stroke: white;
+  stroke-width: 9px;
+}
+.route-trail {
+  fill: none;
+  stroke: #dc5d59;
+  stroke-width: 3px;
+  stroke-dasharray: 6 5;
+}
+.community-route-canvas .community-stop {
+  display: flex;
+  position: absolute;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: 85%;
+  text-align: left;
+  gap: 5px;
+}
+.community-stop > b {
+  display: grid;
+  place-items: center;
+  border: 3px solid white;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #dc5d59;
+  color: white;
+  flex-shrink: 0;
+}
+.community-stop > span {
+  padding: 8px 10px;
+  background: #fffffff2;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px #143c4420;
+  font-size: 11px;
+}
+.community-stop small {
+  display: block;
+  font-size: 10px;
+  color: #64808a;
+  text-transform: capitalize;
+}
+.community-stop.is-selected > span {
+  outline: 2px solid #dc5d59;
+}
+.stop-0 {
+  top: 7%;
+  left: 7%;
+}
+.stop-1 {
+  top: 23%;
+  left: 25%;
+}
+.stop-2 {
+  top: 39%;
+  left: 12%;
+}
+.stop-3 {
+  top: 55%;
+  left: 25%;
+}
+.stop-4 {
+  top: 71%;
+  left: 6%;
+}
+.stop-5 {
+  top: 86%;
+  left: 25%;
+}
+.route-disclaimer {
+  padding: 12px;
+  background: white;
+}
+.route-empty {
+  position: relative;
+  padding: 28px;
+}
+@media (max-width: 1100px) {
+  .care-pharmacy .care-main {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+  .pharmacy-label-column {
+    grid-column: 2;
+    grid-row: auto;
+  }
+  .care-pharmacy .care-queue {
+    grid-row: span 3;
+  }
+  .care-community .care-main {
+    grid-template-columns: minmax(260px, 1fr) minmax(300px, 1fr);
+  }
+  .community-route {
+    grid-column: 1 / -1;
+  }
+  .community-route-canvas {
+    height: 270px;
+  }
+  .community-route-canvas .community-stop {
+    max-width: 30%;
+  }
+  .stop-0 {
+    left: 5%;
+    top: 8%;
+  }
+  .stop-1 {
+    left: 35%;
+    top: 8%;
+  }
+  .stop-2 {
+    left: 68%;
+    top: 8%;
+  }
+  .stop-3 {
+    left: 5%;
+    top: 60%;
+  }
+  .stop-4 {
+    left: 35%;
+    top: 60%;
+  }
+  .stop-5 {
+    left: 68%;
+    top: 60%;
+  }
+  .dispensing-stages button {
+    gap: 7px;
+    padding: 12px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 720px) {
+  .care-pharmacy .care-main,
+  .care-community .care-main {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 16px 24px;
+  }
+  .care-pharmacy .care-queue,
+  .pharmacy-label-column,
+  .care-supply-history,
+  .community-route {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .care-pharmacy .care-brand strong {
+    font-size: 18px;
+  }
+  .dispensing-stages {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 16px;
+  }
+  .community-route-canvas {
+    height: 420px;
+  }
+  .community-route-canvas .community-stop {
+    max-width: 80%;
+  }
+  .stop-0 {
+    top: 5%;
+    left: 5%;
+  }
+  .stop-1 {
+    top: 21%;
+    left: 25%;
+  }
+  .stop-2 {
+    top: 37%;
+    left: 10%;
+  }
+  .stop-3 {
+    top: 53%;
+    left: 25%;
+  }
+  .stop-4 {
+    top: 69%;
+    left: 5%;
+  }
+  .stop-5 {
+    top: 85%;
+    left: 25%;
+  }
+}
+
+.care-pharmacy .care-heading .care-eyebrow,
+.care-community .care-heading .care-eyebrow {
+  margin-bottom: 3px;
+}
+.care-pharmacy .care-heading h1,
+.care-community .care-heading h1 {
+  margin-bottom: 3px;
+}
+.care-pharmacy .care-heading > div > p:last-child,
+.care-community .care-heading > div > p:last-child {
+  font-size: 12px;
+}
+
+.care-community .care-incoming-disclosure {
+  margin-bottom: 12px;
+}
+.care-incoming-disclosure > summary {
+  cursor: pointer;
+  padding: 10px 14px;
+  border: 1px solid var(--care-border);
+  border-radius: 5px;
+  background: #fff;
+  font-size: 12px;
+}
+.care-incoming-disclosure > summary > span {
+  margin-left: 12px;
+  color: #647976;
+  font-size: 11px;
+}
+.care-incoming-disclosure[open] > summary {
+  margin-bottom: 12px;
+}
+@media (max-width: 600px) {
+  .care-incoming-disclosure > summary > span {
+    display: block;
+    margin: 4px 0 0 14px;
+  }
+}
+
+@media (max-width: 720px) {
+  .care-community .care-queue { grid-row: 1; }
+  .care-community .care-details { grid-row: 2; }
+  .care-community .community-route { grid-row: 3; }
+}

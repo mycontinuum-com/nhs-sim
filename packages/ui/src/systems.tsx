@@ -791,7 +791,7 @@ function CareCoordination({
     </section>
   );
 }
-export function SystemWorkspace(props: Props) {
+function PracticeWorkspace(props: Props) {
   const hospital = props.siteId === "hospital";
   const careService = new URLSearchParams(location.search).get("care") ?? "";
   const [tab, setTab] = useState(
@@ -1008,5 +1008,377 @@ export function SystemWorkspace(props: Props) {
         />
       )}
     </section>
+  );
+}
+
+function HospitalWorkspace(props: Props) {
+  const [section, setSection] = useState("Hospital operations");
+  const [drawerTab, setDrawerTab] = useState(
+    new URLSearchParams(location.search).has("care") ? "Handover" : "Journal",
+  );
+  const [recordId, setRecordId] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(Boolean(props.selectedPatient));
+  const [urgentOnly, setUrgentOnly] = useState(false);
+  const [limit, setLimit] = useState(30);
+  const [operation, setOperation] = useState<Operation | null>(null);
+  const allRows = [
+    ...props.rows,
+    ...(props.handoverRows ?? []).filter(
+      (r) => !props.rows.some((existing) => existing.id === r.id),
+    ),
+  ];
+  const patient = props.patients.find((p) => p.id === props.selectedPatient);
+  const patientRows = allRows.filter((r) => r.patientId === patient?.id);
+  const record = allRows.find((r) => r.id === recordId);
+  const operational = props.rows.filter(
+    (r) => !["ehr-record", "staff", "capacity", "robot"].includes(r.kind) && !finished(r),
+  );
+  const search = props.patientSearch.trim().toLowerCase();
+  const visible = operational.filter(
+    (r) =>
+      (!urgentOnly || r.priority === "urgent") &&
+      (!search ||
+        [r.title, r.patientId ?? "", props.patients.find((p) => p.id === r.patientId)?.name ?? ""]
+          .join(" ")
+          .toLowerCase()
+          .includes(search)),
+  );
+  const groups = [
+    {
+      title: "Active care",
+      subtitle: "Encounters, referrals & tasks",
+      rows: visible.filter(
+        (r) =>
+          ![
+            "test",
+            "report",
+            "observation",
+            "genomic-test",
+            "discharge",
+            "document",
+            "handover",
+            "prescription",
+            "visit",
+          ].includes(r.kind),
+      ),
+    },
+    {
+      title: "Investigations",
+      subtitle: "Requests & results",
+      rows: visible.filter((r) =>
+        ["test", "report", "observation", "genomic-test"].includes(r.kind),
+      ),
+    },
+    {
+      title: "Discharge & onward care",
+      subtitle: "Documents & transitions between services",
+      rows: visible.filter((r) =>
+        ["discharge", "document", "handover", "prescription", "visit"].includes(r.kind),
+      ),
+    },
+  ];
+  const openRecord = (r: Resource) => {
+    props.selectPatient(r.patientId ?? "");
+    setRecordId(r.id);
+    setDrawerTab("Encounter");
+    setDrawerOpen(true);
+  };
+  return (
+    <section className="system-ui immersive-ehr hospital-operations">
+      <header className="hospital-masthead">
+        <div className="hospital-brand">
+          <span aria-hidden="true">▦</span>
+          <div>
+            <strong>Northbank General</strong>
+            <small>Millbank Hospital · simulation</small>
+          </div>
+        </div>
+        <nav aria-label="Hospital workspace">
+          {["Hospital operations", "All records"].map((name) => (
+            <button
+              key={name}
+              className={section === name ? "active" : ""}
+              onClick={() => setSection(name)}
+            >
+              {name}
+            </button>
+          ))}
+        </nav>
+        <button
+          onClick={() => (props.exitToMap ? props.exitToMap() : location.assign("/control/"))}
+        >
+          ← Neighbourhood map
+        </button>
+        <span>{props.identityLabel ?? "Simulation workspace"}</span>
+      </header>
+      <div className="hospital-overview">
+        <div>
+          <small>Hospital operations</small>
+          <h1>Care activity</h1>
+          <time>{date(props.view.now)}</time>
+        </div>
+        <dl>
+          <div>
+            <dt>Staffed spaces</dt>
+            <dd>{props.view.staffing.staffedSpaces}</dd>
+          </div>
+          <div>
+            <dt>Waiting</dt>
+            <dd>{props.view.staffing.waiting}</dd>
+          </div>
+          <div>
+            <dt>Urgent records loaded</dt>
+            <dd>{operational.filter((r) => r.priority === "urgent").length}</dd>
+          </div>
+          <div>
+            <dt>Investigations loaded</dt>
+            <dd>
+              {
+                operational.filter((r) =>
+                  ["test", "report", "observation", "genomic-test"].includes(r.kind),
+                ).length
+              }
+            </dd>
+          </div>
+        </dl>
+      </div>
+      <div className="hospital-tools">
+        <PatientFinder
+          {...props}
+          selectPatient={(id) => {
+            props.selectPatient(id);
+            setRecordId("");
+            setDrawerTab("Journal");
+            setDrawerOpen(true);
+          }}
+        />
+        <label>
+          <input
+            type="checkbox"
+            checked={urgentOnly}
+            onChange={(e) => {
+              setUrgentOnly(e.target.checked);
+              setLimit(30);
+            }}
+          />{" "}
+          Urgent only
+        </label>
+        <a href="/docs/" target="_blank" rel="noreferrer">
+          Handbook ↗
+        </a>
+      </div>
+      <div
+        className={"hospital-stage" + (drawerOpen && (patient || record) ? " with-encounter" : "")}
+      >
+        <main className="hospital-board">
+          {section === "Hospital operations" ? (
+            <>
+              <div className="hospital-lanes">
+                {groups.map((group) => (
+                  <section className="hospital-lane" key={group.title}>
+                    <header>
+                      <h2>
+                        {group.title} <span>{group.rows.length}</span>
+                      </h2>
+                      <small>{group.subtitle}</small>
+                    </header>
+                    {group.rows.slice(0, limit).map((r) => (
+                      <button
+                        className={
+                          "hospital-case " +
+                          (r.priority === "urgent" ? "urgent " : "") +
+                          (recordId === r.id && drawerOpen ? "selected" : "")
+                        }
+                        key={r.id}
+                        onClick={() => openRecord(r)}
+                      >
+                        <span className="hospital-case-meta">
+                          <span>{r.kind}</span>
+                          <b>{r.priority}</b>
+                        </span>
+                        <strong>
+                          {props.patients.find((p) => p.id === r.patientId)?.name ??
+                            r.patientId ??
+                            "Service record"}
+                        </strong>
+                        <p>{r.title}</p>
+                        <small>
+                          {r.status} · {r.owner}
+                        </small>
+                        <span className="hospital-case-footer">
+                          {r.dueAt ? "Due " + date(r.dueAt) : "Created " + date(r.createdAt)}
+                          <span>Open →</span>
+                        </span>
+                      </button>
+                    ))}
+                    {!group.rows.length && (
+                      <p className="ehr-empty">No open records in this view.</p>
+                    )}
+                    {group.rows.length > limit && (
+                      <button onClick={() => setLimit(limit + 30)}>Show 30 more</button>
+                    )}
+                  </section>
+                ))}
+              </div>
+              <section className="hospital-activity">
+                <header>
+                  <h2>Recent hospital activity</h2>
+                  <button onClick={() => setSection("All records")}>View all records →</button>
+                </header>
+                {[...props.rows]
+                  .filter((r) => r.kind !== "ehr-record")
+                  .sort((a, b) => b.createdAt - a.createdAt)
+                  .slice(0, 6)
+                  .map((r) => (
+                    <button key={r.id} onClick={() => openRecord(r)}>
+                      <time>{date(r.createdAt)}</time>
+                      <span>{r.title}</span>
+                      <small>{r.status}</small>
+                    </button>
+                  ))}
+              </section>
+            </>
+          ) : (
+            <Journal
+              rows={props.rows.filter((r) => !urgentOnly || r.priority === "urgent")}
+              tab="Journal"
+              select={(id) => {
+                const r = props.rows.find((row) => row.id === id);
+                if (r) openRecord(r);
+              }}
+            />
+          )}
+        </main>
+        {drawerOpen && (patient || record) && (
+          <aside className="hospital-encounter" aria-label="Patient encounter">
+            <header>
+              <div>
+                <small>{patient?.id ?? record?.id} · simulation</small>
+                <h2>{patient?.name ?? record?.patientId ?? "Service activity"}</h2>
+                <p>{patient?.conditions.join(", ") || record?.kind || "No problems recorded"}</p>
+              </div>
+              <button aria-label="Close encounter" onClick={() => setDrawerOpen(false)}>
+                ×
+              </button>
+            </header>
+            <nav aria-label="Encounter sections">
+              {(patient
+                ? [
+                    "Encounter",
+                    "Journal",
+                    "Results",
+                    "Medication",
+                    "Problems",
+                    "Documents",
+                    "Handover",
+                  ]
+                : ["Encounter"]
+              ).map((name) => (
+                <button
+                  className={drawerTab === name ? "active" : ""}
+                  key={name}
+                  onClick={() => setDrawerTab(name)}
+                >
+                  {name}
+                </button>
+              ))}
+            </nav>
+            <div className="hospital-encounter-content">
+              {drawerTab === "Encounter" ? (
+                record ? (
+                  <Detail
+                    record={record}
+                    act={props.act}
+                    pending={props.pending}
+                    siteId="hospital"
+                    close={() => {
+                      setRecordId("");
+                      setDrawerTab("Journal");
+                    }}
+                  />
+                ) : (
+                  <p className="ehr-empty">
+                    Choose an activity card or open this patient's journal.
+                  </p>
+                )
+              ) : drawerTab === "Handover" && patient ? (
+                <Handover
+                  patient={patient}
+                  rows={allRows}
+                  act={props.act}
+                  pending={props.pending}
+                  open={setOperation}
+                  select={(id) => {
+                    setRecordId(id);
+                    setDrawerTab("Encounter");
+                  }}
+                />
+              ) : ["Medication", "Problems"].includes(drawerTab) && patient ? (
+                <ClinicalCollections
+                  key={patient.id + drawerTab}
+                  rows={patientRows}
+                  patientId={patient.id}
+                  collection={drawerTab}
+                />
+              ) : (
+                <Journal
+                  key={(patient?.id ?? "service") + drawerTab}
+                  rows={
+                    drawerTab === "Results"
+                      ? patientRows.filter((r) =>
+                          ["test", "report", "observation", "genomic-test"].includes(r.kind),
+                        )
+                      : patientRows
+                  }
+                  tab={drawerTab === "Results" ? "Journal" : drawerTab}
+                  select={(id) => {
+                    setRecordId(id);
+                    setDrawerTab("Encounter");
+                  }}
+                />
+              )}
+            </div>
+            {patient && (
+              <footer>
+                <small>Create for {patient.name}</small>
+                <div>
+                  {operations
+                    .filter((x) => x.type !== "create_referral")
+                    .map((x) => (
+                      <button key={x.type} disabled={props.pending} onClick={() => setOperation(x)}>
+                        {x.label}
+                      </button>
+                    ))}
+                </div>
+              </footer>
+            )}
+          </aside>
+        )}
+      </div>
+      <footer className="hospital-status">
+        <span>{props.pending ? "Saving changes…" : "Connected to simulation"}</span>
+        <span>
+          {operational.length} open records loaded · {props.view.staffing.doctors} doctors ·{" "}
+          {props.view.staffing.nurses} nurses
+        </span>
+      </footer>
+      {operation && patient && (
+        <Composer
+          operation={operation}
+          patient={patient}
+          create={props.create}
+          pending={props.pending}
+          close={() => setOperation(null)}
+        />
+      )}
+    </section>
+  );
+}
+
+export function SystemWorkspace(props: Props) {
+  return props.siteId === "hospital" ? (
+    <HospitalWorkspace {...props} />
+  ) : (
+    <PracticeWorkspace {...props} />
   );
 }

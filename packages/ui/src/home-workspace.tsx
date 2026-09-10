@@ -21,7 +21,7 @@ const number = (value: number) => value.toLocaleString("en-GB", { maximumFractio
 const metricDefinitions = [
   {
     id: "activity",
-    label: "Daily activity",
+    label: "Movement",
     unit: "steps/day",
     suffix: "steps",
     icon: "↗",
@@ -48,7 +48,7 @@ function Trend({ readings, label }: { readings: Reading[]; label: string }) {
             <span
               className={`home-chart-bar ${reading.quality === "missing" ? "is-missing" : ""}`}
               style={{
-                height: `${reading.value === null ? 3 : Math.max(3, (reading.value / maximum) * 100)}%`,
+                height: `${reading.value === null || reading.quality === "missing" ? 3 : Math.max(3, (reading.value / maximum) * 100)}%`,
               }}
               title={`${day(reading.at)} ${clock(reading.at)}: ${reading.value === null ? "missing" : `${number(reading.value)} ${reading.unit}`}`}
             />
@@ -110,19 +110,20 @@ export function HomeWorkspace(props: Props) {
           ← Neighbourhood
         </button>
         <a className="home-wordmark" href="/wearables/">
-          daylight<span>at home</span>
+          <span aria-hidden="true">⌂</span> At home
         </a>
         <span className="home-synthetic">Synthetic world</span>
       </header>
       <main className="home-main">
         <div className="home-heading">
           <div>
-            <p className="home-eyebrow">Everyday wellbeing</p>
-            <h1>{patient ? `${patient.name.split(" ")[0]}’s home` : "Welcome home."}</h1>
+            <p className="home-eyebrow">Your everyday rhythms</p>
+            <h1>{patient ? `Hello, ${patient.name.split(" ")[0]}.` : "Welcome home."}</h1>
             <p>Your activity, connected devices and everyday rhythms.</p>
           </div>
           <button
             className="home-resident-button"
+            aria-expanded={chooseResident || !patient}
             onClick={() => setChooseResident(!chooseResident)}
           >
             {patient ? (
@@ -202,102 +203,137 @@ export function HomeWorkspace(props: Props) {
                 </button>
               </div>
             </div>
-            <section className="home-metrics" aria-label="Wellbeing readings">
-              {metricDefinitions.map((metric) => {
-                const series = inPeriod.filter((reading) => reading.unit === metric.unit);
-                const current = series.at(-1);
-                const available =
-                  current && current.value !== null && current.quality !== "missing";
-                return (
-                  <article
-                    key={metric.id}
-                    className={`home-metric home-${metric.tone} ${metric.id === "activity" ? "home-activity" : ""}`}
-                  >
-                    <div className="home-metric-title">
-                      <span className="home-metric-icon" aria-hidden="true">
-                        {metric.icon}
-                      </span>
-                      <h2>{metric.label}</h2>
-                      <span className="home-metric-period">{period === "day" ? "24H" : "7D"}</span>
-                    </div>
-                    <div className="home-metric-value">
-                      {available ? number(current.value ?? 0) : "—"}
-                      <small>{metric.suffix}</small>
-                    </div>
-                    <p className="home-metric-caption">
-                      {current
-                        ? current.quality === "missing"
-                          ? "Reading unavailable · device connection interrupted"
-                          : `Latest recorded · ${day(current.at)}, ${clock(current.at)}`
-                        : "No recorded data in this period"}
-                    </p>
-                    <Trend readings={series} label={metric.label} />
-                    {metric.id === "activity" && (
-                      <div className="home-baseline">
-                        {current?.baseline !== undefined ? (
-                          <>
-                            <b>{number(current.baseline)}</b> recorded personal baseline · steps/day
-                          </>
-                        ) : (
-                          "Each bar is a recorded daily activity estimate, not an hourly step count."
-                        )}
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-            </section>
-            <div className="home-lower-grid">
-              <section className="home-panel">
-                <div className="home-panel-heading">
-                  <h2>Connected at home</h2>
-                  <span>
-                    {devices.length} {devices.length === 1 ? "device" : "devices"}
-                  </span>
-                </div>
-                {devices.length ? (
-                  devices.map((device) => {
-                    const parsed = deviceSchema.safeParse(device.data);
-                    return (
-                      <div className="home-device" key={device.id}>
-                        <span className="home-device-icon" aria-hidden="true">
-                          ⌚
+            <div className="home-dashboard">
+              <section className="home-metrics" aria-label="Wellbeing readings">
+                {metricDefinitions.map((metric) => {
+                  const series = inPeriod.filter((reading) => reading.unit === metric.unit);
+                  const current = series.at(-1);
+                  const available =
+                    current && current.value !== null && current.quality !== "missing";
+                  return (
+                    <article
+                      key={metric.id}
+                      className={`home-metric home-${metric.tone} ${metric.id === "activity" ? "home-activity" : ""}`}
+                    >
+                      <div className="home-metric-title">
+                        <span className="home-metric-icon" aria-hidden="true">
+                          {metric.icon}
                         </span>
-                        <div>
-                          <strong>{device.title}</strong>
-                          <p>
-                            {device.status} ·{" "}
-                            {parsed.success
-                              ? (parsed.data.quality ?? "No signal quality recorded")
-                              : "No signal quality recorded"}
-                          </p>
-                        </div>
-                        {parsed.success && parsed.data.battery !== undefined && (
-                          <span className="home-battery">
-                            {parsed.data.battery}%<small>battery</small>
-                          </span>
-                        )}
+                        <h2>{metric.label}</h2>
+                        <span className="home-metric-period">
+                          {period === "day" ? "24H" : "7D"}
+                        </span>
                       </div>
-                    );
-                  })
-                ) : (
-                  <p className="home-muted">No device is registered for this resident.</p>
-                )}
-                <p className="home-panel-note">
-                  Device and reading states come from this simulation’s records.
-                </p>
+                      <div
+                        className={
+                          metric.id === "activity"
+                            ? "home-movement-summary"
+                            : "home-reading-summary"
+                        }
+                      >
+                        {metric.id === "activity" && (
+                          <svg
+                            className="home-movement-ring"
+                            viewBox="0 0 180 180"
+                            aria-hidden="true"
+                          >
+                            <circle className="home-ring-track" cx="90" cy="90" r="77" />
+                            {available &&
+                              current.baseline !== undefined &&
+                              current.baseline > 0 && (
+                                <circle
+                                  className="home-ring-value"
+                                  cx="90"
+                                  cy="90"
+                                  r="77"
+                                  pathLength="100"
+                                  strokeDasharray={`${Math.min(100, Math.max(0, ((current.value ?? 0) / current.baseline) * 100))} 100`}
+                                />
+                              )}
+                          </svg>
+                        )}
+                        <div className="home-metric-value">
+                          {available ? number(current.value ?? 0) : "—"}
+                          <small>{metric.suffix}</small>
+                        </div>
+                      </div>
+                      <p className="home-metric-caption">
+                        {current
+                          ? current.quality === "missing"
+                            ? "Reading unavailable · device connection interrupted"
+                            : `Latest recorded · ${day(current.at)}, ${clock(current.at)}`
+                          : "No recorded data in this period"}
+                      </p>
+                      <Trend readings={series} label={metric.label} />
+                      {metric.id === "activity" && (
+                        <div className="home-baseline">
+                          {current?.baseline !== undefined ? (
+                            <>
+                              Ring compares the latest reading with a recorded baseline of{" "}
+                              <b>{number(current.baseline)}</b> steps/day. This is not a target.
+                            </>
+                          ) : (
+                            "Each bar is a recorded daily activity estimate, not an hourly step count."
+                          )}
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
               </section>
-              <section className="home-panel home-simulation">
-                <p className="home-eyebrow">Try it in your team’s world</p>
-                <h2>See a new reading arrive.</h2>
-                <p>
-                  The home monitor sends Eleanor’s activity reading every simulated hour. Advance
-                  the clock below by 60 minutes, then watch her next reading arrive here.
-                </p>
-                <p className="home-panel-note">
-                  The operator can simulate a disconnected device. Missing readings stay missing.
-                </p>
-              </section>
+              <div className="home-lower-grid">
+                <section className="home-panel home-devices">
+                  <div className="home-panel-heading">
+                    <h2>Connected at home</h2>
+                    <span>
+                      {devices.length} {devices.length === 1 ? "device" : "devices"}
+                    </span>
+                  </div>
+                  {devices.length ? (
+                    devices.map((device) => {
+                      const parsed = deviceSchema.safeParse(device.data);
+                      return (
+                        <div className="home-device" key={device.id}>
+                          <span className="home-device-icon" aria-hidden="true">
+                            ⌚
+                          </span>
+                          <div>
+                            <strong>{device.title}</strong>
+                            <p>
+                              {device.status} ·{" "}
+                              {parsed.success
+                                ? (parsed.data.quality ?? "No signal quality recorded")
+                                : "No signal quality recorded"}
+                            </p>
+                          </div>
+                          {parsed.success && parsed.data.battery !== undefined && (
+                            <span className="home-battery">
+                              {parsed.data.battery}%<small>battery</small>
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="home-muted">No device is registered for this resident.</p>
+                  )}
+                  <p className="home-panel-note">
+                    Device and reading states come from this simulation’s records.
+                  </p>
+                </section>
+                <section className="home-panel home-simulation">
+                  <p className="home-eyebrow">Try it in your team’s world</p>
+                  <h2>See a new reading arrive.</h2>
+                  <p>
+                    Eleanor’s home monitor sends an activity reading every simulated hour. Select
+                    Eleanor, advance the clock below by 60 minutes, then watch her next reading
+                    arrive here.
+                  </p>
+                  <p className="home-panel-note">
+                    The operator can simulate a disconnected device. Missing readings stay missing.
+                  </p>
+                </section>
+              </div>
             </div>
             <section className="home-records">
               <button
