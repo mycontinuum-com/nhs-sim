@@ -146,6 +146,6 @@ test("pharmacy upgrade preserves existing records and is idempotent", () => {
   };
   const upgraded = upgradePharmacyWorld(old);
   assert.equal(upgraded.resources[0], old.resources[0]);
-  assert.equal(upgraded.resources.filter((r) => r.kind === "pharmacy-product").length, 5);
+  assert.equal(upgraded.resources.filter((r) => r.kind === "pharmacy-product").length, 30);
   assert.equal(upgradePharmacyWorld(upgraded), upgraded);
 });

@@ -184,7 +184,7 @@ All updates carry team attribution and use simulation timestamps. Current mean w
 
 ## Pharmacy workspace and purchasing
 
-`GET /api/sites/pharmacy/pharmacy-workspace` returns this team's prescriptions, Pharmacy First referrals, product catalogue, supplier quotes, purchase orders, stock movements and relevant patients. See the [pharmacy workflow guide](/docs/pharmacy/).
+`GET /api/sites/pharmacy/pharmacy-workspace` returns this team's prescriptions, Pharmacy First referrals, product catalogue, supplier quotes, the shared `pharmacy-basket`, purchase orders, stock movements and relevant patients. Procurement resources do not require a `patientId`. See the [pharmacy workflow guide](/docs/pharmacy/).
 
 Send actions to `POST /api/sites/pharmacy/actions`. All updates require `resourceId` and `expectedVersion`; use an `Idempotency-Key` on retries.
 
@@ -197,8 +197,14 @@ Send actions to `POST /api/sites/pharmacy/actions`. All updates require `resourc
 | `receive_stock`             | Product resource, `quantity` in units, unique `text` delivery reference               | Receives an external delivery at current catalogue cost       |
 | `update_stock_price`        | Product resource, `costPence`, `pricePence`, `reorderLevel`                           | Changes simulated pack prices and reorder threshold           |
 | `place_pharmacy_order`      | Supplier quote resource, `quantity` in packs                                          | Snapshots quote, total price and delivery due date            |
-| `receive_pharmacy_order`    | Outstanding order resource                                                            | Adds ordered units and acquisition cost once, after due time  |
+| `update_pharmacy_basket` | Basket resource, `quoteId`, `quoteVersion`, `quantity` in packs, `requiredUnits` | Adds or replaces a product line after minimum-order validation |
+| `remove_pharmacy_basket_line` | Basket resource, `productId` | Removes the selected product from the shared basket |
+| `checkout_pharmacy_basket` | Basket resource | Validates frozen offers, creates linked supplier orders, returns `data.orderIds` |
+| `receive_pharmacy_order` | Outstanding order resource, `quantity` in packs, unique `text` receipt reference | Receives all or part of a due order and adds its acquisition cost |
+| `cancel_pharmacy_order` | Outstanding order resource, `text` reason | Cancels unreceived packs without changing received stock |
 
-Supplier quotes expose `productId`, `supplier`, `packSize`, `packCostPence`, `minimumPacks`, and `leadDays`. Purchase orders add `packs`, `totalPence`, `orderedAt`, `dueAt` and, after receipt, `receivedAt`. Advance simulation time before receiving a future delivery. All suppliers and prices are fictional.
+Supplier quotes expose `productId`, `supplier`, `packSize`, `packCostPence`, `minimumPacks`, and `leadDays`, plus `available` and `deliveryFeePence`. Purchase orders add `packs`, `totalPence`, `orderedAt`, `dueAt`, `receivedPacks`, `cancelledPacks`, and `receivedCostPence`. Orders from one basket share a `batchId`. Receipt sets `receivedAt`. Advance simulation time before receiving a future delivery. All suppliers and prices are fictional.
+
+A changed supplier offer causes checkout to return a conflict. Refresh the workspace and update the affected basket line before retrying. Use the same idempotency key for retries of one logical checkout or receipt. Omitted receipt quantity preserves the full-delivery action.
 
 Products expose `stock` in units and `stockCostPence` as total weighted acquisition value. Dispensing movements snapshot `costPence` and `revenuePence` for the dispensed quantity; received deliveries snapshot `acquisitionPence`. Later prices do not rewrite these values. Purchase cost, stock value and gross margin are separate measures; this is not a net-profit model.

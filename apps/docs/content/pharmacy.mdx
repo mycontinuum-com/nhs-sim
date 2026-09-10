@@ -22,21 +22,39 @@ The simulator records the workflow and your entered outcome. It does not choose 
 2. Link the matching catalogue product and enter the quantity in units.
 3. Record the review and approve the prescription.
 4. Dispense the item. The product's stock falls by the dispensed quantity.
-5. Confirm collection. Inspect the movement ledger for the stock change and its author.
+5. Confirm collection. Open **Stock & buying → Stock activity** for the stock change and its author.
 
 If stock is insufficient, receive a delivery before dispensing. Repeating a completed dispense cannot deduct stock again.
 
-## Compare suppliers and order stock
+## Buy medicines without selecting a patient
 
-Open a product in **Stock & prices**. Compare supplier pack prices, pack quantities, minimum orders, and lead times. Purchase orders retain the quote agreed when the order was placed. Receive the order when its delivery is available to add the units to stock.
+Switch to **Stock & buying**. This area belongs to your team's pharmacy. Patient selection only applies to **Patient care**.
 
-Pack prices and stock units are different quantities. Compare cost per unit when pack sizes differ. A cheaper pack does not necessarily contain the same quantity.
+1. Open **Buy medicines** and search the catalogue, including products with no stock.
+2. Choose the exact medicine and formulation. Enter the number of units you need.
+3. Compare suppliers. Each offer shows pack size, pack cost, minimum order, delivery time, and total cost for the required quantity.
+4. Add an offer to the basket. Repeat for other medicines. The basket is saved in your team world.
+5. Review the basket and place the order. Supplier orders retain their agreed prices and delivery dates.
+
+Pack sizes and minimum orders can mean buying more units than requested. Compare the total and excess units as well as price per pack. Different strengths and formulations are separate products.
+
+## Receive or cancel an order
+
+Open **Orders** to see what is due. Advance simulation time using the fixed bottom bar when waiting for a delivery. Receive the number of packs actually delivered and give the receipt a reference. You can receive a delivery in parts, or cancel the quantity still outstanding with a reason.
+
+Placing an order creates a commitment. It does not increase stock. Receiving packs increases stock and inventory cost. Cancelling outstanding packs releases the remaining commitment and leaves received stock unchanged.
+
+## Inspect inventory and stock activity
+
+**Inventory** shows the medicine catalogue and current stock. **Stock activity** records physical movements across the pharmacy, including opening balances, receipts, and dispensing. It is not filtered by the selected patient. A dispensing movement links back to the prescription that consumed the stock.
+
+Opening balances explain stock already present when tracking begins. They do not invent historical purchases or their authors.
 
 ## Connect a stock-management agent
 
 Use **Team & API key** in the fixed bottom bar to copy your key. Read the pharmacy workspace through `GET /api/sites/pharmacy/pharmacy-workspace`. Submit changes through `POST /api/sites/pharmacy/actions`. See the [action reference](/docs/api/) for request fields.
 
-An agent can compare quotes, inspect stock and reorder levels, place purchase orders, and observe completed dispensing. Use `expectedVersion` when changing a record and an `Idempotency-Key` header when submitting an action that may be retried. Refresh the record after a version conflict.
+An agent can compare quotes, inspect stock and reorder levels, build a shared basket, place purchase orders, receive deliveries, cancel outstanding quantities, and observe completed dispensing. Use `expectedVersion` when changing a record and an `Idempotency-Key` header when submitting an action that may be retried. Refresh the record after a version conflict.
 
 Assess ordering decisions using stock availability as well as cost. An experiment that reduces stock value while leaving prescriptions unfilled has changed the service level. Record both outcomes in your demo.
 

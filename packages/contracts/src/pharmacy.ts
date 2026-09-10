@@ -36,6 +36,8 @@ export const supplierQuoteSchema = z.object({
   packCostPence: z.number().int().nonnegative(),
   minimumPacks: z.number().int().positive(),
   leadDays: z.number().int().nonnegative(),
+  deliveryFeePence: z.number().int().nonnegative().default(0),
+  available: z.boolean().default(true),
 });
 export const purchaseOrderSchema = supplierQuoteSchema.extend({
   packs: z.number().int().positive(),
@@ -43,4 +45,14 @@ export const purchaseOrderSchema = supplierQuoteSchema.extend({
   orderedAt: z.number(),
   dueAt: z.number(),
   receivedAt: z.number().optional(),
+  receivedPacks: z.number().int().nonnegative().default(0),
+  cancelledPacks: z.number().int().nonnegative().default(0),
+  receivedCostPence: z.number().nonnegative().default(0),
+  batchId: z.string().optional(),
+  cancellationReason: z.string().optional(),
+});
+
+export const pharmacyBasketSchema = z.object({
+  lines: z.array(z.object({quoteId: z.string(), quoteVersion: z.number().int().positive(), productId: z.string(), packs: z.number().int().positive(), requiredUnits: z.number().int().positive(), quote: supplierQuoteSchema})).max(100),
+  orderIds: z.array(z.string()).optional(),
 });

@@ -3,7 +3,7 @@ import { appointmentSessionSchema, occupiesAppointmentSlot } from "../../contrac
 import { seedDocuments } from "./document-seed.ts";
 import { dischargeDocumentSchema } from "../../contracts/src/documents.ts";
 import { seedPharmacy } from "./pharmacy-seed.ts";
-import { pharmacyProductSchema, pharmacyReferralSchema, supplierQuoteSchema, purchaseOrderSchema } from "../../contracts/src/pharmacy.ts";
+import { pharmacyProductSchema, pharmacyReferralSchema, supplierQuoteSchema, purchaseOrderSchema, pharmacyBasketSchema } from "../../contracts/src/pharmacy.ts";
 import { seedHospitalAttendances } from "./hospital-seed.ts";
 import { hospitalAttendanceSchema } from "../../contracts/src/hospital.ts";
 import { produce, current, isDraft, original, setAutoFreeze } from "immer";
@@ -738,29 +738,74 @@ export class Engine {
           r.status = String(r.data.stage);
           r.version++;
         }
-      } else if (["place_pharmacy_order", "receive_pharmacy_order", "receive_pharmacy_referral", "update_pharmacy_referral", "receive_stock", "update_stock_price", "link_prescription_stock"].includes(a.type)) {
+      } else if (["update_pharmacy_basket", "remove_pharmacy_basket_line", "checkout_pharmacy_basket"].includes(a.type)) {
+        if (site !== "pharmacy" && site !== "control") throw new SimError("Pharmacy access required", 403);
+        if (!r || r.kind !== "pharmacy-basket" || a.expectedVersion === undefined) throw new SimError("Versioned team basket required", 409);
+        const basket = pharmacyBasketSchema.parse(r.data);
+        const resources = original(w)?.resources ?? w.resources;
+        if (a.type === "update_pharmacy_basket") {
+          const offer = resources.find(item => item.id === a.quoteId && item.kind === "pharmacy-quote");
+          if (!offer || offer.version !== a.quoteVersion) throw new SimError("Supplier offer changed; compare current prices again", 409);
+          const quote = supplierQuoteSchema.parse(offer.data);
+          if (!quote.available || !a.quantity || a.quantity < quote.minimumPacks || !a.requiredUnits || a.quantity * quote.packSize < a.requiredUnits) throw new SimError("Available offer, minimum packs and sufficient requested units required", 409);
+          r.data = pharmacyBasketSchema.parse({ lines: [...basket.lines.filter(line => line.productId !== quote.productId), { quoteId: offer.id, quoteVersion: offer.version, productId: quote.productId, packs: a.quantity, requiredUnits: a.requiredUnits, quote }] });
+        } else if (a.type === "remove_pharmacy_basket_line") {
+          if (!a.productId || !basket.lines.some(line => line.productId === a.productId)) throw new SimError("Basket product not found", 404);
+          r.data = { lines: basket.lines.filter(line => line.productId !== a.productId) };
+        } else {
+          if (!basket.lines.length) throw new SimError("Basket is empty", 409);
+          for (const line of basket.lines) {
+            const offer = resources.find(item => item.id === line.quoteId && item.kind === "pharmacy-quote");
+            if (!offer || offer.version !== line.quoteVersion || JSON.stringify(supplierQuoteSchema.parse(offer.data)) !== JSON.stringify(line.quote)) throw new SimError("Supplier offer changed; compare and update your basket before checkout", 409);
+            if (!resources.some(item => item.id === line.productId && item.kind === "pharmacy-product")) throw new SimError("Catalogue product unavailable", 409);
+          }
+          const chargedSuppliers = new Set<string>();
+          const batchId = r.id + "-checkout-" + r.version;
+          const orderIds = basket.lines.map(line => {
+            const deliveryFeePence = chargedSuppliers.has(line.quote.supplier) ? 0 : Math.max(...basket.lines.filter(item => item.quote.supplier === line.quote.supplier).map(item => item.quote.deliveryFeePence));
+            chargedSuppliers.add(line.quote.supplier);
+            const order = this.add(w, "pharmacy-order", line.quote.supplier + " purchase order", "pharmacy", undefined, { ...line.quote, deliveryFeePence, packs: line.packs, totalPence: line.packs * line.quote.packCostPence + deliveryFeePence, orderedAt: w.now, dueAt: w.now + line.quote.leadDays * 86400000, receivedPacks: 0, cancelledPacks: 0, receivedCostPence: 0, batchId });
+            order.status = "ordered";
+            order.provenance = { created: { actor: attribution, source: site, action: a.type, time: w.now, version: 1 }, changes: [] };
+            return order.id;
+          });
+          r.data = { lines: [], orderIds };
+        }
+        r.version++;
+      } else if (["place_pharmacy_order", "cancel_pharmacy_order", "receive_pharmacy_order", "receive_pharmacy_referral", "update_pharmacy_referral", "receive_stock", "update_stock_price", "link_prescription_stock"].includes(a.type)) {
         if (site !== "pharmacy" && site !== "control" && !(a.type === "receive_pharmacy_referral" && ["gp", "hospital", "referrals", "patient"].includes(site))) throw new SimError("Pharmacy access required", 403);
         if (a.type === "place_pharmacy_order") {
           if (!r || r.kind !== "pharmacy-quote" || a.expectedVersion === undefined || !a.quantity) throw new SimError("Versioned supplier quote and quantity in packs required");
           const quote = supplierQuoteSchema.parse(r.data);
-          if (a.quantity < quote.minimumPacks) throw new SimError("Order does not meet supplier minimum packs", 409);
-          r = this.add(w, "pharmacy-order", quote.supplier + " purchase order", "pharmacy", undefined, { ...quote, packs: a.quantity, totalPence: a.quantity * quote.packCostPence, orderedAt: w.now, dueAt: w.now + quote.leadDays * 86400000 });
+          if (!quote.available || a.quantity < quote.minimumPacks) throw new SimError("Order does not meet supplier minimum packs", 409);
+          r = this.add(w, "pharmacy-order", quote.supplier + " purchase order", "pharmacy", undefined, { ...quote, packs: a.quantity, totalPence: a.quantity * quote.packCostPence + quote.deliveryFeePence, orderedAt: w.now, dueAt: w.now + quote.leadDays * 86400000 });
           r.status = "ordered";
+        } else if (a.type === "cancel_pharmacy_order") {
+          if (!r || r.kind !== "pharmacy-order" || !["ordered", "part-received"].includes(r.status) || a.expectedVersion === undefined || !a.text) throw new SimError("Outstanding versioned order and cancellation reason required", 409);
+          const order = purchaseOrderSchema.parse(r.data);
+          r.data = { ...order, cancelledPacks: order.packs - order.receivedPacks, cancellationReason: a.text };
+          r.status = "cancelled"; r.version++;
         } else if (a.type === "receive_pharmacy_order") {
-          if (!r || r.kind !== "pharmacy-order" || r.status !== "ordered" || a.expectedVersion === undefined) throw new SimError("An outstanding versioned purchase order is required", 409);
+          if (!r || r.kind !== "pharmacy-order" || !["ordered", "part-received"].includes(r.status) || a.expectedVersion === undefined) throw new SimError("An outstanding versioned purchase order is required", 409);
           const order = purchaseOrderSchema.parse(r.data);
           if (w.now < order.dueAt) throw new SimError("Delivery is not due yet; advance simulation time", 409);
-          const index = (original(w)?.resources ?? w.resources).findIndex(item => item.id === order.productId && item.kind === "pharmacy-product");
+          const packs = a.quantity ?? order.packs - order.receivedPacks - order.cancelledPacks;
+          if (packs > order.packs - order.receivedPacks - order.cancelledPacks) throw new SimError("Receipt exceeds outstanding packs", 409);
+          const resources = original(w)?.resources ?? w.resources;
+          if (a.text && resources.some(item => item.kind === "pharmacy-movement" && item.data.orderId === r!.id && item.data.reference === a.text)) throw new SimError("Delivery reference already received", 409);
+          const index = resources.findIndex(item => item.id === order.productId && item.kind === "pharmacy-product");
           if (index < 0) throw new SimError("Ordered product unavailable", 409);
           const stock = w.resources[index]!;
           const product = pharmacyProductSchema.parse(stock.data);
-          stock.data = { ...product, stock: product.stock + order.packs * order.packSize, stockCostPence: product.stockCostPence + order.totalPence };
+          const acquisitionPence = packs * order.packCostPence + (order.receivedPacks === 0 ? order.deliveryFeePence : 0);
+          stock.data = { ...product, stock: product.stock + packs * order.packSize, stockCostPence: product.stockCostPence + acquisitionPence };
           stock.version++;
           const receipt: RecordChange = { actor: attribution, source: site, action: a.type, time: w.now, version: stock.version };
           stock.provenance ??= { created: null, changes: [] }; stock.provenance.changes.push(receipt);
-          const movement = this.add(w, "pharmacy-movement", "Supplier delivery received", "pharmacy", undefined, { productId: stock.id, orderId: r.id, quantity: order.packs * order.packSize, balance: stock.data.stock, acquisitionPence: order.totalPence, reference: r.title });
+          const movement = this.add(w, "pharmacy-movement", "Supplier delivery received", "pharmacy", undefined, { productId: stock.id, orderId: r.id, quantity: packs * order.packSize, balance: stock.data.stock, acquisitionPence, reference: a.text ?? r.id + "-receipt-" + r.version });
           movement.provenance = { created: { ...receipt, version: 1 }, changes: [] };
-          r.data = { ...order, receivedAt: w.now }; r.status = "received"; r.version++;
+          const receivedPacks = order.receivedPacks + packs;
+          r.data = { ...order, receivedPacks, receivedCostPence: order.receivedCostPence + acquisitionPence, receivedAt: w.now }; r.status = receivedPacks === order.packs ? "received" : "part-received"; r.version++;
         } else if (a.type === "receive_pharmacy_referral") {
           if (r || !a.patientId || !a.title || !a.pharmacyPathway || !a.referralSource) throw new SimError("Patient, reason, pathway and referring service are required");
           if (a.pharmacyPathway === "Urgent medicine supply" && a.referralSource === "gp") throw new SimError("Urgent medicine supply is not a GP Pharmacy First referral route");
@@ -1023,7 +1068,7 @@ export class Engine {
       } else {
         if (!r) throw new SimError("resourceId required");
         if (r.kind === "discharge-summary") throw new SimError("Use the document workflow to process this letter", 409);
-        if (["appointment-session", "problem", "allergy", "hospital-attendance", "pharmacy-product", "pharmacy-referral", "pharmacy-movement", "pharmacy-order", "pharmacy-quote"].includes(r.kind) && a.type !== "share_record")
+        if (["appointment-session", "problem", "allergy", "hospital-attendance", "pharmacy-product", "pharmacy-referral", "pharmacy-movement", "pharmacy-order", "pharmacy-quote", "pharmacy-basket"].includes(r.kind) && a.type !== "share_record")
           throw new SimError(`Use the ${r.kind} editor to change this record`, 409);
         if (a.type === "share_record") {
           if (r.data.planLab === "digital")

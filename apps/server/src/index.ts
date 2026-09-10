@@ -436,7 +436,7 @@ const server = createServer(async (req, res) => {
         if (method !== "GET") throw new SimError("Method not allowed", 405);
         if (site !== "pharmacy") throw new SimError("Pharmacy workspace required", 404);
         const world = store.engine.require(id);
-        const resources = world.resources.filter(r => r.visibleTo.includes("pharmacy") && ["prescription", "pharmacy-referral", "pharmacy-product", "pharmacy-movement", "pharmacy-quote", "pharmacy-order"].includes(r.kind));
+        const resources = world.resources.filter(r => r.visibleTo.includes("pharmacy") && ["prescription", "pharmacy-referral", "pharmacy-product", "pharmacy-movement", "pharmacy-quote", "pharmacy-order", "pharmacy-basket"].includes(r.kind));
         const patientIds = new Set(resources.map(r => r.patientId));
         return send(res, 200, { resources, patients: world.patients.filter(p => patientIds.has(p.id)), now: world.now });
       }
