@@ -57,7 +57,7 @@ export const sites = [
   },
   {
     id: "pharmacy",
-    name: "ProScrip-ish",
+    name: "NoobScript",
     subtitle: "High Street Pharmacy",
     color: "#11675e",
     kind: "clinical",

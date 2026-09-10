@@ -3,10 +3,11 @@ import "./product-brand.css";
 const brands = {
   gp: { name: "SystemTwo", asset: "systemtwo", line: "Twice the system. Same number of clicks." },
   hospital: { name: "Millenni-ish", asset: "millenni-ish", line: "Cernerish clinical systems" },
-  pharmacy: { name: "ProScrip-ish", asset: "proscrip-ish", line: "Dispensing with a margin of error." },
+  pharmacy: { name: "NoobScript", asset: "proscrip-ish", line: "Dispensing with a margin of error." },
   community: { name: "CareBnB", asset: "carebnb", line: "Home visits. No cleaning fee." },
   wearables: { name: "Witherings", asset: "witherings", line: "Every step counts. Eventually." },
   documents: { name: "DocuMañana", asset: "documanana", line: "Today's letters. Tomorrow's problem." },
+  messaging: { name: "InaccuRx", asset: "inaccurx", line: "Message received. Probably." },
   identity: { name: "CIS-too", asset: "cistoo", line: "You again?" },
 } as const;
 export function ProductBrand({ product, compact = false }: { product: keyof typeof brands; compact?: boolean }) {

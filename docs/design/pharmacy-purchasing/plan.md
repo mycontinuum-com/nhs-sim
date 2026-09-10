@@ -1,4 +1,4 @@
-# ProScrip-ish: stock and buying
+# NoobScript: stock and buying
 
 Status: design plan, 10 September 2026. Based on a fresh browser audit of the running simulator and the current pharmacy contracts/UI. Prices below are synthetic examples from the simulator.
 
@@ -6,7 +6,7 @@ Status: design plan, 10 September 2026. Based on a fresh browser audit of the ru
 
 Make procurement a pharmacy-wide workspace organised around drugs, supplier offers, baskets and purchase orders. Patient selection belongs only to dispensing and Pharmacy First. A user must be able to compare prices, buy stock, receive deliveries and explain costs without opening a patient.
 
-Keep ProScrip-ish's green and cream identity and compact top navigation. Replace the generic two-column record viewer with screens designed for the work being done. Keep the simulation clock and Team & API key footer accessible.
+Keep NoobScript's green and cream identity and compact top navigation. Replace the generic two-column record viewer with screens designed for the work being done. Keep the simulation clock and Team & API key footer accessible.
 
 The first useful release is a complete purchase journey, not a patient-picker removal followed by another empty table.
 

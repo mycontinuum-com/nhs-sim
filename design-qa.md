@@ -15,7 +15,7 @@ State: Atorvastatin 20mg, 112 required units, Northstar offer selected, saved ba
 
 ## Intentional corrections to the generated mockup
 
-The implementation uses the existing ProScrip-ish brand asset and tagline. Supplier delivery dates come from simulation time. Generated weekday errors and unsupported tax labels are removed. Offer rows show the actual minimum order, excess units and price per unit. Decorative icons are omitted where no source asset exists.
+The implementation uses the existing pharmacy brand asset under the new NoobScript name and tagline. Supplier delivery dates come from simulation time. Generated weekday errors and unsupported tax labels are removed. Offer rows show the actual minimum order, excess units and price per unit. Decorative icons are omitted where no source asset exists.
 
 ## Comparison evidence
 

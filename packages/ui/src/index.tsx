@@ -77,14 +77,14 @@ const places = [
     href: "/pharmacy/",
     x: 37,
     y: 79,
-    system: "ProScrip-ish",
+    system: "NoobScript",
   },
   {
     id: "home",
     title: "At home",
     label: "At home",
     description:
-      "Choose a resident, connect a simulated watch and explore their activity, sleep and heart-rate readings.",
+      "Choose a resident, open their messages from the practice, or explore their wearable health dashboard.",
     href: "/wearables/",
     x: 17,
     y: 73,
