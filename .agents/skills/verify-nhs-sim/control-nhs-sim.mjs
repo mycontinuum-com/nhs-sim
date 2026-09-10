@@ -91,7 +91,7 @@ async function journey() {
     headers,
     body: JSON.stringify({ advanceMinutes: 121 }),
   });
-  const view = await request("/api/sites/diagnostics/view", { headers });
+  const view = await request("/api/sites/diagnostics/view?patient=SIM-000001", { headers });
   const result = view.resources.find((resource) => resource.id === order.id);
   if (result?.status !== "available")
     throw new Error(`Ordered test ${order.id} was not available after 121 simulation minutes`);

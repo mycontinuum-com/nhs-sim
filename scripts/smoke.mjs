@@ -9,7 +9,7 @@ const call = async (path, options = {}) => {
 assert.equal((await call("/healthz")).status, 200);
 if (process.env.SMOKE_RESTORE === "1") {
   const previous = JSON.parse(readFileSync(".data/smoke-state.json", "utf8"));
-  const restored = await call("/api/sites/diagnostics/view", {
+  const restored = await call("/api/sites/diagnostics/view?patient=SIM-000001", {
     headers: { Authorization: "Bearer " + previous.key },
   });
   assert.equal(restored.status, 200, "key persists across process restart");
@@ -191,7 +191,7 @@ assert.equal(scopedDirectory.status, 403);
 assert.equal(scopedDirectory.data.resourceType, "OperationOutcome");
 assert.ok(!otherClock.data.events.some((event) => event.resourceId === order.data.id || event.actor === "Smoke test"),
   "the activity trail stays inside its team world");
-const view = await call("/api/sites/diagnostics/view", { headers });
+const view = await call("/api/sites/diagnostics/view?patient=SIM-000001", { headers });
 assert.equal(view.data.resources.find((r) => r.id === order.data.id).status, "available");
 const session = await fetch(base + "/api/session", { method: "POST", headers, body: "{}" });
 assert.equal(session.status, 200);
