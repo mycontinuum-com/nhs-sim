@@ -64,17 +64,6 @@ const places = [
     y: 73,
     system: "Witherings",
   },
-  {
-    id: "identity",
-    title: "Staff identity",
-    label: "CIS2 emulator",
-    description:
-      "Choose a fictional staff identity and explore sign-in, role selection and controlled failure scenarios.",
-    href: "/cis2/",
-    x: 79,
-    y: 69,
-    system: "Care identity",
-  },
 ];
 const apps = {
   gp: { name: "SystemTwo", detail: "Patient records & appointments", href: "/gp/", icon: "systemtwo" },
@@ -93,7 +82,6 @@ const installed: Record<string, (keyof typeof apps)[]> = {
   community: ["community", "identity"],
   pharmacy: ["pharmacy", "identity"],
   home: ["health", "messages"],
-  identity: ["identity"],
 };
 export function Neighbourhood({ enter, suspended, now, openTeam }: { enter: (href: string) => void; suspended: boolean; now?: number; openTeam: () => void }) {
   const [place, setPlace] = useState(() => new URLSearchParams(location.search).get("place"));

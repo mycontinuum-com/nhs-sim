@@ -1,3 +1,4 @@
+import { hospitalNoteSchema } from "../../contracts/src/clinical-notes.ts";
 import { seedBloodResults } from "./blood-results.ts";
 import { applyMessaging } from "./messaging.ts";
 import { seedMessaging } from "./messaging-seed.ts";
@@ -676,7 +677,38 @@ export class Engine {
         schedule_visit: ["visit", "community"],
         dispatch_robot: ["robot-job", "robotics"],
       };
-      if (a.type === "messaging_action") {
+      if (a.type === "hospital_note") {
+        if (site !== "hospital") throw new SimError("Hospital documentation is authored in the hospital", 403);
+        const command = a.hospitalNoteCommand;
+        if (!command) throw new SimError("A documentation command is required");
+        if (r && (r.kind !== "hospital-note" || a.expectedVersion === undefined)) throw new SimError("A versioned hospital note is required", 409);
+        if (r && a.patientId && a.patientId !== r.patientId) throw new SimError("A note cannot change patient", 409);
+        if (command.kind === "save") {
+          if (!a.title?.trim()) throw new SimError("Note title required");
+          if (r && hospitalNoteSchema.parse(r.data).stage !== "draft") throw new SimError("Signed notes are immutable. Add an addendum instead", 409);
+          if (!r) {
+            if (!a.patientId) throw new SimError("Patient required");
+            r = this.add(w, "hospital-note", a.title, "hospital", a.patientId);
+          } else r.version++;
+          r.title = a.title;
+          r.status = "draft";
+          r.visibleTo = ["hospital"];
+          r.data = { stage: "draft", template: command.template, sections: command.sections, text: command.sections.map(section => section.heading + "\n" + section.text).join("\n\n") };
+        } else {
+          if (!r) throw new SimError("Save a draft before signing");
+          const note = hospitalNoteSchema.parse(r.data);
+          if (command.kind === "sign") {
+            if (note.stage !== "draft") throw new SimError("Note is already signed", 409);
+            if (!note.sections.some(section => section.text.trim())) throw new SimError("Enter note content before signing");
+            r.data = { ...note, stage: "signed", signedAt: w.now, signedBy: actor, addenda: [] };
+            r.status = "signed";
+          } else {
+            if (note.stage !== "signed") throw new SimError("Sign the note before adding an addendum", 409);
+            r.data = { ...note, addenda: [...note.addenda, { text: command.text, time: w.now, author: actor }] };
+          }
+          r.version++;
+        }
+      } else if (a.type === "messaging_action") {
         if (!a.messagingCommand) throw new SimError("Messaging command required");
         r = applyMessaging({ world: w, site, command: a.messagingCommand, actor: attribution, resource: r, patientId: a.patientId, expectedVersion: a.expectedVersion, add: (kind, title, patientId) => this.add(w, kind, title, "gp", patientId), fail: (message, status) => { throw new SimError(message, status); } });
       } else if (a.type === "create_appointment_session" || a.type === "set_appointment_slot") {
@@ -1072,9 +1104,16 @@ export class Engine {
           r.status = "booked";
           r.dueAt = appointment.startsAt;
         }
-        if (a.type === "draft_prescription") r.status = "draft";
+        if (a.type === "draft_prescription") {
+          r.status = "draft";
+          if (a.medicationOrder) r.data = { medicationOrder: a.medicationOrder, drug: a.medicationOrder.drug, requiredUnits: a.medicationOrder.quantity, text: a.medicationOrder.indication };
+        }
+        if (a.type === "order_test" && a.bloodTestOrder) {
+          r.data = { bloodTestOrder: a.bloodTestOrder, text: a.bloodTestOrder.clinicalDetails };
+          r.priority = a.bloodTestOrder.priority;
+        }
         if (a.type === "order_test")
-          w.scheduled.push({ at: w.now + 120 * minute, type: "result", resourceId: r.id });
+          w.scheduled.push({ at: w.now + (a.bloodTestOrder?.collection === "next-round" ? 240 : 120) * minute, type: "result", resourceId: r.id });
         if (a.type === "dispatch_robot") {
           r.status = "in-progress";
           w.scheduled.push({ at: w.now + 30 * minute, type: "delivery", resourceId: r.id });
@@ -1085,6 +1124,7 @@ export class Engine {
         }
       } else {
         if (!r) throw new SimError("resourceId required");
+        if (r.kind === "hospital-note") throw new SimError("Use the hospital documentation editor for this note", 409);
         if (r.kind === "discharge-summary") throw new SimError("Use the document workflow to process this letter", 409);
         if (["appointment-session", "problem", "allergy", "hospital-attendance", "pharmacy-product", "pharmacy-referral", "pharmacy-movement", "pharmacy-order", "pharmacy-quote", "pharmacy-basket"].includes(r.kind) && a.type !== "share_record")
           throw new SimError(`Use the ${r.kind} editor to change this record`, 409);

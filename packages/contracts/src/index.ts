@@ -1,3 +1,5 @@
+import { hospitalNoteCommandSchema } from "./clinical-notes.ts";
+import { medicationOrderSchema, bloodTestOrderSchema } from "./clinical-orders.ts";
 import { messagingCommandSchema } from "./messaging.ts";
 import { documentTagsSchema, documentCodesSchema, dischargeSectionsSchema } from "./documents.ts";
 import { pharmacyPathways } from "./pharmacy.ts";
@@ -181,6 +183,7 @@ export type World = {
 export const actionSchema = z
   .object({
     type: z.enum([
+      "hospital_note",
       "save_discharge_summary",
       "process_document",
       "messaging_action",
@@ -224,6 +227,9 @@ export const actionSchema = z
       "restore_staff",
       "allocate_shift",
     ]),
+    hospitalNoteCommand: hospitalNoteCommandSchema.optional(),
+    medicationOrder: medicationOrderSchema.optional(),
+    bloodTestOrder: bloodTestOrderSchema.optional(),
     dischargeSections: dischargeSectionsSchema.optional(),
     messagingCommand: messagingCommandSchema.optional(),
     documentTags: documentTagsSchema.optional(),
