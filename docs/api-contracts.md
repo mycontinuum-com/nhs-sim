@@ -2,6 +2,10 @@
 
 These are implemented **simulation contracts**, not assertions of NHS wire compatibility. Authentication headers, paths, FHIR profiles, mandatory identifiers, error payloads and signatures differ from production NHS APIs. Every FHIR-shaped resource is tagged as a simplified mock.
 
+## Workplaces and supporting services
+
+`GET /api/catalogue` lists the published workplaces and adapters. `/control/` is the map, `/gp/` is SystemTwo, and `/hospital/` is Millbank EPR. API service IDs are `gp`, `hospital`, `community`, `pharmacy`, `diagnostics`, and `referrals`. Supporting services have no standalone portals. `/browser/legacy` remains an HTML integration exercise.
+
 ## Stable team contract
 
 Public POST /api/keys:
@@ -43,14 +47,10 @@ POST /api/sites/{site}/actions supports:
 | order_test | patientId | Reserve diagnostics slot; result due in 120 simulation minutes |
 | draft_prescription | patientId | Draft pharmacy prescription, not automatically approved |
 | book_appointment | patientId, optional target | Reserve service capacity |
-| send_message | patientId, optional title | Synthetic patient message |
 | schedule_visit | patientId | Reserve community slot; simulated completion after 90 minutes |
-| dispatch_robot | patientId | Reserve courier robot; completion after 30 minutes |
 | review / accept / reject / complete | resourceId | Owner-checked state transition |
 | dispense / collect | prescription resourceId | Validated dispensing lifecycle |
 | share_record | resourceId, target | Explicit visibility transfer |
-| report_absence / restore_staff | staff resourceId | HR/roster changes to available workforce |
-| allocate_shift | staff resourceId | Toggle allocation to the current roster |
 
 Pass expectedVersion for optimistic concurrency and Idempotency-Key for safe retries. Conflicting keys and stale versions return 409. Unavailable capacity also returns 409. Missing scopes/ownership return 403.
 
@@ -69,43 +69,62 @@ GET /api/nhs/{adapter} returns a FHIR-shaped Bundle. Patient filtering for non-P
 | gp-connect | gp | Primary-care tasks | Not GP Connect Access Record or appointment wire format |
 | mesh | gp | Communication projection | No MESH mailbox acknowledgement/download protocol |
 | scr | gp | Explicitly shared documents | Not a real Summary Care Record |
-| immunisations | population | Vaccination records | No national writeback |
-| screening | population | Screening follow-up | Local eligibility fixtures |
 | pathology | diagnostics | Delayed test results | No HL7v2 or laboratory device feed |
 | radiology | diagnostics | Report metadata | No DICOM/PACS image server |
 | appointments | gp | Capacity-backed bookings | Local slot abstraction |
-| nhs-login | nhsapp | Synthetic patient identity | Fixture only; no real NHS login or assurance |
-| nrl | nhsapp | Visible record pointers | Local references, not National Record Locator semantics |
-| personal-demographics | nhsapp | Citizen demographic projection | Read-only synthetic identities |
-| 111 | urgent | Urgent-care dispositions | No clinical decision support or Pathways content |
-| uec-booking | urgent | Urgent appointment projection | Local capacity abstraction |
-| mental-health | mental | Crisis and care plans | Simplified local CarePlan resources |
-| maternity | maternity | Maternity episodes | No national maternity record profile |
-| dental | dental | Recall and access requests | No FP17 or payments workflow |
-| social-care | social | Care packages and allocation | No local-authority integration |
-| genomics | genomics | Consent-aware test records | No GMS test directory or genomic file formats |
-| beds | beds | Bed state and discharge barriers | Operational game model only |
-| theatres | theatre | Theatre lists and constraints | No device control or clinical scheduling engine |
-| workforce | hr | Staff status | No ESR interface or real staff data |
-| rostering | roster | Allocation and skill mix | Simplified schedule projection |
-| ambulance | ambulance | Handover queue | No real CAD messages or dispatch control |
-| provider-metrics | icb | Provider measures | Synthetic performance signals |
-| research | research | Trial candidates | No recruitment, contact or consent writeback |
 
 POST /api/nhs/{adapter}/actions uses the same simulator action schema and service scope as its owning site. It is a convenience adapter, **not** the corresponding NHS endpoint syntax. Read-only-looking adapters should be used for GET; production-parity method restrictions are not represented.
 
-## CIS-too mock
+## CIS2 staff identity emulator
 
-- GET /cis2/.well-known/openid-configuration
-- GET /cis2/jwks
-- GET/POST /cis2/authorize
-- POST /cis2/token (form encoded)
-- GET /cis2/userinfo (mock access token)
-- GET /cis2/callback
+Open `/cis2/` for the emulator. Sign-in offers fictional GP, hospital, community nurse and pharmacy identities. Each identity has organisation and role assignments; the hospital identity has two assignments to exercise role selection.
 
-Registered public client: nhs-sim-client. Exact callback: PUBLIC_ORIGIN/cis2/callback. Authorization Code + PKCE S256, state and nonce are required. The explicit mock login selects a fixed synthetic clinician. Codes expire after two minutes and are single-use; tokens expire after an hour. ID tokens are RS256 signed with an ephemeral key. No smartcard, real staff authentication, NHS roles or national assurance.
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /cis2/.well-known/openid-configuration` | OIDC discovery |
+| `GET /cis2/jwks` | Public signing key |
+| `GET /cis2/authorize` | Start browser sign-in |
+| `POST /cis2/authorize` | Submit identity and assignment or cancel |
+| `POST /cis2/token` | Exchange a code, form encoded |
+| `GET /cis2/userinfo` | Read claims with the issued access token |
+| `GET /cis2/callback` | Default demonstration callback |
+| `GET /cis2/session` | Current browser identity or `null`; no team API access |
 
-OIDC tokens are **not** team API keys. Sign-in is a separate integration exercise.
+The default public client is `nhs-sim-client`, with exact callback `PUBLIC_ORIGIN/cis2/callback`. Use Authorization Code with PKCE S256, `state`, `nonce`, and `openid` scope. `profile` is also supported. The token request must repeat the registered client ID and exact redirect URI and provide the original PKCE verifier.
+
+Browser interactions expire after five minutes. Codes expire after two minutes and are single-use, including after a failed exchange. Tokens default to an hour; operators can set their lifetime between 30 and 3,600 seconds. These durations use wall time, independent of the simulation clock.
+
+ID tokens use RS256. Claims include the fictional subject, name, role, organisation and `nhs_sim: true`. Clients must validate issuer, audience, signature, expiry, state and nonce. OIDC tokens are separate from team API keys and do not grant access to patient APIs.
+
+This is a local protocol exercise. It does not implement smartcards, real staff authentication or NHS assurance. Configuration, signing keys and sessions are process-local. Restarting the application restores defaults and invalidates issued sessions.
+
+### Operator controls
+
+Use the organiser token as a Bearer credential at `/api/operator/cis2`:
+
+| Method | Effect |
+| --- | --- |
+| `GET` | Read settings, fictional identities and active session counts |
+| `PUT` | Replace settings and revoke all current interactions, codes and access tokens |
+| `DELETE` | Revoke current interactions, codes and access tokens |
+
+The `PUT` body contains the complete configuration, including every registered client:
+
+```json
+{
+  "scenario": "normal",
+  "tokenLifetimeSeconds": 300,
+  "clients": [{
+    "id": "nhs-sim-client",
+    "name": "NHS simulation explorer",
+    "redirectUris": ["http://localhost:8080/cis2/callback"]
+  }]
+}
+```
+
+Change the callback to your configured origin. Redirects must match exactly and use HTTPS or localhost HTTP. The scenario applies across the running application, independently of team worlds.
+
+`deny` returns `access_denied`, `expired-session` returns `login_required`, and `unavailable` returns HTTP 503. Restore `normal` for successful sign-in. Cancellation also returns `access_denied`. Check these outcomes in your client as well as the successful token exchange.
 
 ## Legacy browser
 
@@ -137,3 +156,9 @@ Each accepts ?world=... and requires OPERATOR_TOKEN. Team POST /api/clock only c
 - [NHS API catalogue](https://digital.nhs.uk/developer/api-catalogue)
 
 No live NHS credentials or public sandbox calls are required at runtime.
+
+## Read a bounded resource page
+
+Add `?limit=200&offset=0` to `GET /api/sites/{site}/view` to read up to 200 visible resources. `limit` accepts 1 through 500. The response includes `resourceTotal`, `resourceOffset`, and `resourceLimit`. Without `limit`, the endpoint returns all visible resources.
+
+Add `?patient=SIM-000001` to read that patient's visible records plus service resources without a patient. The portal uses this query when you select a patient.

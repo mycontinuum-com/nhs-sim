@@ -28,6 +28,14 @@ Open <a href="/control/">Simulation control</a> with the operator token. Select 
 
 Operator API endpoints accept `?world=...`. Team clock requests always affect the key's own world.
 
+## Exercise staff sign-in
+
+Open <a href="/cis2/">the CIS2 emulator</a> to run a fictional staff sign-in. The workbench provides operator controls for client registration, token lifetime, denial, session expiry and service unavailability. Use the organiser token for these controls.
+
+Identity settings affect the whole running application. Changing them revokes current interactions, codes and access tokens. Restore the normal scenario before another team tries to sign in. Restarting the application resets identity settings to their defaults.
+
+Team worlds and API keys are separate from these identity sessions. A successful staff sign-in does not create or unlock a team world.
+
 ## Evaluate the result
 
 Ask for the initial state, the action sequence, and the final records. Distinguish accepted requests from completed work. Keep model APIs optional so teams can run the default deterministic agents without a paid model account.

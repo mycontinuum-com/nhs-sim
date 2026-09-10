@@ -1,12 +1,11 @@
-import { randomBytes, createHash } from "node:crypto";
-import { generateKeyPair, exportJWK, SignJWT } from "jose";
+import { activeServices } from "../../contracts/src/index.ts";
 import type { Engine } from "../../engine/src/index.ts";
 import type { SiteId } from "../../contracts/src/index.ts";
 
 export const matchAdapterPath = (path: string) =>
   path.match(/^\/api\/nhs\/([a-z0-9-]+)(?:\/([^/]+))?$/);
 
-export const catalogue = [
+const adapterDefinitions = [
   {
     id: "pds",
     name: "PDS-ish",
@@ -251,6 +250,7 @@ export const catalogue = [
     description: "Consent-aware synthetic cohort candidates",
   },
 ] as const;
+export const catalogue = adapterDefinitions.filter((api) => activeServices.some((id) => id === api.site));
 export function bundle(engine: Engine, world: string, id: string, q: string) {
   const api = catalogue.find((a) => a.id === id);
   if (!api) return undefined;
@@ -308,108 +308,4 @@ export function bundle(engine: Engine, world: string, id: string, q: string) {
     })),
   };
 }
-export class MockOIDC {
-  origin: string;
-  keys?: Awaited<ReturnType<typeof generateKeyPair>>;
-  codes = new Map<
-    string,
-    { challenge: string; nonce: string; redirect: string; expires: number }
-  >();
-  tokens = new Map<string, number>();
-  constructor(origin: string) {
-    this.origin = origin;
-  }
-  async init() {
-    this.keys = await generateKeyPair("RS256");
-  }
-  discovery() {
-    return {
-      issuer: this.origin + "/cis2",
-      authorization_endpoint: this.origin + "/cis2/authorize",
-      token_endpoint: this.origin + "/cis2/token",
-      userinfo_endpoint: this.origin + "/cis2/userinfo",
-      jwks_uri: this.origin + "/cis2/jwks",
-      response_types_supported: ["code"],
-      subject_types_supported: ["public"],
-      id_token_signing_alg_values_supported: ["RS256"],
-      grant_types_supported: ["authorization_code"],
-      code_challenge_methods_supported: ["S256"],
-      token_endpoint_auth_methods_supported: ["none"],
-      scopes_supported: ["openid", "profile"],
-    };
-  }
-  async jwks() {
-    return {
-      keys: [
-        { ...(await exportJWK(this.keys!.publicKey)), kid: "sim-key", alg: "RS256", use: "sig" },
-      ],
-    };
-  }
-  authorize(params: URLSearchParams) {
-    const redirect = params.get("redirect_uri") ?? "";
-    if (
-      redirect !== this.origin + "/cis2/callback" ||
-      params.get("client_id") !== "nhs-sim-client" ||
-      params.get("response_type") !== "code" ||
-      params.get("code_challenge_method") !== "S256" ||
-      !params.get("code_challenge") ||
-      !params.get("state") ||
-      !params.get("nonce")
-    )
-      throw new Error(
-        "Use registered client nhs-sim-client, /cis2/callback and authorization code + PKCE S256, state and nonce",
-      );
-    const code = randomBytes(24).toString("hex");
-    this.codes.set(code, {
-      redirect,
-      challenge: params.get("code_challenge")!,
-      nonce: params.get("nonce")!,
-      expires: Date.now() + 120000,
-    });
-    const url = new URL(redirect);
-    url.searchParams.set("code", code);
-    url.searchParams.set("state", params.get("state")!);
-    return url.toString();
-  }
-  async token(params: URLSearchParams) {
-    const code = params.get("code") ?? "",
-      data = this.codes.get(code);
-    this.codes.delete(code);
-    if (
-      !data ||
-      data.expires < Date.now() ||
-      params.get("grant_type") !== "authorization_code" ||
-      params.get("client_id") !== "nhs-sim-client" ||
-      params.get("redirect_uri") !== data.redirect ||
-      createHash("sha256")
-        .update(params.get("code_verifier") ?? "")
-        .digest("base64url") !== data.challenge
-    )
-      throw new Error("Invalid or expired authorization code / PKCE");
-    const access_token = randomBytes(32).toString("hex");
-    this.tokens.set(access_token, Date.now() + 3600000);
-    const id_token = await new SignJWT({
-      name: "Dr Demo Clinician",
-      nonce: data.nonce,
-      nhs_sim: true,
-    })
-      .setProtectedHeader({ alg: "RS256", kid: "sim-key" })
-      .setSubject("SIM-STAFF-1")
-      .setIssuer(this.origin + "/cis2")
-      .setAudience("nhs-sim-client")
-      .setIssuedAt()
-      .setExpirationTime("1h")
-      .sign(this.keys!.privateKey);
-    return { access_token, id_token, token_type: "Bearer", expires_in: 3600 };
-  }
-  userinfo(token: string) {
-    if ((this.tokens.get(token) ?? 0) < Date.now()) throw new Error("Invalid access token");
-    return {
-      sub: "SIM-STAFF-1",
-      name: "Dr Demo Clinician",
-      nhs_sim: true,
-      org: "SIM-RIVERSIDE",
-      role: "simulated-clinician",
-    };
-  }
-}
+export { MockOIDC } from "./cis2.ts";

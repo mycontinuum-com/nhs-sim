@@ -1,9 +1,0 @@
-{
-  "name": "@nhs-sim/triage",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vp dev",
-    "build": "vp build"
-  }
-}

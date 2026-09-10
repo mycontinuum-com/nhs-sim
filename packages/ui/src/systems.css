@@ -1,960 +1,996 @@
-.system-ui {
-  margin: 0 0 22px;
-  background: #fff;
-  border: 1px solid #bdcbd5;
-  box-shadow: 0 8px 28px #16344d18;
-  min-height: 520px;
-  overflow: hidden;
-  color: #172d40;
-}
-.system-ui button {
-  padding: 7px 10px;
-}
-.system-ui .system-bar {
+.immersive-ehr {
+  --ehr-accent: #2c567e;
+  --ehr-line: #bbc9d7;
+  --ehr-pale: #e7eef5;
+  --ehr-ink: #172b42;
   display: flex;
-  min-height: 54px;
+  flex-direction: column;
+  min-height: calc(100dvh - 48px);
+  background: #f5f8fb;
+  color: var(--ehr-ink);
+  font:
+    13px Arial,
+    Helvetica,
+    sans-serif;
+  isolation: isolate;
+}
+.immersive-ehr * {
+  box-sizing: border-box;
+}
+.immersive-ehr button,
+.immersive-ehr input,
+.immersive-ehr select,
+.immersive-ehr textarea {
+  font: inherit;
+  border: 1px solid #a8b9c9;
+  border-radius: 3px;
+}
+.immersive-ehr button {
+  padding: 6px 11px;
+  background: linear-gradient(#fff, #e7edf3);
+  color: var(--ehr-ink);
+  cursor: pointer;
+  box-shadow: inset 0 1px #fff;
+}
+.immersive-ehr button:hover {
+  background: #dce9f5;
+  border-color: #718fae;
+}
+.immersive-ehr button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.immersive-ehr button:focus-visible,
+.immersive-ehr input:focus-visible,
+.immersive-ehr select:focus-visible {
+  outline: 3px solid #b18336;
+  outline-offset: 2px;
+}
+.immersive-ehr input,
+.immersive-ehr select {
+  padding: 7px 9px;
+  background: white;
+  color: var(--ehr-ink);
+  min-width: 0;
+}
+.immersive-ehr h2,
+.immersive-ehr h3,
+.immersive-ehr p {
+  margin: 0;
+}
+.immersive-ehr small {
+  font-size: 11px;
+}
+.ehr-titlebar {
+  display: flex;
   align-items: center;
   gap: 20px;
-  padding: 9px 16px;
-  background: var(--brand);
-  color: #fff;
-}
-.system-bar strong {
-  font-size: 21px;
-  margin-right: auto;
-}
-.system-bar strong i {
-  font-style: normal;
-  color: #7fe2e2;
-}
-.system-bar input {
-  width: min(390px, 34vw);
-  border: 0;
-}
-.system-bar > span {
-  font-size: 12px;
-}
-.patient-banner {
-  display: grid;
-  grid-template-columns: auto minmax(180px, 1.3fr) minmax(120px, 1fr) minmax(180px, 1.6fr) auto;
-  gap: 13px;
-  align-items: center;
   padding: 10px 16px;
-  background: #edf5fb;
-  border-bottom: 1px solid #b9d0df;
-}
-.patient-banner.empty {
-  display: block;
-  color: #647a89;
-}
-.patient-banner > div {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-.patient-banner b,
-.patient-banner small,
-.patient-banner span {
-  font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.patient-banner strong {
-  font-size: 16px;
-}
-.patient-banner mark {
-  padding: 4px 7px;
-  background: #ffdb71;
-  font-size: 10px;
-  font-weight: 800;
-}
-.patient-avatar,
-.mini-avatar {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 50%;
-  background: #087f8d;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-}
-.tab-strip,
-.purple-tabs,
-.rx-tabs,
-.ed-tabs {
-  display: flex;
-  overflow: auto;
-  background: #164f87;
-}
-.tab-strip button,
-.purple-tabs button,
-.rx-tabs button,
-.ed-tabs button {
+  background: linear-gradient(100deg, #305e8a, #1d3e60);
+  color: white;
+  min-height: 46px;
+  margin: 0;
   border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: #e8f3fb;
+}
+.ehr-titlebar strong {
+  font-size: 19px;
+  letter-spacing: -0.4px;
   white-space: nowrap;
 }
-.tab-strip button.active,
-.tab-strip button:hover,
-.purple-tabs button.active,
-.rx-tabs button.active,
-.ed-tabs button.active {
-  background: #fff;
-  color: #173653;
+.ehr-titlebar strong span {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  margin-left: 10px;
+  opacity: 0.75;
 }
-.epr-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  min-height: 430px;
-  background: #eef2f5;
-}
-.clinical-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 14px;
-}
-.clinical-grid > article {
-  padding: 13px;
-  background: #fff;
-  border: 1px solid #c7d6df;
-}
-.clinical-grid h3 {
-  display: flex;
-  justify-content: space-between;
-  margin: 0 0 10px;
-  padding-bottom: 7px;
-  border-bottom: 2px solid #4f9bc8;
-  color: #153e64;
-}
-.clinical-grid .wide {
-  grid-column: 1/-1;
-}
-.problem {
-  display: flex;
-  gap: 9px;
-  margin: 7px 0;
-}
-.problem > b {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  background: #d8edf5;
-  color: #126781;
-}
-.problem span,
-.clinical-row span {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-.problem small,
-.clinical-row small {
-  color: #657b8b;
-}
-.obs-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 7px;
-}
-.obs-grid span {
-  display: flex;
-  padding: 8px;
-  background: #edf4f8;
-  flex-direction: column;
-  color: #4b6374;
-}
-.obs-grid b {
-  font-size: 18px;
-  color: #143e61;
-}
-.obs-grid .alert b {
-  color: #c42836;
-}
-.clinical-row {
-  display: grid;
-  grid-template-columns: 45px minmax(200px, 1fr) auto auto;
-  gap: 10px;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #dce5eb;
+.ehr-titlebar button {
+  border: 0;
+  border-left: 1px solid #ffffff55;
+  border-radius: 0;
+  padding: 2px 0 2px 18px;
+  color: #fff;
+  background: transparent;
+  box-shadow: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   font-size: 12px;
 }
-.quick-note form {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  margin: 0;
+.ehr-titlebar button:hover {
+  color: #fff;
+  background: transparent;
+  text-decoration-thickness: 2px;
 }
-.quick-note input {
-  width: 100%;
-}
-.pingr {
-  --brand: #087f7d;
-}
-.pingr .system-bar {
-  background: #087d7b;
-}
-.presence {
-  color: #89ffb0;
-}
-.message-layout {
-  display: grid;
-  grid-template-columns: 185px 250px minmax(300px, 1fr) 245px;
-  height: 600px;
-}
-.message-layout > .channels {
-  display: flex;
-  padding: 12px;
-  flex-direction: column;
-  background: #073c47;
-  color: #e7ffff;
-}
-.channels > b {
-  margin: 8px 4px;
+.ehr-location {
+  margin-left: auto;
   font-size: 12px;
 }
-.channels button {
+.ehr-identity {
+  padding-left: 16px;
+  border-left: 1px solid #ffffff44;
+  font-size: 12px;
+}
+.ehr-toolbar {
   display: flex;
   gap: 7px;
   align-items: center;
-  justify-content: flex-start;
-  border: 0;
-  background: transparent;
-  color: #d4edef;
-  text-align: left;
+  padding: 9px 13px;
+  border-bottom: 1px solid #aabbd0;
+  background: linear-gradient(#edf3fb, #dbe7f2);
+}
+.ehr-toolbar button {
   font-size: 12px;
-}
-.channels button span:not(.mini-avatar) {
-  margin-right: auto;
-}
-.channels em {
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  border-radius: 50%;
-  background: #e33c4b;
-  color: #fff;
-  font-size: 10px;
-  font-style: normal;
-}
-.mini-avatar {
-  width: 29px;
-  height: 29px;
-  font-size: 9px;
-}
-.threads {
-  overflow: auto;
-  border-right: 1px solid #ccd9df;
-}
-.threads h2 {
-  display: flex;
-  padding: 14px;
-  margin: 0;
-  flex-direction: column;
-}
-.threads h2 small {
-  font-size: 11px;
-  font-weight: 400;
-  color: #637785;
-}
-.threads > button {
-  display: grid;
-  width: 100%;
-  grid-template-columns: auto 1fr auto;
-  gap: 8px;
-  align-items: center;
-  border: 0;
-  border-top: 1px solid #e1e8ec;
-  border-radius: 0;
-  text-align: left;
-}
-.threads > button.active {
-  background: #dff3f3;
-  border-left: 4px solid #078681;
-}
-.threads > button span {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-}
-.threads b {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding: 6px 12px;
   white-space: nowrap;
 }
-.threads small {
-  color: #6c7d88;
-}
-.threads em {
-  font-size: 9px;
-  font-style: normal;
-}
-.conversation {
-  display: grid;
-  min-width: 0;
-  grid-template-rows: auto 1fr auto;
-}
-.conversation header {
-  display: flex;
-  margin: 0;
-  padding: 12px;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #d8e2e7;
-}
-.conversation header div {
-  display: flex;
-  flex-direction: column;
-}
-.conversation .messages {
-  padding: 12px;
-  overflow: auto;
-}
-.date-rule {
-  text-align: center;
-  color: #748792;
-  font-size: 10px;
-}
-.bubble {
-  display: flex;
-  gap: 8px;
-  margin: 13px 0;
-}
-.bubble p {
-  display: flex;
-  margin: 0;
-  flex-direction: column;
+.ehr-toolbar a {
+  margin-left: auto;
+  color: var(--ehr-accent);
   font-size: 12px;
+  white-space: nowrap;
 }
-.bubble time {
-  margin-left: 7px;
-  color: #778995;
-  font-weight: 400;
-}
-.bubble .nurse {
-  background: #7355a3;
-}
-.bubble .pharmacy {
-  background: #248051;
-}
-.conversation form {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  margin: 10px;
-}
-.conversation textarea {
-  min-height: 62px;
-  padding: 10px;
-  border: 1px solid #aec1cb;
-  resize: none;
-}
-.context {
-  padding: 14px;
-  border-left: 1px solid #ccd9df;
-  background: #f5f8f9;
-}
-.context .patient-banner {
-  display: flex;
-  padding: 10px 0;
-  flex-wrap: wrap;
-  background: transparent;
-}
-.context .patient-banner > div:not(:nth-child(2)),
-.context .patient-banner mark {
-  display: none;
-}
-.context > button {
-  width: 100%;
-  margin: 4px 0;
-  text-align: left;
-}
-.context > p {
-  display: flex;
-  padding: 7px;
-  margin: 0;
-  flex-direction: column;
-  border-bottom: 1px solid #dce5e9;
-  font-size: 11px;
-}
-.practice-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  min-height: 560px;
-  background: #f7fafc;
-}
-.practice-layout .inbox {
-  overflow: auto;
-}
-.inbox > header {
-  display: flex;
-  padding: 16px;
-  margin: 0;
-  align-items: flex-start;
-}
-.inbox > header > div {
-  margin-right: auto;
-}
-.inbox h2 {
-  margin: 0 0 8px;
-}
-.segmented {
-  display: flex;
-}
-.segmented button {
-  border-radius: 0;
-}
-.segmented button.active {
-  background: #005eb8;
-  color: #fff;
-}
-.inbox tr {
-  cursor: pointer;
-}
-.inbox tr:hover,
-.inbox tr.selected {
-  background: #edf6fd;
-}
-.inbox td b,
-.inbox td small {
-  display: block;
-}
-.priority {
-  display: inline-block;
-  padding: 4px 7px;
-  border-radius: 3px;
-  background: #d6e5f2;
-  text-transform: capitalize;
-  font-size: 10px;
-  font-weight: 800;
-}
-.priority.urgent {
-  background: #d93644;
-  color: #fff;
-}
-.record-drawer {
-  position: absolute;
-  right: 32px;
-  width: min(350px, 36vw);
-  max-height: 540px;
-  padding: 16px;
-  overflow: auto;
-  background: #fff;
-  border: 1px solid #aabfcd;
-  box-shadow: -10px 15px 28px #19384d33;
-}
-.record-drawer > button {
-  float: right;
-}
-.record-drawer .patient-banner {
-  display: flex;
-  padding: 12px 0;
-  flex-wrap: wrap;
-  background: transparent;
-}
-.record-drawer .patient-banner > div:not(:nth-child(2)),
-.record-drawer .patient-banner mark {
-  display: none;
-}
-.emergency-board {
-  background: #091922;
-  color: #dce9ee;
-  border-color: #344954;
-}
-.emergency-board .system-bar {
-  background: #082b46;
-}
-.emergency-board mark {
-  padding: 6px;
-  background: #c7442e;
-  color: #fff;
-}
-.ed-tabs {
-  background: #0d3a5c;
-}
-.ed-layout {
-  display: grid;
-  grid-template-columns: 1fr 225px;
-}
-.ed-layout table {
+.ehr-toolbar time {
   font-size: 12px;
+  white-space: nowrap;
+  margin-left: 16px;
 }
-.ed-layout th {
-  background: #112d3b;
-  color: #9ab9c7;
-}
-.ed-layout td {
-  border-color: #29404b;
-}
-.ed-layout tr:nth-child(even) {
-  background: #10242e;
-}
-.triage {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  color: #fff;
-}
-.t1,
-.t2 {
-  background: #d83a36;
-}
-.t3 {
-  background: #ddb52c;
-  color: #1f2830;
-}
-.t4 {
-  background: #2b9c61;
-}
-.timer {
-  color: #ff866f;
-  font-variant-numeric: tabular-nums;
-}
-.ed-layout > aside {
-  padding: 14px;
-  border-left: 1px solid #37505c;
-  background: #0c2631;
-}
-.ed-layout aside p,
-.cubicles span {
+.ehr-searchbar {
   display: flex;
-  justify-content: space-between;
-  margin: 6px 0;
-}
-.ed-layout aside b {
-  color: #fff;
-}
-.cubicles {
-  display: flex;
-  flex-direction: column;
-}
-.cubicles span {
-  padding: 7px;
-  background: #173946;
-}
-.workforce .system-bar {
-  background: #49338b;
-}
-.purple-tabs {
-  background: #6848b1;
-}
-.roster-layout {
-  display: grid;
-  grid-template-columns: 1fr 230px;
-  background: #f5f3fb;
-}
-.roster {
-  min-width: 0;
-  overflow: auto;
-}
-.roster > header {
-  display: flex;
-  padding: 12px;
-  margin: 0;
   align-items: center;
-  justify-content: space-between;
+  gap: 24px;
+  padding: 8px 15px;
+  background: #f5f8fb;
+  border-bottom: 1px solid var(--ehr-line);
 }
-.roster table {
+.ehr-searchbar > span {
   font-size: 11px;
+  color: #697b8d;
 }
-.roster td,
-.roster th {
-  padding: 8px;
-}
-.roster td button {
-  width: 100%;
-  min-width: 52px;
-  padding: 8px 2px;
-  border: 0;
-}
-.shift {
-  background: #d9e8ff;
-  color: #264d85;
-}
-.gap {
-  background: #fff4f1;
-  color: #ae342c;
-}
-.roster-layout > aside {
-  padding: 14px;
-  background: #fff;
-  border-left: 1px solid #d6d0e4;
-}
-.staff-ring {
-  display: flex;
-  width: 120px;
-  height: 120px;
-  margin: 15px auto;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  border: 12px solid #7d61c6;
-  border-radius: 50%;
-}
-.staff-ring b {
-  font-size: 28px;
-}
-.roster-layout aside p {
-  display: flex;
-  justify-content: space-between;
-}
-.roster-layout aside > button {
-  display: flex;
-  width: 100%;
-  margin: 5px 0;
-  flex-direction: column;
-  text-align: left;
-  background: #fff2ee;
-  border-color: #ecc2b7;
-}
-.roster-layout aside > button span {
-  font-size: 10px;
-}
-.pharmacy-desk .system-bar {
-  background: #08753d;
-}
-.rx-tabs {
-  background: #e6f5ed;
-}
-.rx-tabs button {
-  color: #245642;
-}
-.rx-tabs button.active {
-  border-bottom: 3px solid #08753d;
-  background: #fff;
-}
-.rx-metrics {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  padding: 12px;
-}
-.rx-metrics article {
-  display: flex;
-  padding: 12px;
-  background: #e4f5ed;
-  flex-direction: column;
-}
-.rx-metrics article:last-child {
-  background: #ffe7e9;
-  color: #a32632;
-}
-.rx-metrics b {
-  font-size: 25px;
-}
-.pharmacy-desk td small {
-  display: block;
-}
-.rx-flow {
-  display: flex;
-  padding: 15px;
-  align-items: center;
-  justify-content: space-around;
-  border-top: 1px solid #cdded5;
-  color: #176742;
-  font-size: 12px;
-}
-.domain-workspace {
-  padding: 20px;
-  background: linear-gradient(180deg, #fff, #f3f6f8);
-}
-.domain-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.domain-title h2 {
-  margin: 2px 0 15px;
-  font-size: 25px;
-}
-.domain-title small {
-  letter-spacing: 1px;
-  color: var(--brand);
-  font-weight: 800;
-}
-.domain-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 15px;
-}
-.domain-stats article {
-  display: flex;
-  padding: 13px;
-  background: #fff;
-  border: 1px solid #d2dee6;
-  border-top: 4px solid var(--brand);
-  flex-direction: column;
-}
-.domain-stats b {
-  font-size: 24px;
-  color: var(--brand);
-}
-.domain-stats span {
-  font-size: 11px;
-  color: #687b88;
-}
-.kanban {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(170px, 1fr));
-  gap: 10px;
-  overflow: auto;
-}
-.lane {
-  min-height: 330px;
-  padding: 10px;
-  background: #e6edf1;
-}
-.lane h3 {
-  display: flex;
-  margin: 0 0 10px;
-  justify-content: space-between;
-}
-.lane h3 em {
-  font-style: normal;
-  color: #6a7c87;
-}
-.lane > article {
+.ehr-finder {
   position: relative;
   display: flex;
-  padding: 12px;
-  margin: 8px 0;
-  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.ehr-finder label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ehr-finder input {
+  width: 280px;
+}
+.ehr-search-results {
+  position: absolute;
+  left: 0;
+  top: 38px;
+  width: 380px;
+  max-height: 440px;
+  overflow: auto;
   background: #fff;
-  border: 1px solid #cbd7de;
-  box-shadow: 0 2px 4px #1c344712;
+  box-shadow: 0 12px 30px #16293844;
+  border: 1px solid #8197ad;
+  z-index: 10;
 }
-.lane article > b {
-  margin: 5px 0;
-}
-.lane article > a {
-  font-size: 12px;
-}
-.lane article > small {
-  color: #6b7d88;
-}
-.lane article footer {
+.ehr-search-heading {
   display: flex;
-  padding: 8px 0 0;
-  margin-top: 10px;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid #e2e8ec;
-  color: inherit;
+  padding: 8px 12px;
+  background: var(--ehr-pale);
 }
-.priority-dot {
-  position: absolute;
-  width: 4px;
-  inset: 0 auto 0 0;
-  background: #99aab4;
-}
-.priority-dot.urgent {
-  background: #d9313c;
-}
-.domain-diagnostics {
-  background: #121b22;
-  color: #e3ebef;
-}
-.domain-diagnostics .domain-stats article,
-.domain-diagnostics .lane > article {
-  background: #1d2a32;
-  border-color: #3d505c;
-  color: #e8f0f2;
-}
-.domain-diagnostics .lane {
-  background: #17242c;
-}
-.domain-diagnostics .lane article footer {
-  border-color: #3b4a52;
-}
-.domain-wearables {
-  background: #111d2d;
-  color: #edf5ff;
-}
-.domain-wearables .lane {
-  background: #192b42;
-}
-.domain-wearables .lane > article,
-.domain-wearables .domain-stats article {
-  background: #223650;
-  border-color: #36516f;
-  color: #fff;
-}
-.domain-robotics .kanban {
-  grid-template-columns: repeat(4, 1fr);
-}
-.domain-robotics .lane > article {
-  border-left: 5px solid #425f79;
-}
-.domain-nhsapp,
-.domain-patient {
-  max-width: 840px;
-  margin-right: auto;
-  margin-left: auto;
-  border-radius: 20px;
-  background: #f5f9fd;
-}
-.domain-nhsapp .kanban,
-.domain-patient .kanban {
-  grid-template-columns: repeat(2, 1fr);
-}
-.domain-nhsapp .lane,
-.domain-patient .lane {
-  border-radius: 13px;
-  background: #eaf3fa;
-}
-.domain-maternity {
-  background: #fff4f8;
-}
-.domain-mental {
-  background: #eef8f6;
-}
-.domain-theatre .lane {
-  background: #e5f2f1;
-}
-.domain-beds .lane {
-  background: #fff0e9;
-}
-.domain-research,
-.domain-genomics {
-  background: #f3f0fa;
-}
-@media (max-width: 1200px) {
-  .message-layout {
-    grid-template-columns: 165px 220px 1fr;
-  }
-  .message-layout > .context {
-    display: none;
-  }
-  .record-drawer {
-    right: 18px;
-  }
-  .kanban {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
-  }
-}
-@media (max-width: 850px) {
-  .system-bar {
-    flex-wrap: wrap;
-  }
-  .system-bar input {
-    width: 100%;
-  }
-  .epr-layout,
-  .practice-layout,
-  .ed-layout,
-  .roster-layout {
-    grid-template-columns: 1fr;
-  }
-  .clinical-grid {
-    grid-template-columns: 1fr;
-  }
-  .clinical-grid .wide {
-    grid-column: 1;
-  }
-  .message-layout {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-  .message-layout > .channels,
-  .message-layout > .threads {
-    display: none;
-  }
-  .conversation {
-    min-height: 520px;
-  }
-  .patient-banner {
-    grid-template-columns: auto 1fr;
-  }
-  .patient-banner > div:not(:nth-child(2)),
-  .patient-banner mark {
-    display: none;
-  }
-  .record-drawer {
-    position: static;
-    width: auto;
-    max-height: none;
-  }
-  .rx-metrics {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .kanban {
-    grid-template-columns: 1fr;
-  }
-  .domain-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.patient-search-results {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 16px;
-  border-bottom: 1px solid #d8e2e9;
-}
-.patient-search-results button {
-  text-align: left;
-}
-.patient-search-results small,
-.record-collection small,
-.record-collection time {
+.ehr-search-results > button {
   display: block;
-  color: #607688;
-  font-size: 12px;
-}
-.patient-record-link {
-  border: 0;
-  padding: 0;
-  background: transparent;
+  width: 100%;
   text-align: left;
-  color: #005eb8;
-  font-weight: 600;
+  border: 0;
+  border-bottom: 1px solid #dae3eb;
+  border-radius: 0;
+  padding: 10px 13px;
+  background: #fff;
 }
-.worklist-limit {
-  padding: 16px;
-  font-size: 13px;
-  color: #526d80;
+.ehr-search-results small {
+  display: block;
+  margin-top: 4px;
+  color: #60748a;
 }
-.longitudinal-record {
-  margin: 20px 0;
+.ehr-patient-banner {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 13px 16px;
+  background: linear-gradient(100deg, #d8e6f4, #c4d8eb);
+  border-bottom: 1px solid #9eb6cd;
 }
-.longitudinal-record > p {
+.ehr-patient-banner > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.ehr-patient-banner small {
+  color: #4e657b;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.ehr-patient-name strong {
+  font-size: 19px;
+}
+.ehr-patient-banner b {
   font-size: 12px;
-  color: #607688;
+  font-weight: 500;
 }
-.record-collection {
-  border-top: 1px solid #d8e2e9;
+.ehr-allergy {
+  flex: 1;
+  border-left: 1px solid #a9bfd4;
+  padding-left: 20px;
 }
-.record-collection summary {
-  cursor: pointer;
-  padding: 12px 0;
+.ehr-allergy b {
+  color: #7b412e;
+  max-width: 350px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ehr-synthetic {
+  padding: 4px 6px;
+  border: 1px solid #9badbd;
+  color: #52667a;
+  background: #ffffff66;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-left: auto;
+}
+.ehr-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(270px, 1fr);
+  flex: 1;
+  min-height: 620px;
+}
+.ehr-main {
+  min-width: 0;
+  border-right: 1px solid var(--ehr-line);
+  display: flex;
+  flex-direction: column;
+}
+.ehr-tabs {
+  display: flex;
+  align-items: end;
+  gap: 1px;
+  overflow-x: auto;
+  background: #dde8f2;
+  padding: 8px 8px 0;
+  border-bottom: 1px solid #a6bdd2;
+}
+.ehr-tabs button {
+  white-space: nowrap;
+  border: 1px solid #a6bdd2;
+  border-bottom: 0;
+  padding: 9px 17px;
+  background: linear-gradient(#e5eef8, #c7d9eb);
+  border-radius: 3px 3px 0 0;
+  color: #234866;
+  font-size: 12px;
+  box-shadow: none;
+}
+.ehr-tabs button.active {
+  background: #fff;
+  font-weight: 700;
+  position: relative;
+  padding-bottom: 10px;
+  margin-bottom: -1px;
+}
+.ehr-content {
+  position: relative;
+  background: #fff;
+  flex: 1;
+  padding: 0 10px 12px;
+}
+.ehr-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 4px 10px;
+}
+.ehr-section-heading h2 {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 }
-.record-collection summary span {
-  float: right;
-  color: #607688;
-  font-variant-numeric: tabular-nums;
+.ehr-section-heading h2 small {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 400;
+  margin-left: 10px;
+  color: #6c7c8d;
 }
-.record-collection ul,
-.record-collection ol {
-  list-style: none;
-  padding: 0;
+.ehr-section-heading input {
+  font-size: 11px;
+  max-width: 160px;
+  padding: 5px 7px;
+}
+.ehr-section-heading select {
+  font-size: 11px;
+  max-width: 165px;
+}
+.ehr-table-wrap {
+  overflow-x: auto;
+}
+.ehr-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--ehr-line);
+  font-size: 12px;
+  line-height: 1.4;
   margin: 0;
 }
-.record-collection li {
-  padding: 10px 0;
-  border-top: 1px solid #edf2f5;
+.ehr-table th {
+  background: linear-gradient(#eff3f7, #dfe7ee);
+  text-align: left;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--ehr-line);
+  color: #31475d;
+  white-space: nowrap;
+}
+.ehr-table td {
+  padding: 7px 8px;
+  border: 1px solid #dae3eb;
+  vertical-align: top;
+}
+.ehr-table tbody tr:nth-child(even) {
+  background: #f5f8fb;
+}
+.ehr-table td:first-child {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ehr-table td small {
+  display: block;
+  color: #6f7e8c;
+  font-size: 10px;
+  margin-top: 3px;
+}
+.ehr-table .ehr-record-link,
+.immersive-ehr .ehr-text-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  text-align: left;
+  color: #174e7f;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ehr-table .ehr-record-link:hover,
+.immersive-ehr .ehr-text-button:hover {
+  text-decoration: underline;
+  background: none;
+}
+.ehr-summary {
+  padding: 9px;
+  background: #e9f0f7;
+  min-width: 0;
+}
+.ehr-summary > section {
+  border: 1px solid #b1c4d7;
+  background: #fff;
+  margin-bottom: 9px;
+}
+.ehr-summary h3 {
+  background: linear-gradient(#d5e3f1, #c1d4e7);
+  padding: 8px 11px;
+  font-size: 13px;
+  border-bottom: 1px solid #a9bfd5;
+  display: flex;
+  justify-content: space-between;
+}
+.ehr-summary h3 span {
+  font-size: 11px;
+  color: #5f7488;
+}
+.immersive-ehr dl {
+  display: grid;
+  grid-template-columns: 125px 1fr;
+  margin: 0;
+  font-size: 12px;
+}
+.immersive-ehr dt,
+.immersive-ehr dd {
+  margin: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid #e0e7ee;
+  overflow-wrap: anywhere;
+}
+.immersive-ehr dt {
+  border-right: 1px solid #e0e7ee;
+  color: #5e6f80;
+}
+.ehr-summary-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 11px;
+  border-bottom: 1px solid #e0e7ee;
+  font-size: 12px;
+}
+.ehr-summary-line span {
+  font-size: 10px;
+  color: #628173;
+}
+.ehr-task {
+  padding: 10px 11px;
+  border-bottom: 1px solid #dce5ed;
+}
+.ehr-task small {
+  display: block;
+  color: #65798b;
+  margin: 4px 0 7px;
+}
+.ehr-task .ehr-action {
+  font-size: 11px;
+  padding: 5px 9px;
+}
+.ehr-empty {
+  padding: 16px 12px;
+  color: #798693;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.ehr-pagination {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: flex-end;
+  padding: 10px 2px;
+  font-size: 11px;
+  color: #617689;
+}
+.ehr-pagination span {
+  margin-right: auto;
+}
+.ehr-pagination button {
+  font-size: 11px;
+  padding: 4px 7px;
+}
+.ehr-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 15px;
+  background: #d2e0ed;
+  border-top: 1px solid #a2b7ca;
+  font-size: 10px;
+  color: #435e78;
+  margin: 0;
+}
+.ehr-record-detail {
+  position: sticky;
+  bottom: 8px;
+  background: #fff;
+  border: 1px solid #8aa4bb;
+  box-shadow:
+    0 0 0 5px #ffffffcc,
+    0 6px 24px #12304833;
+  margin-top: 15px;
+  max-height: 420px;
+  overflow: auto;
+}
+.ehr-record-detail header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--ehr-pale);
+  padding: 12px;
+  margin: 0;
+}
+.ehr-record-detail h3 {
+  font-size: 14px;
+  margin-top: 4px;
+}
+.ehr-record-detail small {
+  color: #687b8d;
+}
+.ehr-record-detail footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--ehr-line);
+  margin: 0;
+  background: #f4f7fa;
+}
+.ehr-record-detail footer button {
+  font-size: 11px;
+}
+.ehr-terminal {
+  font-size: 11px;
+  color: #557869;
+}
+.ehr-start {
+  padding: 60px 25px;
+  max-width: 660px;
+  margin: auto;
+  text-align: center;
+}
+.ehr-start > span {
+  font-size: 40px;
+  color: #8299af;
+}
+.ehr-start h2 {
+  font-size: 20px;
+  margin: 12px 0;
+}
+.ehr-start p {
+  color: #718296;
   font-size: 13px;
 }
-.record-collection > p {
+.ehr-start > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 28px;
+}
+.ehr-start button {
+  text-align: left;
+  background: #fff;
+}
+.ehr-start small {
+  display: block;
+  color: #7b8d9e;
+  margin-top: 4px;
+}
+.ehr-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #14273866;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.ehr-dialog {
+  width: min(500px, 100%);
+  border: 1px solid #91a8bc;
+  background: #f7f9fc;
+  box-shadow: 0 24px 90px #0005;
+}
+.ehr-dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--ehr-accent);
+  color: #fff;
+  margin: 0;
+  padding: 12px 16px;
+}
+.ehr-dialog h2 {
+  font-size: 16px;
+}
+.ehr-dialog > p {
+  padding: 14px 18px 0;
   font-size: 12px;
+}
+.ehr-dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  margin: 0;
+}
+.ehr-dialog textarea {
+  min-height: 130px;
+  padding: 10px;
+  resize: vertical;
+  color: var(--ehr-ink);
+  background: white;
+}
+.ehr-dialog form small {
+  color: #6d7d8f;
+  line-height: 1.5;
+}
+.ehr-dialog footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 10px 0 0;
+  margin: 0;
+}
+.ehr-dialog .ehr-primary {
+  background: var(--ehr-accent);
+  color: white;
+  border-color: var(--ehr-accent);
+  box-shadow: none;
+}
+.millbank {
+  --ehr-accent: #574358;
+  --ehr-line: #d1cdd4;
+  --ehr-pale: #eeeaf0;
+  --ehr-ink: #332c39;
+  background: #f5f3f6;
+}
+.millbank .ehr-titlebar {
+  background: #28222d;
+  border-bottom: 3px solid #a28aa8;
+}
+.millbank .ehr-titlebar strong {
+  font-family: Georgia, serif;
+  font-weight: 400;
+  font-size: 23px;
+  letter-spacing: 0.3px;
+}
+.millbank .ehr-toolbar {
+  background: #f2eff4;
+  border-color: #d0c8d5;
+}
+.millbank .ehr-searchbar {
+  background: #faf9fb;
+  border-color: #ddd8e1;
+}
+.millbank .ehr-patient-banner {
+  background: #e9e1ed;
+  border-color: #c1b2c8;
+}
+.millbank .ehr-patient-banner small {
+  color: #716379;
+}
+.millbank .ehr-allergy {
+  border-color: #c9bbce;
+}
+.millbank .ehr-body {
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+}
+.millbank .ehr-tabs {
+  background: #e8e3ec;
+  border-color: #c9becf;
+}
+.millbank .ehr-tabs button {
+  background: #e8e3ec;
+  color: #63516b;
+  border-color: transparent;
+  padding: 12px 17px;
+}
+.millbank .ehr-tabs button.active {
+  background: white;
+  border-top: 3px solid #80618d;
+  padding-top: 10px;
+}
+.millbank .ehr-table th {
+  background: #eeeaf0;
+  color: #66566e;
+  border-color: #d9d1de;
+  padding: 10px 8px;
+}
+.millbank .ehr-table td {
+  padding: 12px 8px;
+  border: 0;
+  border-bottom: 1px solid #e4dfe7;
+}
+.millbank .ehr-table tr:nth-child(even) {
+  background: #faf8fb;
+}
+.millbank .ehr-table .selected {
+  background: #eee7f3 !important;
+  box-shadow: inset 3px 0 #886497;
+}
+.millbank .ehr-record-link {
+  color: #5e3f71;
+  font-weight: bold;
+}
+.millbank .ehr-worklist td:first-child {
+  white-space: normal;
+  min-width: 160px;
+}
+.millbank .ehr-worklist td:nth-child(2) {
+  max-width: 200px;
+}
+.ehr-urgent {
+  color: #a43b35 !important;
+  background: #fff0e7;
+  padding: 3px 5px;
+  font-size: 10px;
+  display: inline-block;
+  border-radius: 2px;
+}
+.ehr-routine {
+  color: #677467;
+  font-size: 10px;
+}
+.ehr-handover {
+  background: #f6f3f7;
+  padding: 20px 18px;
+  min-width: 0;
+}
+.ehr-chart-heading {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #d8ccdf;
+}
+.ehr-chart-heading small {
+  font-size: 9px;
+  letter-spacing: 1.8px;
+  color: #8b7095;
+}
+.ehr-chart-heading h2 {
+  font-family: Georgia, serif;
+  font-size: 26px;
+  font-weight: 400;
+  margin: 6px 0 10px;
+}
+.ehr-chart-heading p {
+  font-size: 12px;
+  color: #75667e;
+}
+.ehr-handover section {
+  padding: 20px 0;
+  border-bottom: 1px solid #d8ccdf;
+}
+.ehr-handover h3 {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: 13px;
+}
+.ehr-handover h3 > span {
+  font: 11px monospace;
+  color: #987fa2;
+}
+.ehr-handover-item {
+  display: flex;
+  gap: 9px;
+  padding: 8px 0;
+}
+.ehr-handover-item > div {
+  min-width: 0;
+  flex: 1;
+}
+.ehr-handover-item small {
+  display: block;
+  color: #8b7f91;
+  margin: 4px 0 7px;
+  font-size: 10px;
+}
+.ehr-check {
+  color: #ab9bb4;
+  padding-top: 2px;
+  font-size: 17px;
+}
+.ehr-check.complete {
+  color: #5e8776;
+}
+.ehr-inline-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ehr-inline-actions button {
+  font-size: 10px;
+  padding: 4px 7px;
+  background: #fff;
+  border-color: #c7b8ce;
+}
+.ehr-handover .ehr-text-button {
+  color: #57465f;
+}
+.ehr-handover .ehr-add-row {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: #795987;
+  font-size: 11px;
+  padding: 9px 0 0;
+}
+.millbank .ehr-statusbar {
+  background: #e4dee9;
+  border-color: #cabed0;
+  color: #7f6c88;
+}
+.millbank .ehr-content {
+  padding: 0 14px 12px;
+}
+.millbank .ehr-section-heading {
+  padding: 19px 0 15px;
+}
+.millbank .ehr-section-heading h2 {
+  font-size: 16px;
+}
+.millbank .ehr-section-heading h2 small {
+  display: block;
+  margin: 5px 0 0;
+}
+.millbank button:hover {
+  background: #eee7f4;
+  border-color: #b6a4c1;
+}
+@media (min-width: 1600px) {
+  .ehr-body {
+    min-height: 760px;
+  }
+  .ehr-table td {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+}
+@media (max-width: 1050px) {
+  .ehr-location {
+    display: none;
+  }
+  .ehr-identity {
+    margin-left: auto;
+  }
+  .ehr-patient-banner {
+    gap: 18px;
+  }
+  .ehr-body,
+  .millbank .ehr-body {
+    grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  }
+  .ehr-table {
+    font-size: 11px;
+  }
+  .ehr-toolbar {
+    overflow-x: auto;
+  }
+  .ehr-toolbar time {
+    display: none;
+  }
+  .ehr-tabs button {
+    padding: 9px 11px;
+  }
+  .ehr-summary dl {
+    grid-template-columns: 90px 1fr;
+  }
+  .ehr-searchbar > span {
+    display: none;
+  }
+  .ehr-handover {
+    padding: 16px 12px;
+  }
+}
+@media (max-width: 760px) {
+  .immersive-ehr {
+    min-height: 100dvh;
+  }
+  .ehr-titlebar {
+    padding: 10px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .ehr-titlebar strong {
+    font-size: 17px;
+  }
+  .ehr-identity {
+    font-size: 10px;
+  }
+  .ehr-titlebar strong span {
+    display: none;
+  }
+  .ehr-titlebar button {
+    font-size: 11px;
+    padding-left: 12px;
+  }
+  .ehr-toolbar {
+    padding: 8px;
+    gap: 5px;
+  }
+  .ehr-toolbar button {
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+  .ehr-toolbar a {
+    padding-right: 8px;
+  }
+  .ehr-searchbar {
+    padding: 8px 10px;
+  }
+  .ehr-finder {
+    width: 100%;
+  }
+  .ehr-finder input {
+    flex: 1;
+    width: auto;
+  }
+  .ehr-search-results {
+    width: min(380px, calc(100vw - 22px));
+  }
+  .ehr-patient-banner {
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    padding: 12px;
+  }
+  .ehr-patient-name {
+    flex-basis: 100%;
+  }
+  .ehr-patient-name strong {
+    font-size: 20px;
+  }
+  .ehr-allergy {
+    border: 0;
+    padding: 0;
+    flex-basis: 100%;
+    order: 5;
+  }
+  .ehr-synthetic {
+    align-self: flex-start;
+  }
+  .ehr-body,
+  .millbank .ehr-body {
+    display: block;
+    min-height: 0;
+  }
+  .ehr-main {
+    min-height: 420px;
+    border-right: 0;
+  }
+  .ehr-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .ehr-summary > section {
+    margin: 0;
+  }
+  .ehr-summary dl {
+    grid-template-columns: 1fr;
+  }
+  .ehr-summary dt {
+    padding-bottom: 1px;
+    border-bottom: 0;
+  }
+  .ehr-summary dd {
+    padding-top: 2px;
+  }
+  .ehr-statusbar {
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 9px;
+  }
+  .ehr-statusbar > span:last-child {
+    display: none;
+  }
+  .ehr-table td:first-child {
+    white-space: normal;
+  }
+  .ehr-section-heading h2 small {
+    display: block;
+    margin: 4px 0 0;
+  }
+  .ehr-handover {
+    padding: 20px;
+  }
+  .ehr-handover section {
+    padding: 15px 0;
+  }
+  .ehr-record-detail {
+    max-height: 360px;
+  }
+  .ehr-start {
+    padding: 30px 12px;
+  }
+  .ehr-content,
+  .millbank .ehr-content {
+    padding: 0 7px 10px;
+  }
+  .ehr-start > div {
+    grid-template-columns: 1fr;
+  }
+  .ehr-section-heading input {
+    max-width: 125px;
+  }
+}
+.ehr-coordination-note {
+  padding: 0 4px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #687b8d;
+  max-width: 620px;
+}
+.ehr-coordination .ehr-table td:last-child {
+  white-space: nowrap;
+}
+.ehr-coordination .ehr-action {
+  font-size: 11px;
 }

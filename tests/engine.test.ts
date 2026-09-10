@@ -3,6 +3,23 @@ import assert from "node:assert/strict";
 import { Engine } from "../packages/engine/src/index.ts";
 import { MockOIDC, bundle, matchAdapterPath } from "../packages/nhs-mocks/src/index.ts";
 import { createHash } from "node:crypto";
+import { actionSchema } from "../packages/contracts/src/index.ts";
+
+test("focused EHRs can hand over to community and hospital services", () => {
+  const engine = new Engine();
+  const visit = engine.action("default", "hospital", actionSchema.parse({
+    type: "schedule_visit", target: "community", patientId: "SIM-000001",
+  }), "team");
+  assert.equal(visit.owner, "community");
+  assert.equal(visit.status, "scheduled");
+  engine.clock("default", { advanceMinutes: 90 });
+  assert.equal(visit.status, "completed");
+  const referral = engine.action("default", "gp", actionSchema.parse({
+    type: "create_referral", target: "hospital", patientId: "SIM-000001",
+  }), "team");
+  assert.ok(referral.visibleTo.includes("hospital"));
+  assert.equal(actionSchema.safeParse({type: "create_task", target: "icb"}).success, false);
+});
 
 test("A&E backlog responds to roster staffing over time", () => {
   const normal = new Engine(),

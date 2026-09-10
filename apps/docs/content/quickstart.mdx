@@ -4,7 +4,7 @@ title: Make your first API call
 
 # Make your first API call
 
-Create a team world and add a GP task for a fictional patient. These commands use `curl` and `jq`.
+Start at <a href="/control/">the map</a> and open Riverside Practice to enter SystemTwo. Create a team world there, or use the API below to create one and add a GP task for a fictional patient. These commands use `curl` and `jq`.
 
 ## Create a team world
 
@@ -53,6 +53,6 @@ curl --fail --silent "$SIM_ORIGIN/api/sites/gp/view" \
   | jq '.resources[] | select(.title == "Check discharge follow-up")'
 ```
 
-Open <a href="/gp/">Riverside Practice</a> and use the same team key to inspect the task in the portal.
+Open <a href="/gp/">SystemTwo at Riverside Practice</a> and use the same team key to inspect the task in the portal.
 
-[Choose a challenge](./challenges.md) or read the [action reference](./api.md).
+[Choose a challenge](./challenges.mdx) or read the [action reference](./api.md).

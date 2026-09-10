@@ -4,7 +4,12 @@ import { resolve, extname } from "node:path";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { ZodError, z } from "zod";
 import { Store } from "./store.ts";
-import { sites, scenarios, type SiteId } from "../../../packages/contracts/src/index.ts";
+import {
+  sites,
+  activeServices,
+  scenarios,
+  type SiteId,
+} from "../../../packages/contracts/src/index.ts";
 import { SimError } from "../../../packages/engine/src/index.ts";
 import {
   catalogue,
@@ -12,6 +17,7 @@ import {
   matchAdapterPath,
   MockOIDC,
 } from "../../../packages/nhs-mocks/src/index.ts";
+import { handleCis2 } from "./cis2.ts";
 import { ModelAgent } from "../../../packages/agents/src/index.ts";
 
 const port = Number(process.env.PORT ?? 8080);
@@ -96,7 +102,7 @@ const server = createServer(async (req, res) => {
         return send(res, 501, {
           error: "API_NOT_AVAILABLE",
           message:
-            "Interoperability is on our roadmap. Please fax your innovation to the account manager. In the meantime: /legacy/ (browser automation only).",
+            "This legacy service supports browser integration only. Create a session at POST /api/session and use /browser/legacy.",
         });
       if (store.keys.length >= 200)
         throw new SimError("Team limit reached; ask the organiser", 429);
@@ -104,54 +110,10 @@ const server = createServer(async (req, res) => {
       if ((issuance.get(ip) ?? 0) > Date.now() - 2000)
         throw new SimError("Please wait two seconds before creating another key", 429);
       issuance.set(ip, Date.now());
-      const allowed = sites.filter((s) => !["control", "legacy"].includes(s.id)).map((s) => s.id);
+      const allowed = activeServices.filter((id) => !["control", "legacy"].includes(id));
       if (input.site && !allowed.includes(input.site as SiteId))
         throw new SimError("Unknown API site");
       return send(res, 201, await store.issue(input.teamName, input.site ? [input.site] : allowed));
-    }
-    if (path.startsWith("/cis2/")) {
-      try {
-        if (path === "/cis2/.well-known/openid-configuration")
-          return send(res, 200, oidc.discovery());
-        if (path === "/cis2/jwks") return send(res, 200, await oidc.jwks());
-        if (path === "/cis2/token" && method === "POST")
-          return send(res, 200, await oidc.token(new URLSearchParams(await body(req))));
-        if (path === "/cis2/userinfo")
-          return send(
-            res,
-            200,
-            oidc.userinfo((req.headers.authorization ?? "").replace(/^Bearer /, "")),
-          );
-        if (path === "/cis2/authorize") {
-          if (method === "POST") {
-            const redirect = oidc.authorize(new URLSearchParams(await body(req)));
-            res.writeHead(303, { Location: redirect });
-            return res.end();
-          }
-          return send(
-            res,
-            200,
-            '<!doctype html><title>CIS-too · mock identity</title><h1>CIS-too: synthetic staff sign-in</h1><p>This does not authenticate a real person. Fixed fictional identity: Dr Demo Clinician.</p><form method="post">' +
-              [...url.searchParams]
-                .map(
-                  ([k, v]) =>
-                    '<input type="hidden" name="' + escape(k) + '" value="' + escape(v) + '">',
-                )
-                .join("") +
-              "<button>Continue as mock clinician</button></form>",
-            "text/html",
-          );
-        }
-        if (path === "/cis2/callback")
-          return send(res, 200, {
-            message: "Exchange this one-time mock code at /cis2/token using your PKCE verifier",
-            code: url.searchParams.get("code"),
-            state: url.searchParams.get("state"),
-          });
-      } catch (e) {
-        return send(res, 400, { error: "invalid_request", message: (e as Error).message });
-      }
-      throw new SimError("Unknown identity endpoint", 404);
     }
     const bearer = (req.headers.authorization ?? "").replace(/^Bearer /, "");
     const cookie = req.headers.cookie
@@ -161,6 +123,7 @@ const server = createServer(async (req, res) => {
     const session = cookie ? sessions.get(cookie) : undefined;
     const sessionKey = session && session.expires > Date.now() ? session.key : "";
     const admin = equal(bearer || sessionKey, adminToken!);
+    if (await handleCis2({ req, res, url, admin, oidc })) return;
     const key = store.authenticate(bearer || sessionKey);
     const world = admin ? (url.searchParams.get("world") ?? "default") : key?.world;
     const authenticated = () => {
@@ -336,10 +299,10 @@ const server = createServer(async (req, res) => {
     if (match) {
       const id = authenticated(),
         site = match[1] as SiteId;
-      if (!sites.some((s) => s.id === site)) throw new SimError("Unknown site", 404);
+      if (!activeServices.includes(site)) throw new SimError("Unknown site", 404);
       if (site === "legacy")
         return send(res, 501, {
-          error: "Our API is available in the next procurement cycle. Try /legacy/.",
+          error: "Use /browser/legacy after creating a team browser session.",
         });
       if (site === "control" && !admin) throw new SimError("Operator only", 403);
       if (!admin && !key!.scopes.includes(site)) throw new SimError("Key lacks service scope", 403);

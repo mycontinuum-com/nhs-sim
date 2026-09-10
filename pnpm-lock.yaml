@@ -55,17 +55,7 @@ importers:
         specifier: 0.3.0
         version: 0.3.0(@types/node@24.13.3)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.51.2)(typescript@5.9.3)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.25.12)(jiti@1.21.7)(terser@5.51.2))
 
-  apps/ambulance: {}
-
-  apps/beds: {}
-
-  apps/community: {}
-
   apps/control: {}
-
-  apps/dental: {}
-
-  apps/diagnostics: {}
 
   apps/docs:
     dependencies:
@@ -86,51 +76,11 @@ importers:
         specifier: ^3.1.0
         version: 3.1.1(@types/react@19.2.18)(react@19.2.8)
 
-  apps/genomics: {}
-
   apps/gp: {}
 
   apps/hospital: {}
 
-  apps/hr: {}
-
-  apps/icb: {}
-
-  apps/legacy: {}
-
-  apps/maternity: {}
-
-  apps/mental: {}
-
-  apps/messaging: {}
-
-  apps/nhsapp: {}
-
-  apps/patient: {}
-
-  apps/pharmacy: {}
-
-  apps/population: {}
-
-  apps/referrals: {}
-
-  apps/research: {}
-
-  apps/robotics: {}
-
-  apps/roster: {}
-
   apps/server: {}
-
-  apps/social: {}
-
-  apps/theatre: {}
-
-  apps/triage: {}
-
-  apps/urgent: {}
-
-  apps/wearables: {}
 
   packages/agents: {}
 

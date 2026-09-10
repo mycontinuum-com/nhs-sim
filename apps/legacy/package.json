@@ -1,9 +1,0 @@
-{
-  "name": "@nhs-sim/legacy",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vp dev",
-    "build": "vp build"
-  }
-}

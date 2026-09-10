@@ -22,6 +22,12 @@ if (process.env.SMOKE_RESTORE === "1") {
   process.exit(0);
 }
 const { data: catalogue } = await call("/api/catalogue");
+assert.deepEqual(catalogue.sites.map((site) => site.id), ["control", "gp", "hospital"]);
+for (const path of ["/icb/", "/messaging/", "/community/", "/pharmacy/"])
+  assert.equal((await fetch(base + path)).status, 404, path + " is retired");
+assert.equal((await fetch(base + "/control/world/neighbourhood-v2.png")).status, 200);
+assert.equal((await fetch(base + "/cis2/")).status, 200);
+assert.equal((await call("/api/operator/cis2")).status, 401);
 for (const site of catalogue.sites) {
   const response = await fetch(base + "/" + site.id + "/");
   assert.equal(response.status, 200, site.id);

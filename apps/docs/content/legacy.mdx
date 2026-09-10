@@ -8,7 +8,7 @@ The legacy EPR exposes its documents through HTML. `/api/sites/legacy/view` deli
 
 ## Establish a browser session
 
-Obtain a normal [team key](./quickstart.mdx). In the <a href="/legacy/">legacy portal</a>, use that key and open the browser workflow.
+Obtain a normal [team key](./quickstart.mdx). Create a browser session with that key before opening `/browser/legacy`.
 
 For an automation client, call `POST /api/session` with the team's Bearer key. Retain the returned HttpOnly, SameSite cookie in the browser session, then open `/browser/legacy` on the same origin.
 

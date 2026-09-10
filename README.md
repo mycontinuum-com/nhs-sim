@@ -36,40 +36,21 @@ Your Traefik must already be on the external Docker network `traefik`, with a `w
 
 Only the application joins the Traefik network. PostgreSQL remains on the internal Compose network. `PUBLIC_ORIGIN` must match the browser origin exactly: it determines mock OIDC URLs, CSRF origin validation and secure cookies.
 
-## Websites
+## Explore the neighbourhood
 
-Each of the 28 portals has its own pnpm workspace package, entry point, Vite+ configuration, base path and static build. The portals share TanStack Router/Query and the simulation contracts, but expose purpose-built product interfaces: an inpatient EPR, care-team messenger, primary-care inbox, ED command board, rostering grid, dispensing workflow, dark reporting cockpit, citizen views and domain-specific operational boards. They are deliberately fictional category parodies—not deceptive copies or certified replicas of proprietary products.
+Open `/control/` to enter the map, then choose a workplace. The map leaves the screen when you enter a clinical system. Return to it to change workplaces.
 
-| Path            | System                                                                  |
-| --------------- | ----------------------------------------------------------------------- |
-| `/control/`     | Clock, world selector, incidents and agent switches                     |
-| `/gp/`          | Primary-care EPR and follow-up tasks                                    |
-| `/hospital/`    | SystemTwo EPR: inpatient record, observations, notes and acute workflow |
-| `/messaging/`   | Pingr: secure-ish care-team channels, patient context and shared tasks  |
-| `/legacy/`      | Cerner? I Hardly Know Her: browser-only correspondence                  |
-| `/triage/`      | Patient requests and front-door navigation                              |
-| `/diagnostics/` | Pathology and radiology silos                                           |
-| `/referrals/`   | Referral Exchange                                                       |
-| `/pharmacy/`    | Medicines, dispensing and supply                                        |
-| `/community/`   | Home visits, care plans and virtual-ward foundation                     |
-| `/wearables/`   | Home Signals: device and observation streams                            |
-| `/robotics/`    | Fleet Operations: jobs, availability and completion                     |
-| `/patient/`     | Patient/carer simulation workbench                                      |
-| `/population/`  | Screening, genomics and prevention records                              |
-| `/hr/`          | ES-Arrr: staff absence and return                                       |
-| `/roster/`      | Allocate-ish: staff allocation and skill mix                            |
-| `/ambulance/`   | CAD-astrophe: handover worklist                                         |
-| `/nhsapp/`      | My Health Thing: citizen choices, messages and records                  |
-| `/urgent/`      | Pathways-ish 111: dispositions and urgent-care booking                  |
-| `/mental/`      | RiO Grande: community mental health and crisis plans                    |
-| `/maternity/`   | Badger-ish Notes: antenatal and perinatal pathways                      |
-| `/dental/`      | Dentally Challenged: recalls and access requests                        |
-| `/social/`      | Solid Logic: care packages and discharge support                        |
-| `/genomics/`    | Gene-ius: genomic tests, consent and family context                     |
-| `/theatre/`     | Orpheus: operating lists, robots and recovery capacity                  |
-| `/beds/`        | Bedrock: beds, discharge barriers and flow alerts                       |
-| `/icb/`         | Commission Impossible: provider and population performance              |
-| `/research/`    | Trial & Error: consent-aware cohort discovery                           |
+| Path | Workplace |
+| --- | --- |
+| `/control/` | Neighbourhood map and simulation controls |
+| `/gp/` | SystemTwo at Riverside Practice, a fictional primary-care EPR |
+| `/hospital/` | Millbank EPR at Northbank General, a fictional secondary-care EPR |
+| `/docs/` | Participant handbook, API contracts and organiser guide |
+| `/cis2/` | Staff identity emulator |
+
+SystemTwo and Millbank demonstrate two different ways of working with the same synthetic population. Community, pharmacy, diagnostics and referrals are supporting services in their journeys, with scoped APIs and owned records. They do not have separate portals. The browser-only letter transfer remains at `/browser/legacy` as an integration exercise.
+
+The interfaces are fictional interpretations of EPR categories. They do not reproduce vendor branding or claim compatibility with SystmOne or Cerner.
 
 ## APIs and self-service keys
 
@@ -88,7 +69,7 @@ Omit `site` for all available clinical APIs, or pass a site ID for a narrower ke
 - `GET /api/sites/gp/patients?q=SIM-000001&offset=0`: patient search (30 per page).
 - `POST /api/sites/gp/actions`: typed actions; accepts `Idempotency-Key`.
 - `POST /api/clock`: pause/speed/manual step, limited to the key's world.
-- `GET /api/nhs/pds`, `/ers`, `/eps`, etc.: see [API contracts](docs/api-contracts.md).
+- `GET /api/nhs/pds`, `/ers`, `/eps`: see [API contracts](docs/api-contracts.md).
 - `GET /cis2/.well-known/openid-configuration`: mock staff identity discovery.
 
 ```bash
@@ -99,7 +80,7 @@ curl http://localhost:8080/api/sites/gp/actions \
   -d '{"type":"order_test","patientId":"SIM-000001","title":"Post-discharge monitoring"}'
 ```
 
-Stepping 121 minutes produces a result. Injecting the pathology outage holds its visibility in diagnostics until restored. Referrals, prescriptions, visits and robot jobs similarly affect the shared world.
+Stepping 121 minutes produces a result. Injecting the pathology outage holds its visibility in diagnostics until restored. Referrals, prescriptions and community visits also affect the shared world.
 
 ## Architecture
 
@@ -146,9 +127,11 @@ pnpm verify -- cleanup --dry-run
 
 Proof is written to the ignored `.verification/evidence/` directory. See `AGENTS.md` and `.agents/skills/verify-nhs-sim/features/` for the maintained feature map.
 
-## Agents and hackathon depth
+## Hackathon scope
 
-Rule agents run without internet or credentials: front-door and cross-service demand, delayed lab work, home observations, logistics completion, prevention recalls, bed-pressure alerts and staffing-dependent A&E flow. Their actions use simulation time, so pausing pauses their effects. Optional LLM proposals require `OPENAI_API_KEY` and `OPENAI_MODEL`, and an explicit operator request. They are not automatically executed and may only propose tasks.
+Start with discharge follow-up, a rejected referral, or a community visit. Use SystemTwo and Millbank to inspect the patient and confirm the records your integration changes. Supporting services retain their own ownership and visibility rules.
+
+Rule agents run without internet or credentials. Their actions use simulation time, so pausing pauses their effects. Optional LLM proposals require `OPENAI_API_KEY` and `OPENAI_MODEL`, and an explicit operator request. They are not automatically executed and may only propose tasks.
 
 Read [hackathon projects and coverage](docs/hackathon.md), [API contracts](docs/api-contracts.md), and [security](SECURITY.md).
 

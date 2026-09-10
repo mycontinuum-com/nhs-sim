@@ -18,7 +18,7 @@ A resource has an `id`, optional `patientId`, `kind`, `title`, `status`, `owner`
 
 Issuing a team key creates a world. Portal activity and API actions using that key affect the same world. Another team's key sees another world. Team names do not grant access to an existing world.
 
-The simulation clock controls delayed events. A test order schedules a result. A dispatch schedules a delivery. Read the resulting resource after advancing time to check whether it completed.
+The simulation clock controls delayed events. A test order schedules a result. A community visit schedules a completion. Read the resulting resource after advancing time to check whether it completed.
 
 ## Provenance and coverage
 

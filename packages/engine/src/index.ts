@@ -1,6 +1,5 @@
 import {
   actionSchema,
-  sites,
   type Action,
   type Resource,
   type SimEvent,
@@ -577,6 +576,8 @@ export class Engine {
         }
         r = this.add(w, kind, a.title ?? a.type.replaceAll("_", " "), owner, a.patientId);
         r.visibleTo = [...new Set<SiteId>([owner, site, "patient"])];
+        if (a.type === "create_referral" && a.target)
+          r.visibleTo = [...new Set([...r.visibleTo, a.target])];
         if (a.type === "draft_prescription") r.status = "draft";
         if (a.type === "order_test")
           w.scheduled.push({ at: w.now + 120 * minute, type: "result", resourceId: r.id });
