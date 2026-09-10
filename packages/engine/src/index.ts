@@ -657,7 +657,7 @@ export class Engine {
       }
       const existingId = r?.id;
       const create: Partial<Record<Action["type"], [string, SiteId]>> = {
-        create_task: ["task", site],
+        create_task: ["task", a.target ?? site],
         create_referral: ["referral", a.target ?? "hospital"],
         order_test: ["test", "diagnostics"],
         draft_prescription: ["prescription", "pharmacy"],

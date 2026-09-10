@@ -241,10 +241,12 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     refetchInterval: 5000,
   });
   const handovers = useQuery({
-    queryKey: ["handovers", key, patient],
+    queryKey: ["handovers", key, patient, siteId],
     queryFn: async () => {
+      const services: SiteId[] = ["community", "pharmacy", "diagnostics"];
+      if (siteId === "hospital") services.push("gp");
       const result = await Promise.allSettled(
-        (["community", "pharmacy", "diagnostics"] as const).map(async (service) => ({
+        services.map(async (service) => ({
           service,
           view: await api<View>(
             `/api/sites/${service}/view?patient=${encodeURIComponent(patient)}`,
@@ -253,10 +255,10 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
       );
       return {
         resources: result.flatMap((item) =>
-          item.status === "fulfilled" ? item.value.view.resources : [],
+          item.status === "fulfilled" ? item.value.view.resources.filter((record) => item.value.service !== "gp" || record.kind === "task") : [],
         ),
         unavailable: result.flatMap((item, index) =>
-          item.status === "rejected" ? [["community", "pharmacy", "diagnostics"][index]] : [],
+          item.status === "rejected" ? [services[index]] : [],
         ),
       };
     },
@@ -383,7 +385,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   };
   const create = (type: Action["type"], patientId: string, title: string, target?: SiteId) =>
     mutation.mutateAsync({
-      path: `/api/sites/${type === "create_task" ? (target ?? siteId) : siteId}/actions`,
+      path: `/api/sites/${siteId}/actions`,
       data: { type, patientId, title, target },
     });
   const selectPatient = (id: string) => {

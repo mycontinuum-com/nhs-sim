@@ -572,24 +572,26 @@ function Handover({
   pending,
   open,
   select,
+  openDocuments,
 }: {
   patient: Patient | undefined;
   rows: Resource[];
   open: (operation: Operation) => void;
   select: (id: string) => void;
+  openDocuments: () => void;
 } & Pick<Props, "act" | "pending">) {
   const sections = [
     {
       title: "01",
       label: "Discharge & GP handover",
-      kinds: ["discharge", "handover", "document", "referral"],
+      matches: (record: Resource) => ["discharge", "discharge-summary", "handover", "document", "referral"].includes(record.kind) || (record.kind === "task" && ["gp", "hospital"].includes(record.owner)),
       operation: operations[0],
     },
-    { title: "02", label: "Pharmacy supply", kinds: ["prescription"], operation: operations[2] },
+    { title: "02", label: "Pharmacy supply", matches: (record: Resource) => record.kind === "prescription", operation: operations[2] },
     {
       title: "03",
       label: "Community follow-up",
-      kinds: ["visit", "task"],
+      matches: (record: Resource) => record.kind === "visit" || (record.kind === "task" && record.owner === "community"),
       operation: operations[4],
     },
   ];
@@ -602,21 +604,21 @@ function Handover({
       </div>
       {sections.map((section) => {
         const records = rows.filter(
-          (r) => r.patientId === patient?.id && section.kinds.includes(r.kind),
-        );
+          (r) => r.patientId === patient?.id && section.matches(r),
+        ).reverse().sort((a, b) => b.createdAt - a.createdAt);
         return (
           <section key={section.title}>
             <h3>
               <span>{section.title}</span>
               {section.label}
             </h3>
-            {records.slice(0, 5).map((r) => (
+            {records.map((r) => (
               <div className="ehr-handover-item" key={r.id}>
                 <span className={"ehr-check " + (finished(r) ? "complete" : "")}>
                   {finished(r) ? "✓" : "○"}
                 </span>
                 <div>
-                  <button className="ehr-text-button" onClick={() => select(r.id)}>
+                  <button className="ehr-text-button" onClick={() => r.kind === "discharge-summary" ? openDocuments() : select(r.id)}>
                     {r.title}
                   </button>
                   <RecordAttribution record={r} />
@@ -624,8 +626,10 @@ function Handover({
                     {r.owner} · {r.status}
                   </small>
                   <div className="ehr-inline-actions">
-                    <ActionButton record={r} act={act} pending={pending} siteId="hospital" />
-                    {section.title === "01" && !r.visibleTo.includes("gp") && (
+                    {r.kind === "discharge-summary"
+                      ? <button onClick={openDocuments}>Open discharge summary</button>
+                      : <ActionButton record={r} act={act} pending={pending} siteId="hospital" />}
+                    {section.title === "01" && r.kind !== "discharge-summary" && !r.visibleTo.includes("gp") && (
                       <button disabled={pending} onClick={() => act("share_record", r, "gp")}>
                         Send to GP
                       </button>
@@ -1201,6 +1205,7 @@ function HospitalWorkspace(props: Props) {
                 <Handover
                   patient={patient}
                   rows={allRows}
+                  openDocuments={() => { setSection("Discharge summaries"); setDrawerOpen(false); }}
                   act={props.act}
                   pending={props.pending}
                   open={setOperation}
