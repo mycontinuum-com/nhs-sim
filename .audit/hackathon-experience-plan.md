@@ -25,3 +25,12 @@
 - Map to community visits, schedule a visit, advance time and observe completion.
 - Map to Eleanor's home, inspect historical activity/sleep/heart-rate and observe a new reading after time advances.
 - Verify keyboard access and a narrow viewport, run all required project checks and live smoke.
+
+## Runtime review results
+
+- A fresh team entered pharmacy from the map and collected Amira's prescription after dispensing. Stock changed from 3 to 2.
+- Community created `Hackathon home follow-up` for Amira and showed it under Completed after advancing 121 minutes.
+- Eleanor's home showed stored activity, pulse and sleep values. Advancing 60 minutes changed the latest activity timestamp from 09:10 to 10:10. The 24-hour filter showed four activity readings and honest empty states for older pulse/sleep data.
+- At 390px, the home cards stack and the map's Places menu provides all six destinations. Fixed footer stacking after map labels overlapped that menu.
+- Community handover selection exposed a query-loading remount that discarded local draft state. Keep the workspace mounted during patient-query changes; focus the new draft input.
+- Team access now closes with Escape and restores focus to its opener.

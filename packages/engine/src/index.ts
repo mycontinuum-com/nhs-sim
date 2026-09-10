@@ -195,22 +195,57 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
     "wearables",
     "available",
     5,
-    { metric: "steps", value: 1800, baseline: 4200, unit: "steps/day", quality: "good", observedAt: START },
+    {
+      metric: "steps",
+      value: 1800,
+      baseline: 4200,
+      unit: "steps/day",
+      quality: "good",
+      observedAt: START,
+    },
     ["wearables", "community", "patient"],
   );
-  add("device", "Home activity watch", "wearables", "active", 5,
-    { battery: 76, quality: "good", lastSyncedAt: START }, ["wearables", "community", "patient"]);
+  add(
+    "device",
+    "Home activity watch",
+    "wearables",
+    "active",
+    5,
+    { battery: 76, quality: "good", lastSyncedAt: START },
+    ["wearables", "community", "patient"],
+  );
   const homeHistory = [
-    { metric: "steps", title: "Daily activity", unit: "steps/day", values: [4350, 4100, 4650, 3900, 3500, 2800, 2400] },
-    { metric: "heart-rate", title: "Resting heart rate", unit: "bpm", values: [68, 67, 69, 68, 70, 69, 68] },
-    { metric: "sleep", title: "Sleep duration", unit: "h", values: [7.2, 7.5, 6.8, 7.1, 7.4, 6.9, 7.3] },
+    {
+      metric: "steps",
+      title: "Daily activity",
+      unit: "steps/day",
+      values: [4350, 4100, 4650, 3900, 3500, 2800, 2400],
+    },
+    {
+      metric: "heart-rate",
+      title: "Resting heart rate",
+      unit: "bpm",
+      values: [68, 67, 69, 68, 70, 69, 68],
+    },
+    {
+      metric: "sleep",
+      title: "Sleep duration",
+      unit: "h",
+      values: [7.2, 7.5, 6.8, 7.1, 7.4, 6.9, 7.3],
+    },
   ];
   for (const series of homeHistory) {
     series.values.forEach((value, index) => {
       const observedAt = START - (7 - index) * 24 * 60 * minute;
-      add("observation", series.title, "wearables", "available", 5,
+      add(
+        "observation",
+        series.title,
+        "wearables",
+        "available",
+        5,
         { metric: series.metric, value, unit: series.unit, quality: "good", observedAt },
-        ["wearables", "community", "patient"]);
+        ["wearables", "community", "patient"],
+      );
       const observation = w.resources.at(-1);
       if (observation) observation.createdAt = observedAt;
     });

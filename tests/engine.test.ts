@@ -8,10 +8,17 @@ import { actionSchema } from "../packages/contracts/src/index.ts";
 test("home dashboard receives stored history and new readings as time advances", () => {
   const engine = new Engine();
   const world = engine.require("default");
-  const readings = () => world.resources.filter(r => r.owner === "wearables" && r.kind === "observation" && r.patientId === "SIM-000006");
+  const readings = () =>
+    world.resources.filter(
+      (r) => r.owner === "wearables" && r.kind === "observation" && r.patientId === "SIM-000006",
+    );
   assert.equal(readings().length, 22);
-  assert.deepEqual([...new Set(readings().map(r => r.data.unit))].sort(), ["bpm", "h", "steps/day"]);
-  assert.ok(readings().every(r => r.createdAt <= world.now));
+  assert.deepEqual([...new Set(readings().map((r) => r.data.unit))].sort(), [
+    "bpm",
+    "h",
+    "steps/day",
+  ]);
+  assert.ok(readings().every((r) => r.createdAt <= world.now));
   engine.clock("default", { advanceMinutes: 15 });
   assert.equal(readings().length, 23);
   assert.equal(readings().at(-1)?.data.metric, "steps");
@@ -20,18 +27,32 @@ test("home dashboard receives stored history and new readings as time advances",
 
 test("focused EHRs can hand over to community and hospital services", () => {
   const engine = new Engine();
-  const visit = engine.action("default", "hospital", actionSchema.parse({
-    type: "schedule_visit", target: "community", patientId: "SIM-000001",
-  }), "team");
+  const visit = engine.action(
+    "default",
+    "hospital",
+    actionSchema.parse({
+      type: "schedule_visit",
+      target: "community",
+      patientId: "SIM-000001",
+    }),
+    "team",
+  );
   assert.equal(visit.owner, "community");
   assert.equal(visit.status, "scheduled");
   engine.clock("default", { advanceMinutes: 90 });
   assert.equal(visit.status, "completed");
-  const referral = engine.action("default", "gp", actionSchema.parse({
-    type: "create_referral", target: "hospital", patientId: "SIM-000001",
-  }), "team");
+  const referral = engine.action(
+    "default",
+    "gp",
+    actionSchema.parse({
+      type: "create_referral",
+      target: "hospital",
+      patientId: "SIM-000001",
+    }),
+    "team",
+  );
   assert.ok(referral.visibleTo.includes("hospital"));
-  assert.equal(actionSchema.safeParse({type: "create_task", target: "icb"}).success, false);
+  assert.equal(actionSchema.safeParse({ type: "create_task", target: "icb" }).success, false);
 });
 
 test("A&E backlog responds to roster staffing over time", () => {

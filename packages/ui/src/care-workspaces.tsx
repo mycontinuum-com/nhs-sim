@@ -181,6 +181,7 @@ function CreateRecord({
         {pharmacy ? "Synthetic prescription description" : "Purpose of visit"}
       </label>
       <textarea
+        autoFocus
         id="care-draft-title"
         value={title}
         onChange={(event) => setTitle(event.target.value)}
@@ -228,6 +229,12 @@ export function CareWorkspace(props: Props) {
       record.kind === kind &&
       (!props.selectedPatient || record.patientId === props.selectedPatient),
   );
+  const carePlans = props.rows.filter(
+    (record) =>
+      record.kind === "care-plan" &&
+      record.owner === "community" &&
+      (!props.selectedPatient || record.patientId === props.selectedPatient),
+  );
   const matches = (record: Resource, value: Filter) =>
     value === "all" ||
     (value === "done"
@@ -263,7 +270,7 @@ export function CareWorkspace(props: Props) {
             {pharmacy ? "+" : "⌂"}
           </span>
           <div>
-            <strong>{pharmacy ? "Juniper Pharmacy" : "Neighbourhood nursing"}</strong>
+            <strong>{pharmacy ? "High Street Pharmacy" : "Neighbourhood nursing"}</strong>
             <small>{pharmacy ? "Dispensary workspace" : "Community care workspace"}</small>
           </div>
         </div>
@@ -319,8 +326,80 @@ export function CareWorkspace(props: Props) {
         </div>
         <span className="care-identity">{props.identityLabel ?? "Simulation staff session"}</span>
       </div>
+      {!pharmacy && (
+        <section className="care-incoming" aria-label="Incoming care handovers">
+          <div className="care-incoming-heading">
+            <div>
+              <p className="care-eyebrow">Incoming handovers</p>
+              <h2>Before the first visit</h2>
+            </div>
+            <span>
+              {carePlans.length} care {carePlans.length === 1 ? "plan" : "plans"} in this view
+            </span>
+          </div>
+          {carePlans.length ? (
+            <div className="care-handover-strip">
+              {carePlans.map((plan) => (
+                <article className="care-handover-card" key={plan.id}>
+                  <div className="care-handover-person">
+                    <span className="care-handover-icon" aria-hidden="true">
+                      ⌂
+                    </span>
+                    <div>
+                      <h3>
+                        {props.patients.find((person) => person.id === plan.patientId)?.name ??
+                          plan.patientId}
+                      </h3>
+                      <p>{plan.title}</p>
+                    </div>
+                    <span className="care-status">{plan.status}</span>
+                  </div>
+                  <dl className="care-handover-flags">
+                    <div>
+                      <dt>Carer availability</dt>
+                      <dd>{plan.data.carerAvailable === true ? "Confirmed" : "Not confirmed"}</dd>
+                    </div>
+                    <div>
+                      <dt>Home access</dt>
+                      <dd>
+                        {plan.data.homeAccessConfirmed === true ? "Confirmed" : "Not confirmed"}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="care-handover-footer">
+                    <small>{plan.id} · Synthetic care plan</small>
+                    <button
+                      className="care-primary"
+                      disabled={!plan.patientId}
+                      onClick={() => {
+                        if (plan.patientId) props.selectPatient(plan.patientId);
+                        setSelectedId("");
+                        setComposing(true);
+                      }}
+                    >
+                      Plan a visit
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="care-incoming-empty">
+              No incoming care plans for this view. You can still arrange a visit using the patient
+              directory.
+            </p>
+          )}
+        </section>
+      )}
       <main className="care-main">
         <section className="care-queue" aria-label={pharmacy ? "Prescription queue" : "Visit list"}>
+          {!pharmacy && (
+            <div className="care-ledger-heading">
+              <p className="care-eyebrow">Field visits</p>
+              <h2>Your visit ledger</h2>
+              <p>Open a visit to see the person's needs and record its completion.</p>
+            </div>
+          )}
           <nav className="care-filters" aria-label="Queue filters">
             {filters.map((item) => (
               <button
@@ -352,7 +431,18 @@ export function CareWorkspace(props: Props) {
               }}
             >
               <span className="care-record-index" aria-hidden="true">
-                {pharmacy ? "Rx" : "⌂"}
+                {pharmacy ? (
+                  "Rx"
+                ) : (
+                  <>
+                    <small>Added</small>
+                    {new Date(record.createdAt).toLocaleTimeString("en-GB", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: "UTC",
+                    })}
+                  </>
+                )}
               </span>
               <span className="care-record-name">
                 <strong>

@@ -224,6 +224,7 @@ button.primary {
   padding: 5px;
 }
 .map-footer {
+  z-index: 4;
   position: absolute;
   bottom: 0;
   left: 0;
@@ -389,9 +390,13 @@ button.primary {
   font-size: 11px;
   padding: 4px 8px;
 }
-.map-mobile-hint { display: none; }
+.map-mobile-hint {
+  display: none;
+}
 @media (max-width: 700px) {
-  .map-mobile-hint { display: inline; }
+  .map-mobile-hint {
+    display: inline;
+  }
   .world-header {
     padding: 0 14px;
     height: 58px;

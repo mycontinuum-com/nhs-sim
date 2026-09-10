@@ -73,7 +73,17 @@ const places = [
     y: 79,
     system: "Dispensary",
   },
-  { id: "home", title: "Eleanor’s home", label: "At home", description: "Explore a week of synthetic activity, sleep and heart-rate readings. Advance time to receive the next watch reading.", href: "/wearables/?patient=SIM-000006", x: 17, y: 73, system: "At home" },
+  {
+    id: "home",
+    title: "Eleanor’s home",
+    label: "At home",
+    description:
+      "Explore a week of synthetic activity, sleep and heart-rate readings. Advance time to receive the next watch reading.",
+    href: "/wearables/?patient=SIM-000006",
+    x: 17,
+    y: 73,
+    system: "At home",
+  },
   {
     id: "identity",
     title: "Staff identity",
@@ -110,7 +120,12 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const [operatorToken, setOperatorToken] = useState("");
   const [place, setPlace] = useState<string | null>(null);
   const isMap = siteId === "control";
-  const Workspace = siteId === "pharmacy" || siteId === "community" ? CareWorkspace : siteId === "wearables" ? HomeWorkspace : SystemWorkspace;
+  const Workspace =
+    siteId === "pharmacy" || siteId === "community"
+      ? CareWorkspace
+      : siteId === "wearables"
+        ? HomeWorkspace
+        : SystemWorkspace;
   const dialogRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!drawer) return;
@@ -120,13 +135,27 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setDrawer(null);
       if (event.key !== "Tab" || !dialog) return;
-      const items = Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), a[href], summary, select, textarea')).filter(item => item.getClientRects().length > 0);
-      const first = items[0], last = items.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
-      if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      const items = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          "button:not(:disabled), input:not(:disabled), a[href], summary, select, textarea",
+        ),
+      ).filter((item) => item.getClientRects().length > 0);
+      const first = items[0],
+        last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      }
+      if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
     };
     document.addEventListener("keydown", handleKey);
-    return () => { document.removeEventListener("keydown", handleKey); if (previous instanceof HTMLElement) previous.focus(); };
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      if (previous instanceof HTMLElement) previous.focus();
+    };
   }, [drawer]);
   async function api<T>(path: string, data?: unknown, credential = key): Promise<T> {
     const response = await fetch(path, {
@@ -155,6 +184,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   }
   const view = useQuery({
     queryKey: ["view", siteId, key, patient, offset],
+    placeholderData: (previous) => previous,
     queryFn: () =>
       api<View>(
         `/api/sites/${isMap ? "gp" : siteId}/view?${patient ? "patient=" + encodeURIComponent(patient) : "limit=200&offset=" + offset}`,
@@ -292,7 +322,10 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
             <div className="map-intro">
               <span>A SYNTHETIC HEALTH NEIGHBOURHOOD</span>
               <h1>Where would you like to work?</h1>
-              <p>Choose a building to enter its system.<span className="map-mobile-hint"> Swipe the map or open Places below.</span></p>
+              <p>
+                Choose a building to enter its system.
+                <span className="map-mobile-hint"> Swipe the map or open Places below.</span>
+              </p>
             </div>
             <div className="map-landscape">
               <img
@@ -402,7 +435,24 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
               exitToMap={() => location.assign("/control/")}
             />
           ) : view.error ? (
-            <main className="access-gate"><h1>Unable to open this workspace</h1><p>{view.error.message}</p><p>An older or service-specific key may not include this workspace. Connect a full team key or create a new team.</p><button onClick={() => { saveKey(""); setDestination(location.pathname + location.search); setDrawer("team"); }}>Connect another team</button><a href="/control/">Back to neighbourhood</a></main>
+            <main className="access-gate">
+              <h1>Unable to open this workspace</h1>
+              <p>{view.error.message}</p>
+              <p>
+                An older or service-specific key may not include this workspace. Connect a full team
+                key or create a new team.
+              </p>
+              <button
+                onClick={() => {
+                  saveKey("");
+                  setDestination(location.pathname + location.search);
+                  setDrawer("team");
+                }}
+              >
+                Connect another team
+              </button>
+              <a href="/control/">Back to neighbourhood</a>
+            </main>
           ) : (
             <p className="loading">Opening the patient record…</p>
           )}
