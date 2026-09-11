@@ -26,6 +26,8 @@ Record details distinguish the original author from later changes. Portal action
 
 Hospital notes preserve their signed text. Later corrections are separate attributed addenda. GP consultation edits update the version and retain their audit history.
 
+Organisers can inspect authenticated team API calls and team-attributed patient changes. The request log records wall-clock time, method, a redacted path, response status, duration and referenced synthetic patient IDs. It excludes credentials, query strings and request bodies, and retains up to 2,000 requests per world for seven days. Earlier calls from before logging was enabled are unavailable. Reading a patient record does not count as changing it.
+
 ## Provenance and coverage
 
 The generator combines independently sampled collection-size bands with authored fictional content. Its size profile comes from 50 bounded JSON objects in a production EHR export. The profiler retains counts only, rounds counts down to multiples of five, and suppresses cells below five.

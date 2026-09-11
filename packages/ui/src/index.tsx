@@ -1,3 +1,4 @@
+import { OperatorConsole, OperatorViewingBanner } from "./operator-console.tsx";
 import { normalizeTeamName } from "../../contracts/src/team.ts";
 import { Neighbourhood } from "./neighbourhood.tsx";
 const MessagingWorkspace = lazy(() => import("./messaging-workspace.tsx").then((module) => ({ default: module.MessagingWorkspace })));
@@ -8,7 +9,6 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider, useMutation, useQuery } from "@tanstack/react-query";
 import {
   sites,
-  scenarios,
   type SiteId,
   type Resource,
   type Patient,
@@ -61,7 +61,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
   const [notice, setNotice] = useState("");
-  const [drawer, setDrawer] = useState<"team" | "simulation" | "operator" | null>(null);
+  const [drawer, setDrawer] = useState<"team" | "simulation" | "operator" | null>(() => new URLSearchParams(location.search).get("operator") === "1" ? "operator" : null);
   const [destination, setDestination] = useState<string | null>(
     () => siteId === "control" ? null : location.pathname + location.search,
   );
@@ -82,8 +82,6 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const [team, setTeam] = useState(() => localStorage.getItem("sim-team") ?? "");
   const [keyInput, setKeyInput] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
-  const [world, setWorld] = useState("default");
-  const [operatorToken, setOperatorToken] = useState("");
   const isMap = siteId === "control";
   const isDocuments = siteId === "gp" && location.pathname.replace(/\/$/, "") === "/gp/documents";
   const isMessages = (siteId === "gp" || siteId === "wearables") && location.pathname.replace(/\/$/, "") === `/${siteId}/messages`;
@@ -256,17 +254,6 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     enabled: !!key && !!patient && !isMap && !isOffice,
     refetchInterval: 3000,
   });
-  const operatorView = useQuery({
-    queryKey: ["operator", operatorToken, world],
-    queryFn: () =>
-      api<View>(
-        "/api/sites/control/view?world=" + encodeURIComponent(world) + "&limit=1",
-        undefined,
-        operatorToken,
-      ),
-    enabled: drawer === "operator" && !!operatorToken,
-    refetchInterval: 3000,
-  });
   const mutation = useMutation({
     mutationFn: ({
       path,
@@ -335,6 +322,9 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
       if (isMap && !key) choosePlace(null);
     }
     setDrawer(null);
+    const url = new URL(location.href);
+    url.searchParams.delete("operator");
+    history.replaceState(null, "", url.pathname + url.search + url.hash);
   }
   useEffect(() => {
     if (!drawer) return;
@@ -415,6 +405,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const error = view.error?.message || patients.error?.message;
   return (
     <div className={isMap ? "world-app" : "immersive-app"}>
+      <OperatorViewingBanner />
       {isMap ? (
         <>
           <header className="world-header">
@@ -431,7 +422,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                 Explore the plan
               </button>
               <a href="/docs/">Handbook</a>
-              <button onClick={() => setDrawer("operator")}>Operator</button>
+              <button onClick={() => setDrawer("operator")}>Organiser controls</button>
               <button onClick={() => setDrawer("team")}>
                 {key ? "Your team" : "Join the world"}
               </button>
@@ -587,7 +578,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
         <div className="dialog-scrim" onClick={closeControls}>
           <section
             ref={dialogRef}
-            className="world-dialog"
+            className={drawer === "operator" ? "world-dialog operator-dialog" : "world-dialog"}
             role="dialog"
             aria-modal="true"
             aria-label={drawer + " controls"}
@@ -727,77 +718,8 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                 </details>
               </>
             )}
-            {drawer === "operator" && (
-              <>
-                <h2>World operator</h2>
-                <p>
-                  Use the operator token to control world incidents and agents. Team keys do not
-                  grant operator access.
-                </p>
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    setOperatorToken(keyInput);
-                  }}
-                >
-                  <label>
-                    Operator token
-                    <input
-                      required
-                      type="password"
-                      value={keyInput}
-                      onChange={(event) => setKeyInput(event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    World ID
-                    <input value={world} onChange={(event) => setWorld(event.target.value)} />
-                  </label>
-                  <button>Connect operator</button>
-                </form>
-                {operatorView.error && <p role="alert">{operatorView.error.message}</p>}
-                {operatorView.data && (
-                  <>
-                    <h3>Incidents</h3>
-                    {scenarios.map((scenario) => (
-                      <label className="toggle" key={scenario.id}>
-                        <input
-                          type="checkbox"
-                          checked={!!operatorView.data.faults?.[scenario.id]}
-                          onChange={(event) =>
-                            mutation.mutate({
-                              path: "/api/control/incidents?world=" + encodeURIComponent(world),
-                              credential: operatorToken,
-                              data: { id: scenario.id, enabled: event.target.checked },
-                            })
-                          }
-                        />
-                        {scenario.title}
-                      </label>
-                    ))}
-                    <h3>World agents</h3>
-                    {operatorView.data.agents?.map((agent) => (
-                      <label className="toggle" key={agent.id}>
-                        <input
-                          type="checkbox"
-                          checked={agent.enabled}
-                          onChange={(event) =>
-                            mutation.mutate({
-                              path: "/api/control/agents?world=" + encodeURIComponent(world),
-                              credential: operatorToken,
-                              data: { id: agent.id, enabled: event.target.checked },
-                            })
-                          }
-                        />
-                        {agent.id}
-                      </label>
-                    ))}
-                  </>
-                )}
-                <a href="/cis2/">Open CIS2 identity controls</a>
-              </>
-            )}
-            {notice && drawer !== "simulation" && <p role="alert">{notice}</p>}
+            {drawer === "operator" && <OperatorConsole api={api} />}
+            {notice && drawer !== "simulation" && drawer !== "operator" && <p role="alert">{notice}</p>}
           </section>
         </div>
       )}

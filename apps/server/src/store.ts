@@ -1,3 +1,5 @@
+import { initializeOperatorAudit } from './operator.ts';
+import type { OperatorSession } from '../../../packages/contracts/src/operator.ts';
 import { teamNameSchema, normalizeTeamName } from "../../../packages/contracts/src/team.ts";
 import { seedPatientBloodResults } from "../../../packages/engine/src/blood-results.ts";
 import { upgradeMessagingWorld } from "../../../packages/engine/src/messaging-seed.ts";
@@ -39,6 +41,7 @@ export class Store {
       );
       await client.query("ALTER TABLE team_keys ADD COLUMN IF NOT EXISTS recoverable_key text");
       await this.persistence.schema(client);
+      await initializeOperatorAudit(client);
       const rowStorage = await client.query(
         "SELECT schema_version FROM simulation_storage WHERE id=1",
       );
@@ -190,6 +193,20 @@ export class Store {
       );
       this.keys.push(key);
       return { apiKey: raw, team, teamName: canonical, world, scopes, created };
+    });
+  }
+  exploreTeam(world: string): Promise<OperatorSession> {
+    return this.enqueue(async () => {
+      const matches = this.keys.filter(key => key.world === world);
+      const existing = matches[0];
+      if (!existing) throw new SimError("Unknown team world", 404);
+      const reusable = matches.find(key => key.recoverable_key);
+      if (reusable?.recoverable_key) return {apiKey:reusable.recoverable_key,team:reusable.team,teamName:normalizeTeamName(reusable.team),world,scopes:reusable.scopes,created:false};
+      const raw = "sim_" + randomBytes(24).toString("hex");
+      const key: TeamKey = {hash:createHash("sha256").update(raw).digest("hex"),team:existing.team,world,scopes:existing.scopes,recoverable_key:raw};
+      await this.pool.query("INSERT INTO team_keys(hash,team,world,scopes,recoverable_key) VALUES($1,$2,$3,$4,$5)",[key.hash,key.team,world,JSON.stringify(key.scopes),raw]);
+      this.keys.push(key);
+      return {apiKey:raw,team:key.team,teamName:normalizeTeamName(key.team),world,scopes:key.scopes,created:false};
     });
   }
   authenticate(raw: string) {

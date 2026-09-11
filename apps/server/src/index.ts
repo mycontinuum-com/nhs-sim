@@ -1,3 +1,4 @@
+import { auditPath, operatorTeams, operatorActivity, recordTeamRequest, pruneTeamRequests } from './operator.ts';
 import { teamNameSchema } from "../../../packages/contracts/src/team.ts";
 import { patientConversation } from "../../../packages/engine/src/messaging.ts";
 import { freeze, original } from "immer";
@@ -70,19 +71,42 @@ async function body(req: IncomingMessage) {
   }
   return text;
 }
+const requestReferences = new WeakMap<IncomingMessage, string[]>();
 async function json(req: IncomingMessage) {
   try {
-    return JSON.parse((await body(req)) || "{}");
+    const value = JSON.parse((await body(req)) || "{}");
+    if (value && typeof value === "object") requestReferences.set(req, [value.patientId,value.resourceId].filter((id): id is string => typeof id === "string"));
+    return value;
   } catch (e) {
     if (e instanceof SimError) throw e;
     throw new SimError("Malformed JSON");
   }
 }
 const server = createServer(async (req, res) => {
+  const started = performance.now();
   try {
     const url = new URL(req.url ?? "/", origin),
       path = url.pathname,
       method = req.method ?? "GET";
+    const bearer = (req.headers.authorization ?? "").replace(/^Bearer /, "");
+    const cookie = req.headers.cookie
+      ?.split("; ")
+      .find((v) => v.startsWith("sim_session="))
+      ?.slice(12);
+    const session = cookie ? sessions.get(cookie) : undefined;
+    const sessionKey = session && session.expires > Date.now() ? session.key : "";
+    const admin = equal(bearer || sessionKey, adminToken!);
+    const key = store.authenticate(bearer || sessionKey);
+    if (key && (path.startsWith("/api/") || path.startsWith("/browser/"))) res.once("finish", () => {
+      const references = new Set([...path.split("/"), url.searchParams.get("patientId"), url.searchParams.get("patient"), url.searchParams.get("q"), ...(requestReferences.get(req) ?? [])]);
+      const current = store.engine.require(key.world);
+      for (const reference of requestReferences.get(req) ?? []) {
+        const resource = current.resources.find(item => item.id === reference);
+        if (resource?.patientId) references.add(resource.patientId);
+      }
+      void recordTeamRequest(store, {team:key.team,world:key.world,method,path:auditPath(path),status:res.statusCode,durationMs:Math.round(performance.now()-started),patientIds:current.patients.filter(patient => references.has(patient.id)).map(patient => patient.id)})
+        .catch(() => console.error("Team request audit persistence failed"));
+    });
     if (path === "/control/" && url.searchParams.has("challenges") && (method === "GET" || method === "HEAD")) {
       url.searchParams.delete("challenges");
       res.writeHead(302, { Location: url.pathname + url.search, "Cache-Control": "no-store" });
@@ -127,16 +151,7 @@ const server = createServer(async (req, res) => {
         throw new SimError("Unknown API site");
       return send(res, 201, await store.issue(input.teamName, input.site ? [input.site] : allowed));
     }
-    const bearer = (req.headers.authorization ?? "").replace(/^Bearer /, "");
-    const cookie = req.headers.cookie
-      ?.split("; ")
-      .find((v) => v.startsWith("sim_session="))
-      ?.slice(12);
-    const session = cookie ? sessions.get(cookie) : undefined;
-    const sessionKey = session && session.expires > Date.now() ? session.key : "";
-    const admin = equal(bearer || sessionKey, adminToken!);
     if (await handleCis2({ req, res, url, admin, oidc })) return;
-    const key = store.authenticate(bearer || sessionKey);
     const world = admin ? (url.searchParams.get("world") ?? "default") : key?.world;
     const authenticated = () => {
       if (!admin && !key) throw new SimError("Get a team API key at POST /api/keys", 401);
@@ -144,9 +159,21 @@ const server = createServer(async (req, res) => {
       return world;
     };
     const operator = () => {
-      if (!admin) throw new SimError("Operator token required", 403);
+      if (!admin) throw new SimError("Connect with a valid operator token in Organiser controls. A team API key cannot unlock organiser access.", 403);
       return authenticated();
     };
+    if (path === "/api/control/teams" && method === "GET") {
+      operator();
+      return send(res,200,await operatorTeams(store));
+    }
+    const operatorTeam = path.match(/^\/api\/control\/teams\/([^/]+)\/(activity|session)$/);
+    if (operatorTeam) {
+      operator();
+      const target = decodeURIComponent(operatorTeam[1]!);
+      if (operatorTeam[2] === "activity" && method === "GET") return send(res,200,await operatorActivity(store,target));
+      if (operatorTeam[2] === "session" && method === "POST") return send(res,200,await store.exploreTeam(target));
+      throw new SimError("Method not allowed",405);
+    }
     if (path === "/api/control/population" && method === "POST") {
       const id = operator();
       const input = z
@@ -416,8 +443,8 @@ const server = createServer(async (req, res) => {
     }
     const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents|messaging-workspace)$/);
     if (match) {
-      const id = authenticated(),
-        site = match[1] as SiteId;
+      const site = match[1] as SiteId,
+        id = site === "control" ? operator() : authenticated();
       if (!activeServices.includes(site) && !(site === "patient" && ["messaging-workspace", "actions", "view"].includes(match[2] ?? ""))) throw new SimError("Unknown site", 404);
       if (site === "legacy")
         return send(res, 501, {
@@ -587,6 +614,9 @@ const server = createServer(async (req, res) => {
     if (status === 500) console.error((error as Error).message);
   }
 });
+const auditTimer = setInterval(() => { void pruneTeamRequests(store).catch(() => console.error("Team request audit retention failed")); }, 60000);
+auditTimer.unref();
+void pruneTeamRequests(store).catch(() => console.error("Team request audit retention failed"));
 let last = Date.now(),
   ticking = false;
 const timer = setInterval(() => {
@@ -609,6 +639,7 @@ server.listen(port, "0.0.0.0", () =>
 );
 async function shutdown() {
   clearInterval(timer);
+  clearInterval(auditTimer);
   server.close();
   await store.close();
   process.exit(0);

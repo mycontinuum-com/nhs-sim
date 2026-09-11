@@ -28,7 +28,9 @@ Outside the explorer, send `Authorization: Bearer YOUR_TEAM_KEY`. A key belongs 
 
 `POST /api/keys` is public. It creates or joins a team by name, normalised to lowercase with all whitespace removed. Repeating a name returns the same world and reusable `apiKey`. Anyone who knows the name can join its simulation world. Omit `site` when creating a team to access all API-enabled services; joining preserves its existing scopes. Each deployment supports up to 5,000 distinct team worlds, and existing teams can still rejoin at capacity. There is no per-IP or time-based sign-up throttle, so participants can create teams together on shared hackathon Wi-Fi.
 
-Operator operations require the separately configured operator token. Their `world` query parameter chooses a world. A team key cannot select another team's world. CIS2 access tokens are used only for the emulated identity endpoints.
+Operator operations require the separately configured operator token. List named teams with `GET /api/control/teams`, then inspect `GET /api/control/teams/{world}/activity` using a returned world ID. Existing clock, incident and agent operations select their world with `?world=...`. A team key cannot select another team's world. CIS2 access tokens are used only for the emulated identity endpoints.
+
+`POST /api/control/teams/{world}/session` lets an organiser obtain a participant key for that existing world without changing its permissions or resetting its records. The [organiser console](./organisers.mdx) provides team selection, request history, affected patients and an explicit return path after exploring as a team.
 
 ## Read records and submit actions
 

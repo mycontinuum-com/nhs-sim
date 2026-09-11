@@ -1,0 +1,274 @@
+.world-dialog.operator-dialog {
+  width: min(1400px, 100%);
+  padding: 28px;
+  max-height: 94svh;
+  background: #f7f9fa;
+  color: #203743;
+}
+.operator-dialog .dialog-close {
+  z-index: 1;
+}
+.operator-login {
+  max-width: 560px;
+  margin: 20px auto;
+}
+.operator-heading,
+.operator-team-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.operator-heading {
+  padding-right: 42px;
+  border-bottom: 1px solid #ccd7db;
+  padding-bottom: 20px;
+}
+.operator-heading h2,
+.operator-team-heading h3 {
+  margin: 0;
+}
+.operator-eyebrow {
+  font-size: 11px !important;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+.operator-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.operator-actions a {
+  font-size: 13px;
+}
+.operator-console button {
+  font-size: 13px;
+  padding: 8px 12px;
+}
+.operator-layout {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 20px;
+}
+.operator-team-list {
+  border-right: 1px solid #ccd7db;
+  padding-right: 20px;
+  max-height: 70svh;
+  overflow: auto;
+}
+.operator-team-list > button {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  width: 100%;
+  gap: 6px;
+  border: 1px solid #d8e1e5;
+  background: #fff;
+  margin: 8px 0;
+  padding: 14px;
+}
+.operator-team-list > button.selected {
+  border-color: #236b7a;
+  background: #e3f1f3;
+  box-shadow: inset 3px 0 #236b7a;
+}
+.operator-team-list span,
+.operator-team-list small,
+.operator-patient small {
+  display: block;
+  font-size: 11px;
+}
+.operator-team-list input {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.operator-detail {
+  min-width: 0;
+}
+.operator-team-heading h3 {
+  font-size: 24px;
+}
+.operator-context {
+  color: #58717b;
+  font-size: 12px !important;
+}
+.operator-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  border-bottom: 1px solid #bacbd2;
+  margin: 18px 0;
+}
+.operator-tabs button {
+  border: 0;
+  background: transparent;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  padding: 12px;
+}
+.operator-tabs button[aria-pressed="true"] {
+  border-bottom-color: #236b7a;
+  background: #e7eff2;
+  font-weight: bold;
+}
+.operator-table-wrap {
+  overflow: auto;
+  max-height: 48svh;
+}
+.operator-console table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  background: #fff;
+}
+.operator-console th,
+.operator-console td {
+  padding: 9px;
+  border-bottom: 1px solid #e0e7eb;
+  text-align: left;
+  vertical-align: top;
+}
+.operator-console th {
+  position: sticky;
+  top: 0;
+  background: #e7eef1;
+}
+.operator-console td:first-child {
+  min-width: 105px;
+}
+.operator-console code {
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-size: 11px;
+}
+.operator-error {
+  color: #a33121;
+  font-weight: bold;
+}
+.operator-patient,
+.operator-change {
+  padding: 14px;
+  background: white;
+  border: 1px solid #d8e2e6;
+  margin: 10px 0;
+}
+.operator-patient {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  align-items: center;
+}
+.operator-patient small {
+  margin: 6px 0;
+}
+.operator-change p {
+  margin: 5px 0;
+}
+.operator-change small {
+  color: #58717b;
+}
+.operator-empty {
+  padding: 55px 24px;
+}
+.operator-clock {
+  padding: 15px;
+  background: #e8eff2;
+}
+.operator-clock h4 {
+  margin-top: 0;
+}
+.operator-incidents {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.operator-incidents .toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #d8e2e6;
+  background: white;
+}
+.operator-incidents small {
+  display: block;
+  margin-top: 5px;
+  color: #526b75;
+  line-height: 1.5;
+}
+.operator-viewing {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #fff0bf;
+  border-bottom: 1px solid #cbaa55;
+  padding: 8px 18px;
+  font-size: 13px;
+}
+.operator-viewing button {
+  background: white;
+  border: 1px solid #cbaa55;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+.operator-console h4 {
+  font-size: 15px;
+}
+.operator-console input[type="checkbox"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+@media (max-width: 800px) {
+  .world-dialog.operator-dialog {
+    padding: 18px;
+  }
+  .operator-layout {
+    grid-template-columns: 1fr;
+  }
+  .operator-team-list {
+    max-height: 200px;
+    border-right: 0;
+    border-bottom: 1px solid #ccd7db;
+    padding: 0 0 15px;
+  }
+  .operator-heading,
+  .operator-team-heading,
+  .operator-patient {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .operator-incidents {
+    grid-template-columns: 1fr;
+  }
+  .operator-viewing {
+    flex-wrap: wrap;
+  }
+  .operator-heading {
+    padding-right: 25px;
+  }
+  .operator-table-wrap {
+    max-height: 45svh;
+  }
+}
+
+.immersive-app {
+  --operator-banner-height: 0px;
+}
+.immersive-app .systemtwo.immersive-ehr {
+  top: var(--operator-banner-height, 0px);
+}
+@media (min-width: 901px) and (min-height: 601px) {
+  .immersive-app .immersive-ehr:not(.systemtwo) {
+    height: calc(100dvh - var(--workspace-status-height) - var(--operator-banner-height, 0px));
+  }
+}
