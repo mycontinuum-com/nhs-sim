@@ -1,45 +1,21 @@
-# Pharmacy procurement design QA
+# Surgery Disconnect design QA
 
-Source visual truth: `docs/design/pharmacy-purchasing/option-1.png`.
-Selected option: 1.
-Implementation: `https://sim.animahacks.com/pharmacy/`, Stock & buying, release `bc6ed92`.
-Target viewport: 1487 × 1058 CSS pixels. The implementation capture is 1487 × 1058 JPEG at the browser's default density. The source is 1487 × 1058 PNG. No density conversion was needed.
-State: Atorvastatin 20mg, 112 required units, Northstar offer selected, saved basket.
+Source visual truth: `.verification/telephony-design-reference.png`, revised from the first selected concept.
+Implementation: `.verification/telephony-desktop-after.png`; narrow layout: `.verification/telephony-mobile.png`.
+Viewport: 1440 × 1024 CSS pixels, plus 390 × 844. Source 1487 × 1058 pixels, desktop implementation 1440 × 1024 pixels, normalized by the common 1.0326 source density. The reference shows an incoming call; the implementation shows an answered call with notes and transcript. Live team and queue data replace illustrative names and counts.
 
-## Findings and resolution
+## Findings
 
-- Inventory editing opens an immediately focused dialog. Verified in the live browser.
-- Stock activity sorts by recorded time and includes reconstructed opening balances.
-- Selecting Eleanor in Patient care leaves all 30 stock movements and the saved basket available in Stock & buying. There are no patient controls in procurement.
-- At 390 × 844, the basket ends at y=762.5 and the footer begins at y=767.5. Document scroll width equals viewport width, 390 pixels.
-- [P2, resolved] At 390 pixels, the basket quantity field shrank enough to hide its value. The basket table now retains an 800-pixel minimum width inside its scrolling container and the quantity label retains 96 pixels. `mobile-basket-fixed.jpg` verifies the visible value. Changing four packs to five updated the basket total from £4.16 to £5.20. Document width remained 390 pixels.
+- Resolved P2: the shared workspace footer overlapped the lower edge of the sticky call controls. The call bar now uses the measured footer height. The corrected desktop and narrow screenshots show the complete End call and End call & next buttons above the footer.
 
-## Intentional corrections to the generated mockup
+## Comparison
 
-The implementation uses the existing pharmacy brand asset under the new NoobScript name and tagline. Supplier delivery dates come from simulation time. Generated weekday errors and unsupported tax labels are removed. Offer rows show the actual minimum order, excess units and price per unit. Decorative icons are omitted where no source asset exists.
+Both full images were inspected in one tool input, including a second comparison after the correction. The queue/caller split, typography hierarchy, mint selected row, teal handset mark, patient record action and flat section dividers follow the reference. Actual connected people replace illustrative staff. Transcripts appear after answering, rather than before the call is connected. Voices are explicitly enabled before playback. The bottom bar includes hold and callback actions and sits within the caller column. These are intentional workflow differences. At 390 pixels the queue scrolls separately, caller content stacks, and End call & next spans the bottom row without horizontal clipping.
 
-## Comparison evidence
+## Workflow proof
 
-The source and `docs/design/pharmacy-purchasing/live-desktop.jpg` were opened together in the same comparison input at 1487 × 1058 pixels. This is the post-fix capture. `implementation-2.jpg` is the earlier capture with small type and a low-contrast selected tab; it is not the final evidence. The final design has the source's cream canvas, two-area switch, centred buying navigation, supplier comparison, persistent basket and fixed simulation footer. The dark green header uses the existing pharmacy brand treatment, intentionally retained rather than copying the mockup's invented wordmark.
+Desktop answer/end-next and browser speech completion are observed. Live socket tests prove teammate presence, ownership conflicts, transfers, isolation, callbacks and restart persistence. Two browser receptionists handled different callers simultaneously: Alex saw Sam answering Eleanor Chen, and Sam saw Alex answering Grace Okafor. Both completions appeared in the shared history. SystemTwo opened Thomas Reed (SIM-000004) and followed End call & next to Grace Okafor (SIM-000005). The final reception tab had no console errors or warnings. Temporary peer and record tabs were closed and the viewport override reset.
 
-The supplier table and basket strip are readable in the full-resolution desktop comparison, so separate crops were unnecessary. Mobile evidence is in `live-mobile.jpg` and `live-mobile-basket.jpg`, both 390 × 844. The latter records the quantity-field finding before its fix. It was compared in the same input with `mobile-basket-fixed.jpg`, captured at the same viewport and state on the rebuilt local app. The local app also contains the next release's Desktop footer link; that is an intentional unrelated addition.
-
-## Required fidelity surfaces
-
-- Typography: Georgia headings and Arial controls retained; table body increased to 15 pixels, key figures to 17 pixels and secondary values to 13 pixels. Labels and values are legible in the desktop capture.
-- Spacing: full-width comparison with three distinct supplier rows; both purchase action and basket remain above the footer at the reference viewport. Mobile tables scroll inside their own container.
-- Colors: cream canvas, green selected offer and dark green actions. Selected navigation remains readable on hover after the specificity fix.
-- Assets: the existing raster prescription mark remains sharp and correctly proportioned. No invented replacement artwork was added. The requested NoobScript name replaces ProScrip-ish.
-- Copy: real simulation-derived dates and costs replace the mockup's incorrect dates and tax assumptions. Offers are sorted by total for the requested quantity; catalogue headlines compare unit prices.
-
-## Scope
-
-Team basket, catalogue comparison, linked supplier orders, partial receipts, cancellation of outstanding packs, global inventory/activity, and costs/contribution. The simulator does not model reservations, batches, expiry, tax, overheads or an autonomous ordering optimizer.
-
-## Comparison history
-
-The first pass (`implementation-2.jpg`) found low-contrast selected navigation and small table text. The live desktop capture verifies dark green selected controls, larger type, centred navigation and readable supplier labels. The mobile pass found the compressed basket quantity field described above; the final comparison verifies the readable 96-pixel field. No browser console errors were recorded during the live pass. No actionable P0/P1/P2 findings remain.
-
-The live API acceptance journey passed catalogue/quote discovery, patient-free basket persistence, minimum orders, idempotent checkout and receipt, partial delivery, cancellation, ledger reconciliation and team isolation. The earlier local browser journey also completed ordering, four-day time advancement, partial receipt and cancellation.
+Evidence: `.verification/telephony-browser-proof.txt`, `.verification/evidence/telephony-live.json`, `.verification/telephony-restart.log`. The final Compose image passed typecheck, 135 tests (7 skipped), and build. Skills validation, smoke, end-to-end journey, and final live doctor passed.
 
 final result: passed

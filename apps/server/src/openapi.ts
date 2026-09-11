@@ -4,6 +4,7 @@ import { hospitalNoteSchema } from "../../../packages/contracts/src/clinical-not
 import { medicationOrderSchema, bloodTestOrderSchema } from "../../../packages/contracts/src/clinical-orders.ts";
 import { catalogue } from "../../../packages/nhs-mocks/src/index.ts";
 import { cis2SettingsSchema } from "../../../packages/nhs-mocks/src/cis2.ts";
+import { telephonyClientMessageSchema, telephonyServerMessageSchema } from "../../../packages/contracts/src/telephony.ts";
 
 type Schema = Record<string, unknown>;
 const string = { type: "string" };
@@ -39,6 +40,8 @@ const siteParameter = parameter("site", { type: "string", enum: siteIds, default
 const patientParameter = parameter("patient", { ...string, example: "SIM-000006" }, "Exact synthetic patient ID. Site view also includes service resources without a patient.");
 const patientIdParameter = parameter("patientId", { ...string, example: "SIM-000006" }, "Exact synthetic patient ID.", true);
 const schemas: Record<string, Schema> = {
+  TelephonyClientMessage: jsonSchema(telephonyClientMessageSchema),
+  TelephonyServerMessage: jsonSchema(telephonyServerMessageSchema),
   Error: object({ error: string, message: string }, ["error"]),
   Action: { ...jsonSchema(actionSchema), description: "Executable request fields from the runtime Zod contract. Conditional requirements and clinical workflow transitions are also checked by the engine. Use the named examples as a starting point, choose a permitted site, and copy current resource IDs/versions from a workspace response. All drug prices are integer pence. No clinical advice is provided." },
   HospitalNote: jsonSchema(hospitalNoteSchema), MedicationOrder: jsonSchema(medicationOrderSchema), BloodTestOrder: jsonSchema(bloodTestOrderSchema),
@@ -83,7 +86,12 @@ export const actionExamples = {
   prescription: { summary: "Draft a prescription for pharmacy review", value: { type: "draft_prescription", patientId: "SIM-000006", title: "Synthetic medication order", medicationOrder: { drug: "Example medicine", dose: "1", unit: "tablet", route: "Oral", frequency: "Once daily", duration: "7 days", quantity: 7, indication: "Fictional workflow testing; not a prescribing recommendation." } } },
 };
 read("/healthz", "health", "Discovery", "Check application and PostgreSQL health", object({ ok: boolean, database: { const: "postgresql" }, mode: { const: "synthetic" } }), { security: [] });
-read("/api/catalogue", "catalogue", "Discovery", "List live sites, active adapters and simulation incidents", object({ sites: array({ type: "object", additionalProperties: true }), apis: array({ type: "object", additionalProperties: true }), scenarios: array({ type: "object", additionalProperties: true }), identity: object({ issuer: string, clientId: string }), notice: string, documentation: object({ handbook: string, explorer: string, openapi: string }) }), { security: [] });
+read("/api/catalogue", "catalogue", "Discovery", "List live sites, active adapters and simulation incidents", object({ sites: array({ type: "object", additionalProperties: true }), workspaces: array({ type: "object", additionalProperties: true }), apis: array({ type: "object", additionalProperties: true }), scenarios: array({ type: "object", additionalProperties: true }), identity: object({ issuer: string, clientId: string }), notice: string, documentation: object({ handbook: string, explorer: string, openapi: string }) }), { security: [] });
+add("/api/telephony/live", "get", {
+  operationId: "telephonyLive", tags: ["Service workspaces"], summary: "Join the team's live reception switchboard over WebSocket", security: [],
+  description: "Upgrade to WebSocket on the same origin. Within five seconds send TelephonyClientMessage kind authenticate with a GP-scoped team API key and receptionist name. Credentials never belong in the URL. The server assigns a memberId and broadcasts TelephonyServerMessage snapshots scoped to that world. Send command messages with unique requestId values; use the current call version for claims, hold, transfer, callback, end and end-and-next. Acknowledgements include requestId. Reuse a requestId only for the same command. Reconnect by authenticating again; calls held by a disconnected member return to the queue. Phone timestamps use wall-clock milliseconds, independent of simulation speed. HTTP clients without a WebSocket upgrade receive 426.",
+  responses: { "101": { description: "WebSocket connection established. Authentication required in first frame." }, "426": response(ref("Error"), "WebSocket upgrade required"), "403": errors["403"] },
+});
 read("/openapi.json", "openapiAlias", "Discovery", "Download the OpenAPI JSON (alias)", { type: "object", additionalProperties: true }, { security: [] });
 read("/api/openapi.json", "openapi", "Discovery", "Download this OpenAPI 3.1 document as JSON", { type: "object", additionalProperties: true }, { security: [] });
 write("/api/keys", "createTeam", "Team", "Create or join a team world by name", body(object({ teamName: { ...string, description: "Lowercased with all whitespace removed before validation. The normalised name must contain 2–80 characters." }, site: { type: "string", enum: activeServices.filter(id => !["control", "legacy"].includes(id)) } }, ["teamName"]), { team: { summary: "Create or join a team", value: { teamName: "My integration team" } } }), ref("Key"), { security: [], description: "Creates or joins a persistent world using a lowercase name with all whitespace removed. Anyone who knows the name can join its simulation world. Repeat requests return the same reusable key and world. Older hash-only teams receive a reusable key for their existing world; previous keys remain valid. Ambiguous historical names spanning multiple worlds return 409: use an existing key. Up to 5,000 distinct team worlds; existing teams can rejoin at capacity. No per-IP or time-based throttle. Omit site to create a team with all participant scopes. Rejoining preserves existing scopes. Legacy has no API key scope.", responses: { ...errors, "201": response(ref("Key"), "Team created or joined; copy apiKey"), "501": response(ref("Error"), "Legacy is browser-only") } });

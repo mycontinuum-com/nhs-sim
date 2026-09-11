@@ -1,7 +1,9 @@
 import { OperatorConsole, OperatorViewingBanner } from "./operator-console.tsx";
 import { normalizeTeamName } from "../../contracts/src/team.ts";
+import { practiceApps } from "../../contracts/src/practice-apps.ts";
 import { Neighbourhood } from "./neighbourhood.tsx";
 const MessagingWorkspace = lazy(() => import("./messaging-workspace.tsx").then((module) => ({ default: module.MessagingWorkspace })));
+const TelephonyWorkspace = lazy(() => import("./telephony-workspace.tsx").then((module) => ({ default: module.TelephonyWorkspace })));
 const DocumentWorkspace = lazy(() => import("./document-workspace.tsx").then((module) => ({ default: module.DocumentWorkspace })));
 const PharmacyWorkspace = lazy(() => import("./pharmacy-workspace.tsx").then((module) => ({ default: module.PharmacyWorkspace })));
 import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
@@ -85,7 +87,9 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const isMap = siteId === "control";
   const isDocuments = siteId === "gp" && location.pathname.replace(/\/$/, "") === "/gp/documents";
   const isMessages = (siteId === "gp" || siteId === "wearables") && location.pathname.replace(/\/$/, "") === `/${siteId}/messages`;
-  const isOffice = isDocuments || isMessages;
+  const isTelephony = siteId === "gp" && location.pathname.replace(/\/$/, "") === practiceApps.telephony.href.replace(/\/$/, "");
+  const isOffice = isDocuments || isMessages || isTelephony;
+  useEffect(() => { if (isTelephony) document.title = practiceApps.telephony.name + " | NHS-SIM"; }, [isTelephony]);
   useEffect(() => { if (isMessages) document.title = (siteId === "gp" ? "InaccuRx" : "Messages") + " | NHS-SIM"; }, [isMessages, siteId]);
   useEffect(() => { if (isDocuments) document.title = "DocuMañana | NHS-SIM"; }, [isDocuments]);
   const [tourStep, setTourStep] = useState<number | null>(() =>
@@ -441,7 +445,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
           {!key ? (
             <main className="access-gate">
               <a href="/control/">Back to neighbourhood</a>
-              <h1>{isMessages ? (siteId === "gp" ? "InaccuRx" : "Messages") : isDocuments ? "DocuMañana" : sites.find((s) => s.id === siteId)?.name}</h1>
+              <h1>{isTelephony ? practiceApps.telephony.name : isMessages ? (siteId === "gp" ? "InaccuRx" : "Messages") : isDocuments ? "DocuMañana" : sites.find((s) => s.id === siteId)?.name}</h1>
               <p>Join a team world to open this workspace.</p>
               <button
                 className="primary"
@@ -453,6 +457,8 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                 Create or connect your team
               </button>
             </main>
+          ) : isTelephony ? (
+            <Suspense fallback={<p className="loading" role="status">Opening reception…</p>}><TelephonyWorkspace key={key} apiKey={key} teamName={team} /></Suspense>
           ) : view.data ? (
             <Suspense fallback={<p className="loading" role="status">Opening the app…</p>}><Workspace
               siteId={siteId}
@@ -518,14 +524,14 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
             <span>
               {clock.data
                 ? new Date(clock.data.now).toLocaleString("en-GB", { timeZone: "UTC" }) + " UTC"
-                : "Synthetic workspace"}
+                : isTelephony ? "Reception desk" : "Synthetic workspace"}
             </span>
             <button data-tour="simulation" onClick={() => setDrawer("simulation")}>
               {clock.data ? (clock.data.paused ? "Paused" : "Running") : "Connect"} · Simulation controls
             </button>
             <button data-tour="team" onClick={() => setDrawer("team")}>Team & API key</button>
             <a href="/docs/">Handbook</a>
-            <span className="synthetic-label">SIMULATION</span>
+            {!isTelephony && <span className="synthetic-label">SIMULATION</span>}
           </footer>
           {!isOffice && !patient && view.data && view.data.resourceTotal > 200 && (
             <div className="resource-pager">

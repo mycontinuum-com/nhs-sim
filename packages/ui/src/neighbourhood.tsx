@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { practiceApps } from "../../contracts/src/practice-apps.ts";
 import "./neighbourhood.css";
 const assets = {
+  "surgery-disconnect": "/control/brands/surgery-disconnect.png",
   "neighbourhood-v2": "/control/world/neighbourhood-v2.5f600ac647e4.webp",
   "documanana": "/control/world/documanana.d17145d30597.webp",
   "cistoo": "/control/world/cistoo.4551d6a902b7.webp",
@@ -16,7 +18,7 @@ const places = [
     id: "practice",
     title: "Riverside Practice",
     label: "Primary care",
-    description: "Choose SystemTwo for patient records, DocuMañana for letters, or InaccuRx for conversations.",
+    description: "Open patient records, process letters, send messages or take reception calls.",
     href: "/gp/",
     x: 23,
     y: 44,
@@ -62,8 +64,7 @@ const places = [
 ];
 const apps = {
   gp: { name: "SystemTwo", detail: "Patient records & appointments", href: "/gp/", icon: "systemtwo" },
-  documents: { name: "DocuMañana", detail: "Letters & document processing", href: "/gp/documents/", icon: "documanana" },
-  messaging: { name: "InaccuRx", detail: "Patient conversations", href: "/gp/messages/", icon: "inaccurx" },
+  ...practiceApps,
   hospital: { name: "Millenni-ish", detail: "Emergency department, wards & patient charts", href: "/hospital/", icon: "millenni-ish" },
   community: { name: "CareBnB", detail: "Caseloads & home visits", href: "/community/", icon: "carebnb" },
   pharmacy: { name: "NoobScript", detail: "Dispensing, stock & purchasing", href: "/pharmacy/", icon: "proscrip-ish" },
@@ -72,7 +73,7 @@ const apps = {
   identity: { name: "CIS-too", detail: "Staff identity & smartcard sign-in", href: "/cis2/", icon: "cistoo" },
 } satisfies Record<string, { name: string; detail: string; href: string; icon: keyof typeof assets }>;
 const installed: Record<string, (keyof typeof apps)[]> = {
-  practice: ["gp", "documents", "messaging", "identity"],
+  practice: ["gp", "documents", "messaging", "telephony", "identity"],
   hospital: ["hospital", "identity"],
   community: ["community", "identity"],
   pharmacy: ["pharmacy", "identity"],

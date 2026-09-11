@@ -8,6 +8,7 @@ const brands = {
   wearables: { name: "Witherings", asset: "witherings", line: "Every step counts. Eventually." },
   documents: { name: "DocuMañana", asset: "documanana", line: "Today's letters. Tomorrow's problem." },
   messaging: { name: "InaccuRx", asset: "inaccurx", line: "Message received. Probably." },
+  telephony: { name: "Surgery Disconnect", asset: "surgery-disconnect", line: "Please continue to hold." },
   identity: { name: "CIS-too", asset: "cistoo", line: "You again?" },
 } as const;
 export function ProductBrand({ product, compact = false }: { product: keyof typeof brands; compact?: boolean }) {

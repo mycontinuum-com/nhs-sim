@@ -21,6 +21,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "6.1.1",
     "esbuild": "^0.25.0",
     "swagger-ui-dist": "5.32.15",
@@ -28,6 +29,7 @@
     "vite-plus": "0.3.0"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-router": "^1.0.0",
     "immer": "10.1.1",
@@ -35,6 +37,7 @@
     "pg": "^8.23.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "ws": "^8.21.3",
     "zod": "^4.0.0"
   }
 }

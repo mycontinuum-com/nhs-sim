@@ -1,0 +1,30 @@
+---
+title: Surgery Disconnect
+slug: /telephony
+---
+
+# Take reception calls with your team
+
+Open **Surgery Disconnect** from the Riverside Practice desktop. Connect to the same team world as your colleagues, then enter your receptionist name. Each open call desk appears as a separate team member.
+
+1. Choose a caller from the queue and select **Answer call**.
+2. Enable caller voices to hear the caller through your browser's speech engine. Use **Replay voice** to listen again. The transcript remains available when audio is unavailable.
+3. Select **Open in SystemTwo** to open that caller's patient record in another tab. Keep the call desk open to remain connected.
+4. Hold the call, transfer it to an available colleague, or record a note before ending it.
+5. Use **End call & next** to finish the call and answer the next waiting caller in one action.
+
+The team list shows who is available, away or handling a call. Another receptionist cannot answer a call that you own. A disconnected receptionist's call returns to the queue. Completed calls retain the receptionist's name and closing note.
+
+## Verify a shared call desk
+
+Run `node scripts/verify-telephony.mjs` against a running application. The check opens two receptionists in one world and another in a separate world. It tests simultaneous answers, ownership, transfers, hold and resume, end-and-next, disconnect recovery, and patient record lookup. `pnpm smoke` includes this check.
+
+Run `node scripts/verify-telephony.mjs --restart` to also restart the local Compose application and verify that completed calls and notes survive in PostgreSQL.
+
+## Connect a client
+
+The WebSocket endpoint is `/api/telephony/live` on the application's existing origin and port. The first message authenticates with a GP-scoped team key and a receptionist name. Do not place the API key in the URL.
+
+The executable message schemas are `TelephonyClientMessage` and `TelephonyServerMessage` in the <a href="/api/openapi.json">API catalogue</a>. Each command has a request ID. Call changes use the latest call ID and version from a snapshot. Acknowledgements and errors identify the request. Snapshots describe the committed queue and connected team members.
+
+Call audio uses the browser's installed speech voices. Voice selection and audio availability vary by browser and operating system. Calls and transcripts are generated within NHS-SIM and do not connect to a phone network.

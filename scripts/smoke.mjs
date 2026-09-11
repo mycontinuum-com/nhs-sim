@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { setTimeout } from "node:timers/promises";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { practiceApps } from "../packages/contracts/src/practice-apps.ts";
 const base = process.env.TEST_ORIGIN ?? "http://localhost:8080";
 const call = async (path, options = {}) => {
   const r = await fetch(base + path, options);
@@ -56,6 +57,10 @@ assert.equal((await fetch(base + "/control/world/neighbourhood-v2.png")).status,
 assert.equal((await fetch(base + "/cis2/")).status, 200);
 assert.equal((await fetch(base + "/gp/documents/")).status, 200, "standalone document workspace");
 assert.equal((await fetch(base + "/gp/messages/")).status, 200, "practice messaging workspace");
+for (const app of Object.values(practiceApps)) {
+  assert.equal((await fetch(base + app.href)).status, 200, app.name);
+  assert.equal((await fetch(base + `/control/brands/${app.icon}.png`)).status, 200, app.name + " icon");
+}
 assert.equal((await fetch(base + "/wearables/messages/")).status, 200, "patient messages app");
 assert.equal((await call("/api/operator/cis2")).status, 401);
 for (const site of catalogue.sites) {
@@ -273,3 +278,4 @@ writeFileSync(
 console.log(
   "PASS: all sites and assets, all NHS namespaces, authorization, legacy boundary and delayed result workflow",
 );
+await import("./verify-telephony.mjs");

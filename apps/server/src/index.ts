@@ -1,3 +1,5 @@
+import { attachTelephony } from "./telephony.ts";
+import { practiceApps } from "../../../packages/contracts/src/practice-apps.ts";
 import { auditPath, operatorTeams, operatorActivity, recordTeamRequest, pruneTeamRequests } from './operator.ts';
 import { teamNameSchema } from "../../../packages/contracts/src/team.ts";
 import { patientConversation } from "../../../packages/engine/src/messaging.ts";
@@ -133,6 +135,7 @@ const server = createServer(async (req, res) => {
       return send(res, 200, {
         sites,
         apis: catalogue,
+        workspaces: Object.values(practiceApps),
         scenarios,
         identity: { issuer: origin + "/cis2", clientId: "nhs-sim-client" },
         documentation: { handbook: "/docs/", explorer: "/docs/explorer/", openapi: "/api/openapi.json" },
@@ -579,6 +582,7 @@ const server = createServer(async (req, res) => {
       }
       throw new SimError("Method not allowed", 405);
     }
+    if (path === "/api/telephony/live") return send(res, 426, { error: "WebSocket upgrade required" });
     if (path.startsWith("/api/")) throw new SimError("Unknown API endpoint", 404);
     if (method !== "GET" && method !== "HEAD") throw new SimError("Method not allowed", 405);
     if (path === "/") {
@@ -650,12 +654,14 @@ const timer = setInterval(() => {
       ticking = false;
     });
 }, 1000);
+const telephony = attachTelephony(server, store, origin);
 server.listen(port, "0.0.0.0", () =>
   console.log(
     "NHS-SIM ready on port " + port + "; " + sites.length + " sites; PostgreSQL backing store",
   ),
 );
 async function shutdown() {
+  telephony.close();
   clearInterval(timer);
   clearInterval(auditTimer);
   server.close();

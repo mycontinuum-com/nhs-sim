@@ -36,7 +36,7 @@ test("OpenAPI is serializable, resolves every internal reference and declares ea
     operationIds.add(operation.operationId);
     for (const [, name] of path.matchAll(/\{([^}]+)\}/g)) assert.ok(operation.parameters?.some(parameter => parameter.in === "path" && parameter.name === name && parameter.required), `${path} lacks ${name}`);
     for (const security of operation.security ?? []) for (const name of Object.keys(security)) assert.ok(name in openApiDocument.components.securitySchemes, `Unknown security scheme ${name}`);
-    assert.ok(Object.keys(operation.responses).some(status => /^[23]\d\d$/.test(status) || status === "410"));
+    assert.ok(Object.keys(operation.responses).some(status => /^[23]\d\d$/.test(status) || status === "410" || status === "101"));
   }
 });
 
