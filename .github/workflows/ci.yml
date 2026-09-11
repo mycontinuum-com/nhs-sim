@@ -8,6 +8,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Install host verification dependencies
+        run: |
+          npm install --global pnpm@11.19.0
+          pnpm install --prod --frozen-lockfile --ignore-scripts
       - name: Verify agent control surface
         run: |
           node scripts/validate-skills.mjs
