@@ -57,6 +57,14 @@ export function PlanExploration({ enter, close }: { enter: (href: string) => voi
             <summary>{shift.title}</summary>
             <h3>{shift.question}</h3>
             <p>{shift.context}</p>
+            {shift.title === "Analogue to digital" && (
+              <div>
+                <h3>Suggested project: Understood</h3>
+                <p>Could a voice receptionist understand patients across UK accents and dialects? Build towards a proprietary UK healthcare voice model, starting with a demo that books an appointment or leaves a practice message through the simulator API.</p>
+                <p>Compare task completion across accents using consenting speakers and fictional calls. Let callers clarify details or ask for a human when the system struggles.</p>
+                <a href="/docs/ten-year-plan/#suggested-project-understood">Explore the voice project idea →</a>
+              </div>
+            )}
             <nav aria-label={`${shift.title} workplaces`}>
               {shift.places.map((place) => (
                 <a key={place.href} href={place.href} onClick={(event) => {
