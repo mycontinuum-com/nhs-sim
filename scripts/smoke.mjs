@@ -78,16 +78,27 @@ for (const path of ["/docs/", "/docs/quickstart/", "/docs/api/", "/docs/data/", 
     assert.equal((await fetch(new URL(asset, base + path))).status, 200, asset);
 }
 assert.equal((await fetch(base + "/docs/missing-page/")).status, 404);
+const signupRun = Date.now().toString(36);
 const [issued, otherTeam] = await Promise.all([call("/api/keys", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ teamName: "Smoke test" }),
+  body: JSON.stringify({ teamName: "Smoke test " + signupRun }),
 }), call("/api/keys", {
   method: "POST", headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ teamName: "Clock isolation", site: "gp" }),
+  body: JSON.stringify({ teamName: "Clock isolation " + signupRun, site: "gp" }),
 })]);
 assert.equal(issued.status, 201, issued.data.error);
 assert.equal(otherTeam.status, 201, "simultaneous teams sharing an IP can sign up without throttling");
+const rejoined = await call("/api/keys", {
+  method: "POST", headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ teamName: " SMOKETEST" + signupRun.toUpperCase() + " " }),
+});
+assert.equal(rejoined.status, 201);
+assert.equal(issued.data.created, true);
+assert.equal(rejoined.data.created, false);
+assert.equal(rejoined.data.teamName, "smoketest" + signupRun);
+assert.equal(rejoined.data.world, issued.data.world, "normalised team name rejoins the same world");
+assert.equal(rejoined.data.apiKey, issued.data.apiKey, "team name returns the same reusable key");
 const headers = {
   Authorization: "Bearer " + issued.data.apiKey,
   "Content-Type": "application/json",
@@ -195,14 +206,14 @@ assert.equal(step.status, 200);
 const homeReadings = await call("/api/sites/wearables/view?patient=SIM-000003", { headers });
 assert.ok(homeReadings.data.resources.some((item) => item.kind === "observation" && item.owner === "wearables" && item.patientId === "SIM-000003"), "newly connected patient's watch emits a reading");
 assert.equal(step.data.paused, true, "one click pauses and advances a running clock");
-assert.ok(step.data.events.some((event) => event.actor === "Smoke test" && event.type.startsWith("clock.")),
+assert.ok(step.data.events.some((event) => event.actor === issued.data.team && event.type.startsWith("clock.")),
   "team clock actions appear in the activity trail");
 const otherClock = await call("/api/clock", { headers: { Authorization: "Bearer " + otherTeam.data.apiKey } });
 assert.equal(otherClock.status, 200);
 const scopedDirectory = await call("/api/nhs/ods/Organization", { headers: { Authorization: "Bearer " + otherTeam.data.apiKey } });
 assert.equal(scopedDirectory.status, 403);
 assert.equal(scopedDirectory.data.resourceType, "OperationOutcome");
-assert.ok(!otherClock.data.events.some((event) => event.resourceId === order.data.id || event.actor === "Smoke test"),
+assert.ok(!otherClock.data.events.some((event) => event.resourceId === order.data.id || event.actor === issued.data.team),
   "the activity trail stays inside its team world");
 const view = await call("/api/sites/diagnostics/view?patient=SIM-000001", { headers });
 assert.equal(view.data.resources.find((r) => r.id === order.data.id).status, "available");
@@ -234,7 +245,7 @@ const created = await call("/api/sites/gp/actions", {
   method: "POST", headers, body: JSON.stringify(note),
 });
 assert.equal(created.status, 200);
-assert.deepEqual(created.data.provenance.created.actor, { kind: "team", name: "Smoke test" });
+assert.deepEqual(created.data.provenance.created.actor, { kind: "team", name: issued.data.team });
 const edit = { ...note, resourceId: created.data.id, expectedVersion: 1, text: "Updated fictional note" };
 const edited = await call("/api/sites/gp/actions", {
   method: "POST", headers: { ...headers, "Idempotency-Key": "attribution-edit" }, body: JSON.stringify(edit),

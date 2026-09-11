@@ -7,11 +7,15 @@ title: Team access and simulation time
 ## Create or reconnect a team
 
 1. Open <a href="/control/">the neighbourhood map</a> and choose a workplace.
-2. Enter a team name to create a world, or expand the existing-key option and connect with your team's API key.
+2. Enter your team name to create or join its world. You can also expand the existing-key option and connect with an API key.
 3. For a new team, choose **Copy API key** before continuing. The confirmation stays open until you continue.
 4. Launch an app. The first-use tour points out the key, simulation controls, and patient selector.
 
-Creating another key creates another world, even if you reuse the team name. Share the original key with your teammates and agents to work on the same records. The browser stores its connection in the current session. Retain a separate copy of the key to reconnect on another device or after the browser session ends.
+Team names are join codes: anyone who enters the same name can join that simulation world. Names are converted to lowercase with all whitespace removed, so `Team Rocket`, `teamrocket`, and ` TEAM ROCKET ` join the same world and return the same reusable key. Choose a distinct name for your team.
+
+The browser saves the connection in localStorage, so it survives refreshes and reopening the browser. Teammates on another device can enter the same name or use the shared API key.
+
+Older worlds keep their existing keys. The first name-based join may issue a new reusable key for that same world because older keys were stored only as hashes. If a name matches several older worlds, use the existing key to select the right world.
 
 Open **Team & API key** in the fixed bottom bar to copy or reveal the connected key. **Disconnect this browser** removes the browser connection without deleting the world.
 

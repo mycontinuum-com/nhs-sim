@@ -1,3 +1,4 @@
+import { teamNameSchema } from "../../../packages/contracts/src/team.ts";
 import { patientConversation } from "../../../packages/engine/src/messaging.ts";
 import { freeze, original } from "immer";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
@@ -113,7 +114,7 @@ const server = createServer(async (req, res) => {
       });
     if (path === "/api/keys" && method === "POST") {
       const input = z
-        .object({ teamName: z.string().trim().min(2).max(80), site: z.string().optional() })
+        .object({ teamName: teamNameSchema, site: z.string().optional() })
         .parse(await json(req));
       if (input.site === "legacy")
         return send(res, 501, {

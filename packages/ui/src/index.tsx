@@ -1,3 +1,4 @@
+import { normalizeTeamName } from "../../contracts/src/team.ts";
 import { Neighbourhood } from "./neighbourhood.tsx";
 const MessagingWorkspace = lazy(() => import("./messaging-workspace.tsx").then((module) => ({ default: module.MessagingWorkspace })));
 const DocumentWorkspace = lazy(() => import("./document-workspace.tsx").then((module) => ({ default: module.DocumentWorkspace })));
@@ -48,7 +49,12 @@ export function mount(siteId: SiteId) {
   );
 }
 function WorldApp({ siteId }: { siteId: SiteId }) {
-  const [key, setKey] = useState(() => sessionStorage.getItem("sim-key") ?? "");
+  const [key, setKey] = useState(() => {
+    const saved = localStorage.getItem("sim-key") ?? sessionStorage.getItem("sim-key") ?? "";
+    if (saved) localStorage.setItem("sim-key", saved);
+    sessionStorage.removeItem("sim-key");
+    return saved;
+  });
   const [patient, setPatient] = useState(
     () => new URLSearchParams(location.search).get("patient") ?? "",
   );
@@ -73,7 +79,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     history.pushState(null, "", url.pathname + url.search + url.hash);
     setPlace(value);
   }
-  const [team, setTeam] = useState("");
+  const [team, setTeam] = useState(() => localStorage.getItem("sim-team") ?? "");
   const [keyInput, setKeyInput] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
   const [world, setWorld] = useState("default");
@@ -85,7 +91,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   useEffect(() => { if (isMessages) document.title = (siteId === "gp" ? "InaccuRx" : "Messages") + " | NHS-SIM"; }, [isMessages, siteId]);
   useEffect(() => { if (isDocuments) document.title = "DocuMañana | NHS-SIM"; }, [isDocuments]);
   const [tourStep, setTourStep] = useState<number | null>(() =>
-    siteId !== "control" && sessionStorage.getItem("sim-key") && sessionStorage.getItem("sim-tour-world") ? 0 : null,
+    siteId !== "control" && localStorage.getItem("sim-key") && sessionStorage.getItem("sim-tour-world") ? 0 : null,
   );
   const [explorePlan, setExplorePlan] = useState(
     () => isMap && new URLSearchParams(location.search).get("explore") === "plan",
@@ -132,10 +138,38 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     return result;
   }
   function saveKey(value: string) {
-    sessionStorage.setItem("sim-key", value);
+    if (value) localStorage.setItem("sim-key", value);
+    else {
+      for (const name of ["sim-key", "sim-team", "sim-world"]) localStorage.removeItem(name);
+      sessionStorage.removeItem("sim-tour-world");
+      setTeam("");
+    }
+    sessionStorage.removeItem("sim-key");
     setKey(value);
     client.clear();
   }
+  useEffect(() => {
+    if (!key) return;
+    let current = true;
+    void api<{ team: string; world: string }>("/api/team").then((identity) => {
+      if (!current) return;
+      const name = normalizeTeamName(identity.team);
+      localStorage.setItem("sim-team", name);
+      localStorage.setItem("sim-world", identity.world);
+      setTeam(name);
+    }).catch(() => {});
+    return () => { current = false; };
+  }, [key]);
+  useEffect(() => {
+    const sync = (event: StorageEvent) => {
+      if (event.storageArea !== localStorage || event.key !== "sim-key") return;
+      setKey(event.newValue ?? "");
+      setTeam(localStorage.getItem("sim-team") ?? "");
+      client.clear();
+    };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
   function enter(href: string) {
     if (key || href === "/cis2/") location.assign(href);
     else {
@@ -250,22 +284,26 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
     onError: (error) => setNotice(error.message),
   });
   const issue = useMutation({
-    mutationFn: async (request: { kind: "create"; teamName: string } | { kind: "connect"; apiKey: string }): Promise<{ kind: "created"; apiKey: string; world: string } | { kind: "connected"; apiKey: string }> => {
+    mutationFn: async (request: { kind: "create"; teamName: string } | { kind: "connect"; apiKey: string }): Promise<{ kind: "created"; apiKey: string; world: string; teamName: string; created: boolean } | { kind: "connected"; apiKey: string; world: string; teamName: string }> => {
       if (request.kind === "create") {
-        const result = await api<{ apiKey: string; world: string }>("/api/keys", { teamName: request.teamName });
+        const result = await api<{ apiKey: string; world: string; teamName: string; created: boolean }>("/api/keys", { teamName: request.teamName });
         return { kind: "created", ...result };
       }
       try {
-        await api<Clock>("/api/clock", undefined, request.apiKey);
+        const identity = await api<{ team: string; world: string }>("/api/team", undefined, request.apiKey);
+        return { kind: "connected", apiKey: request.apiKey, world: identity.world, teamName: normalizeTeamName(identity.team) };
       } catch {
         throw new Error("Unable to connect. Check your team key and try again.");
       }
-      return { kind: "connected", apiKey: request.apiKey };
     },
     onSuccess: (result) => {
-      sessionStorage.setItem("sim-key", result.apiKey);
+      localStorage.setItem("sim-key", result.apiKey);
+      localStorage.setItem("sim-team", result.teamName);
+      localStorage.setItem("sim-world", result.world);
+      setTeam(result.teamName);
       if (result.kind === "created") {
-        sessionStorage.setItem("sim-tour-world", result.world);
+        if (result.created) sessionStorage.setItem("sim-tour-world", result.world);
+        else sessionStorage.removeItem("sim-tour-world");
         setCopyStatus("");
       } else {
         sessionStorage.removeItem("sim-tour-world");
@@ -564,16 +602,16 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                 <h2>{readyTeam ? "Your team is ready" : key ? "Team access" : "Start exploring"}</h2>
                 {readyTeam ? (
                   <>
-                    <p><strong>{team.trim()}</strong> now has a synthetic world. Copy the API key to connect your agent or invite teammates into the same world.</p>
+                    <p><strong>{readyTeam.teamName}</strong> {readyTeam.created ? "now has a synthetic world" : "is connected to its existing world"}. Teammates can enter this same name to join, or use the API key.</p>
                     <button className="primary" onClick={() => copyKey(readyTeam.apiKey)}>Copy API key</button>
                     <p role="status">{copyStatus}</p>
                     <details key="new-team-key"><summary>Reveal API key</summary><code className="api-key">{readyTeam.apiKey}</code></details>
-                    <p>You can find it again in <strong>Team &amp; API key</strong> in the bottom bar. The tour starts after you launch an app.</p>
+                    <p>You can find it again in <strong>Team &amp; API key</strong> in the bottom bar. {readyTeam.created ? "The tour starts after you launch an app." : "Your connection is saved in this browser."}</p>
                     <button className="primary" onClick={continueToWorkspace}>{isMap ? place ? "Continue to desktop" : "Continue to map" : "Enter workspace"}</button>
                   </>
                 ) : key ? (
                   <>
-                    <p>Your key connects the portals and your agent to the same isolated world.</p>
+                    <p>Team <strong>{team}</strong> is saved in this browser. Your key connects the portals and your agent to the same shared world.</p>
                     <button onClick={() => copyKey(key)}>Copy API key</button>
                     <p role="status">{copyStatus}</p>
                     <details key="connected-team-key">
@@ -611,9 +649,9 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
                         />
                       </label>
                       <button className="primary" disabled={issue.isPending || issue.isSuccess}>
-                        {issue.isPending && issue.variables.kind === "create" ? "Creating your team…" : issue.isSuccess ? "Opening workspace…" : "Create team"}
+                        {issue.isPending && issue.variables.kind === "create" ? "Connecting your team…" : issue.isSuccess ? "Opening workspace…" : "Create or join team"}
                       </button>
-                      <p>You can reveal and copy your API key from Team &amp; API key once inside.</p>
+                      <p>Team name: <strong>{normalizeTeamName(team) || "Enter a name above"}</strong>. Names use lowercase with no spaces. Anyone entering the same name joins the same world. This browser remembers your connection.</p>
                     </form>
                     <details>
                       <summary>Use an existing team key</summary>

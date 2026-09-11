@@ -6,7 +6,7 @@ title: Make your first API call
 
 Create a team at <a href="/control/">the map</a>, copy its API key, and open Riverside Practice to enter SystemTwo. The key stays available in **Team & API key** in the fixed bottom bar. Read [Team access and simulation time](./team-access.mdx) for browser setup.
 
-The commands below create a separate team world and add a GP task for a fictional patient. They use `curl` and `jq`. If you already have a key, assign it to `SIM_KEY` and skip key creation.
+The commands below create or join a team world and add a GP task for a fictional patient. They use `curl` and `jq`. If you already have a key, assign it to `SIM_KEY` and skip key creation.
 
 ## Create a team world
 
@@ -24,7 +24,7 @@ export SIM_KEY=$(curl --fail --silent "$SIM_ORIGIN/api/keys" \
   -d '{"teamName":"Example builders"}' | jq -r '.apiKey')
 ```
 
-Share this key within your team. Each request to create a key creates a new world, even with the same team name. Keep the original key to return to your work.
+Share this key or your team name with teammates. Repeating the same name returns the same world and reusable key. Names are lowercase with whitespace removed, so `Example builders` and `examplebuilders` match. Use a distinct team name to start a separate world.
 
 ## Read a patient
 

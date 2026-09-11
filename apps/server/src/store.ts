@@ -1,3 +1,4 @@
+import { teamNameSchema, normalizeTeamName } from "../../../packages/contracts/src/team.ts";
 import { seedPatientBloodResults } from "../../../packages/engine/src/blood-results.ts";
 import { upgradeMessagingWorld } from "../../../packages/engine/src/messaging-seed.ts";
 import { upgradeAppointmentWorld } from "../../../packages/engine/src/appointment-sessions.ts";
@@ -12,7 +13,7 @@ import type { Patient, Resource, SiteId } from "../../../packages/contracts/src/
 import { createHash, randomBytes } from "node:crypto";
 import { RowPersistence, patientRowsSql, resourceRowsSql } from "./persistence.ts";
 
-export type TeamKey = { hash: string; team: string; world: string; scopes: string[] };
+export type TeamKey = { hash: string; team: string; world: string; scopes: string[]; recoverable_key?: string | null };
 export class Store {
   pool: pg.Pool;
   engine = new Engine();
@@ -36,6 +37,7 @@ export class Store {
       await client.query(
         "CREATE TABLE IF NOT EXISTS simulation_state(id integer PRIMARY KEY CHECK(id=1), schema_version integer NOT NULL, payload jsonb NOT NULL); CREATE TABLE IF NOT EXISTS team_keys(hash text PRIMARY KEY, team text NOT NULL, world text NOT NULL, scopes jsonb NOT NULL)",
       );
+      await client.query("ALTER TABLE team_keys ADD COLUMN IF NOT EXISTS recoverable_key text");
       await this.persistence.schema(client);
       const rowStorage = await client.query(
         "SELECT schema_version FROM simulation_storage WHERE id=1",
@@ -57,7 +59,7 @@ export class Store {
       if (!loaded) throw new Error("Row storage did not initialize");
       this.engine.state = { ...loaded, worlds: Object.fromEntries(Object.entries(loaded.worlds).map(([id, world]) => [id, upgradeMessagingWorld(upgradeAppointmentWorld(upgradeDocumentWorld(upgradePharmacyWorld(upgradeHospitalWorld(world)))))])) };
       const upgraded = await this.persistence.write(client, loaded, this.engine.state);
-      this.keys = (await client.query("SELECT hash,team,world,scopes FROM team_keys")).rows;
+      this.keys = (await client.query("SELECT hash,team,world,scopes,recoverable_key FROM team_keys")).rows;
       await client.query("COMMIT");
       upgraded();
     } catch (error) {
@@ -141,16 +143,28 @@ export class Store {
       }
     });
   }
-  async issue(team: string, scopes: string[]) {
-    const raw = "sim_" + randomBytes(24).toString("hex"),
-      hash = createHash("sha256").update(raw).digest("hex"),
-      world = "team-" + randomBytes(6).toString("hex");
-    const key = { hash, team, world, scopes };
-    await this.enqueue(async () => {
-      if (this.keys.length >= 5000)
+  async issue(inputTeam: string, requestedScopes: string[]) {
+    const canonical = teamNameSchema.parse(inputTeam);
+    return this.enqueue(async () => {
+      const matches = this.keys.filter((key) => normalizeTeamName(key.team) === canonical);
+      if (new Set(matches.map((key) => key.world)).size > 1)
+        throw new SimError("This team name matches multiple existing worlds. Connect with your existing API key instead.", 409);
+      const existing = matches[0];
+      const reusable = matches.find((key) => key.recoverable_key);
+      if (reusable?.recoverable_key)
+        return { apiKey: reusable.recoverable_key, team: reusable.team, teamName: canonical, world: reusable.world, scopes: reusable.scopes, created: false };
+      const created = !existing;
+      if (created && new Set(this.keys.map((key) => key.world)).size >= 5000)
         throw new SimError("The 5,000-team capacity has been reached; ask the organiser", 429);
+      const raw = "sim_" + randomBytes(24).toString("hex"),
+        hash = createHash("sha256").update(raw).digest("hex"),
+        world = existing?.world ?? "team-" + randomBytes(6).toString("hex"),
+        team = existing?.team ?? canonical,
+        scopes = existing ? existing.scopes.filter((scope) => matches.every((key) => key.scopes.includes(scope))) : requestedScopes;
+      const key = { hash, team, world, scopes, recoverable_key: raw };
       await this.write(
         () => {
+          if (!created) return;
           this.engine.create(world);
           const baseline = this.persistence.baseline("default");
           const target = this.engine.require(world);
@@ -165,17 +179,18 @@ export class Store {
         },
         world,
         async (client) => {
-          await client.query("INSERT INTO team_keys(hash,team,world,scopes) VALUES($1,$2,$3,$4)", [
+          await client.query("INSERT INTO team_keys(hash,team,world,scopes,recoverable_key) VALUES($1,$2,$3,$4,$5)", [
             hash,
             team,
             world,
             JSON.stringify(scopes),
+            raw,
           ]);
         },
       );
       this.keys.push(key);
+      return { apiKey: raw, team, teamName: canonical, world, scopes, created };
     });
-    return { apiKey: raw, team, world, scopes };
   }
   authenticate(raw: string) {
     const hash = createHash("sha256").update(raw).digest("hex");

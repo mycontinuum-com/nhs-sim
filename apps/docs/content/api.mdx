@@ -26,7 +26,7 @@ Copy your existing key from **Team & API key** in any workspace. In the explorer
 
 Outside the explorer, send `Authorization: Bearer YOUR_TEAM_KEY`. A key belongs to one world. It can also have service restrictions. The explorer clears authorization on reload.
 
-`POST /api/keys` is public. Each successful call creates a separate team world, even when you reuse a team name. Omit `site` to access all API-enabled services. Save the response's `apiKey` and reuse it. Each deployment supports up to 5,000 teams. There is no per-IP or time-based sign-up throttle, so participants can create teams together on shared hackathon Wi-Fi.
+`POST /api/keys` is public. It creates or joins a team by name, normalised to lowercase with all whitespace removed. Repeating a name returns the same world and reusable `apiKey`. Anyone who knows the name can join its simulation world. Omit `site` when creating a team to access all API-enabled services; joining preserves its existing scopes. Each deployment supports up to 5,000 distinct team worlds, and existing teams can still rejoin at capacity. There is no per-IP or time-based sign-up throttle, so participants can create teams together on shared hackathon Wi-Fi.
 
 Operator operations require the separately configured operator token. Their `world` query parameter chooses a world. A team key cannot select another team's world. CIS2 access tokens are used only for the emulated identity endpoints.
 

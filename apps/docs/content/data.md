@@ -16,7 +16,7 @@ A resource has an `id`, optional `patientId`, `kind`, `title`, `status`, `owner`
 
 ## Separate team worlds
 
-Issuing a team key creates a world. Portal activity and API actions using that key affect the same world. Another team's key sees another world. Team names do not grant access to an existing world.
+A new normalised team name creates a world. Reusing that name joins its existing world and returns its reusable key. Names are lowercase with whitespace removed and act as shared join codes. Portal activity and API actions using that key affect the same world. Distinct team names keep separate worlds.
 
 The simulation clock controls delayed events. A test order schedules a result. A community visit schedules a completion. Read the resulting resource after advancing time to check whether it completed.
 
