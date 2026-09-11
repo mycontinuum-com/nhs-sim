@@ -1,12 +1,12 @@
 # Follow one patient across services
 
-Start at the neighbourhood map. Riverside Practice opens SystemTwo for primary care. Northbank General opens Millenni-ish EPR for secondary care. Use the same team key in both.
+Start at the neighbourhood map. Riverside Practice opens GP Records for primary care. Northbank General opens Hospital EPR for secondary care. Use the same team key in both.
 
 Community and pharmacy have their own workspaces and scoped APIs. Diagnostics and referrals expose supporting APIs. Query those services when you need to distinguish a completed handover from a request.
 
 ## Discharge to primary care
 
-Use `SIM-000001`. Inspect the hospital document in Millenni-ish and the follow-up task in SystemTwo. Check which records each service can see. Use `share_record` when the receiving service needs a document.
+Use `SIM-000001`. Inspect the hospital document in Hospital EPR and the follow-up task in GP Records. Check which records each service can see. Use `share_record` when the receiving service needs a document.
 
 Order monitoring through `/api/sites/gp/actions` with `order_test`. Advance the world by 121 minutes through `/api/clock`, then read `/api/sites/diagnostics/view?patient=SIM-000001` and confirm the test is available. A pathology outage can hold a result in diagnostics until the organiser restores the feed.
 
@@ -39,8 +39,8 @@ Keep the seed and intervention sequence fixed when comparing runs. Present initi
 
 ## Try a complete journey in ten minutes
 
-1. Create a team from the map. In SystemTwo, choose Amira Khan, `SIM-000001`, and send a referral to the hospital.
-2. Open Millenni-ish from the map. Select Amira and find your referral in the discharge chart.
+1. Create a team from the map. In GP Records, choose Amira Khan, `SIM-000001`, and send a referral to the hospital.
+2. Open Hospital EPR from the map. Select Amira and find your referral in the discharge chart.
 3. Open High Street Pharmacy. Select the discharge prescription, link its matching catalogue item and quantity, dispense it, and confirm collection. A newly drafted prescription must first be reviewed and approved.
 4. Open Neighbourhood Care, select Amira and schedule a home visit. Open Simulation controls and advance 121 minutes. The visit changes to completed after its 90-minute delay.
 5. Open Eleanor's home from the map. Compare the stored activity, sleep and heart-rate readings. Advance 15 minutes to receive a new activity reading. The home monitor produces readings hourly after its first scheduled reading at 08:10.

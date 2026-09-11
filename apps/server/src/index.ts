@@ -323,7 +323,7 @@ const server = createServer(async (req, res) => {
       return send(
         res,
         200,
-        "<!doctype html><title>Westhaven Legacy</title><style>body{font:16px monospace;background:#e5e0cf;padding:24px}td{border:1px solid #777;padding:16px}button{padding:12px}</style><h1>Cerner? I Hardly Know Her</h1><p>All records fictional. Integration module sold separately. And then separately again.</p><table><caption>Outgoing correspondence</caption>" +
+        "<!doctype html><title>Westhaven Legacy</title><style>body{font:16px monospace;background:#e5e0cf;padding:24px}td{border:1px solid #777;padding:16px}button{padding:12px}</style><h1>Legacy Records</h1><p>Fictional records for testing document transfer through a legacy system.</p><table><caption>Outgoing correspondence</caption>" +
           rows +
           "</table>",
         "text/html",

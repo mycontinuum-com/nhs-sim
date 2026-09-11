@@ -18,7 +18,7 @@ curl --fail --silent "$SIM_ORIGIN/api/nhs/pds/Patient/SIM-000001" \
   -H "Authorization: Bearer $SIM_KEY"
 ```
 
-Search returns a `Bundle` with `type: searchset`, the total match count, entries and pagination links. Read returns a `Patient` with structured names, date of birth, synthetic address and contact details, local identifiers and a registered-GP reference. The names and birth dates come from the same patients you open in SystemTwo.
+Search returns a `Bundle` with `type: searchset`, the total match count, entries and pagination links. Read returns a `Patient` with structured names, date of birth, synthetic address and contact details, local identifiers and a registered-GP reference. The names and birth dates come from the same patients you open in GP Records.
 
 | Parameter | Behaviour |
 | --- | --- |

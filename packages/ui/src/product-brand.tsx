@@ -1,20 +1,20 @@
 import React from "react";
 import "./product-brand.css";
 const brands = {
-  gp: { name: "SystemTwo", asset: "systemtwo", line: "Twice the system. Same number of clicks." },
-  hospital: { name: "Millenni-ish", asset: "millenni-ish", line: "Cernerish clinical systems" },
-  pharmacy: { name: "NoobScript", asset: "proscrip-ish", line: "Dispensing with a margin of error." },
-  community: { name: "CareBnB", asset: "carebnb", line: "Home visits. No cleaning fee." },
-  wearables: { name: "Witherings", asset: "witherings", line: "Every step counts. Eventually." },
-  documents: { name: "DocuMañana", asset: "documanana", line: "Today's letters. Tomorrow's problem." },
-  messaging: { name: "Fax & Furious", asset: "fax-and-furious", line: "Family. Forms. Follow-ups." },
-  telephony: { name: "Surgery Disconnect", asset: "surgery-disconnect", line: "Please continue to hold." },
-  identity: { name: "CIS-too", asset: "cistoo", line: "You again?" },
+  gp: { name: "GP Records", asset: "gp-records", line: "Patient records and appointments" },
+  hospital: { name: "Hospital EPR", asset: "hospital-epr", line: "Inpatient records and hospital operations" },
+  pharmacy: { name: "Pharmacy", asset: "pharmacy", line: "Dispensing, stock and purchasing" },
+  community: { name: "Community Care", asset: "community-care", line: "Caseloads and home visits" },
+  wearables: { name: "Home Health", asset: "home-health", line: "Your health and connected devices" },
+  documents: { name: "Document Inbox", asset: "document-inbox", line: "Letters and document processing" },
+  messaging: { name: "Messagey", asset: "messagey", line: "Patient conversations" },
+  telephony: { name: "Reception Calls", asset: "reception-calls", line: "Reception calls and team switchboard" },
+  identity: { name: "Staff Identity", asset: "staff-identity", line: "Simulated staff sign-in" },
 } as const;
 export function ProductBrand({ product, compact = false }: { product: keyof typeof brands; compact?: boolean }) {
   const brand = brands[product];
   return <span className={`product-brand product-brand-${product}${compact ? " product-brand-compact" : ""}`}>
-    <img src={`/control/brands/${brand.asset}.png`} alt="" width={44} height={44} />
+    <img src={`/control/brands/${brand.asset}.svg`} alt="" width={44} height={44} />
     <span><strong>{brand.name}</strong>{!compact && <small>{brand.line}</small>}</span>
   </span>;
 }

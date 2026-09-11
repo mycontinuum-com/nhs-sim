@@ -4,7 +4,7 @@ title: Make your first API call
 
 # Make your first API call
 
-Create a team at <a href="/control/">the map</a>, copy its API key, and open Riverside Practice to enter SystemTwo. The key stays available in **Team & API key** in the fixed bottom bar. Read [Team access and simulation time](./team-access.mdx) for browser setup.
+Create a team at <a href="/control/">the map</a>, copy its API key, and open Riverside Practice to enter GP Records. The key stays available in **Team & API key** in the fixed bottom bar. Read [Team access and simulation time](./team-access.mdx) for browser setup.
 
 The commands below create or join a team world and add a GP task for a fictional patient. They use `curl` and `jq`. If you already have a key, assign it to `SIM_KEY` and skip key creation.
 
@@ -55,6 +55,6 @@ curl --fail --silent "$SIM_ORIGIN/api/sites/gp/view" \
   | jq '.resources[] | select(.title == "Check discharge follow-up")'
 ```
 
-Open <a href="/gp/">SystemTwo at Riverside Practice</a> and use the same team key to inspect the task in the portal.
+Open <a href="/gp/">GP Records at Riverside Practice</a> and use the same team key to inspect the task in the portal.
 
 [Explore the ten-year plan](./ten-year-plan.mdx) or read the [action reference](./api.mdx).

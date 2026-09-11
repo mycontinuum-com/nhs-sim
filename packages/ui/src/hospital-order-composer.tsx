@@ -45,7 +45,7 @@ export function HospitalOrderComposer({ api, worldId, patient, close, kind }: { 
     ? [["Medication", selected], ["Dose", `${dose} ${unit}`], ["Route", route], ["Frequency", frequency], ["Duration", duration], ["Quantity", quantity], ["Indication", indication]]
     : [["Test", selected], ["Specimen", specimen], ["Priority", priority], ["Collection", collection === "now" ? "Now" : "Next collection round"], ["Clinical details", clinicalDetails]];
   return <section className="hospital-order-composer" aria-label={prescription ? "Prescription order entry" : "Blood test order entry"} data-world={worldId}>
-    <div className="hoc-title"><span>✚ {prescription ? "Medication orders" : "Laboratory orders"}</span><span>Millenni-ish · Order entry</span></div>
+    <div className="hoc-title"><span>✚ {prescription ? "Medication orders" : "Laboratory orders"}</span><span>Hospital EPR · Order entry</span></div>
     <div className="hoc-patient"><strong>{patient.name}</strong><span>DOB: {patient.birthDate}</span><span>Patient ID: {patient.id}</span><b>SIMULATION</b></div>
     <div className="hoc-steps"><strong>{reviewing ? "2  Review & sign" : "1  Select & complete order"}</strong><span>{prescription ? "Inpatient prescription → pharmacy review" : "Laboratory request → specimen collection → results"}</span></div>
     {reviewing ? <div className="hoc-review">

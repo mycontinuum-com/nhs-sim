@@ -4,7 +4,7 @@ These are implemented **simulation contracts**, not assertions of NHS wire compa
 
 ## Workplaces and supporting services
 
-`GET /api/catalogue` lists the published workplaces and adapters. `/control/` is the map, `/gp/` is SystemTwo, and `/hospital/` is Millenni-ish EPR. API service IDs are `gp`, `hospital`, `community`, `pharmacy`, `diagnostics`, `referrals`, and `wearables`. Dedicated supporting workplaces are `/pharmacy/`, `/community/`, and `/wearables/`. `/browser/legacy` remains an HTML integration exercise.
+`GET /api/catalogue` lists the published workplaces and adapters. `/control/` is the map, `/gp/` is GP Records, and `/hospital/` is Hospital EPR. API service IDs are `gp`, `hospital`, `community`, `pharmacy`, `diagnostics`, `referrals`, and `wearables`. Dedicated supporting workplaces are `/pharmacy/`, `/community/`, and `/wearables/`. `/browser/legacy` remains an HTML integration exercise.
 
 ## Stable team contract
 

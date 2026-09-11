@@ -59,7 +59,7 @@ assert.equal((await fetch(base + "/gp/documents/")).status, 200, "standalone doc
 assert.equal((await fetch(base + "/gp/messages/")).status, 200, "practice messaging workspace");
 for (const app of Object.values(practiceApps)) {
   assert.equal((await fetch(base + app.href)).status, 200, app.name);
-  assert.equal((await fetch(base + `/control/brands/${app.icon}.png`)).status, 200, app.name + " icon");
+  assert.equal((await fetch(base + `/control/brands/${app.icon}.svg`)).status, 200, app.name + " icon");
 }
 assert.equal((await fetch(base + "/wearables/messages/")).status, 200, "patient messages app");
 assert.equal((await call("/api/operator/cis2")).status, 401);

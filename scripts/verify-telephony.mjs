@@ -140,7 +140,7 @@ try {
   const saved = await recordResponse.json();
   assert.ok(saved.resources.some(resource => resource.patientId === waiting.patientId && resource.data?.state?.note === note));
   assert.equal((await fetch(`${origin}/gp/?patient=${encodeURIComponent(active.patientId)}`)).status, 200);
-  check("caller identity resolves to SystemTwo and completed notes persist as GP resources");
+  check("caller identity resolves to GP Records and completed notes persist as GP resources");
   if (process.argv.includes("--restart")) {
     for (const socket of sockets) socket.close();
     await promisify(execFile)("docker", ["compose", "restart", "app"]);

@@ -2,16 +2,16 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { practiceApps } from "../../contracts/src/practice-apps.ts";
 import "./neighbourhood.css";
 const assets = {
-  "surgery-disconnect": "/control/brands/surgery-disconnect.png",
+  "reception-calls": "/control/brands/reception-calls.svg",
   "neighbourhood-v2": "/control/world/neighbourhood-v2.5f600ac647e4.webp",
-  "documanana": "/control/world/documanana.d17145d30597.webp",
-  "cistoo": "/control/world/cistoo.4551d6a902b7.webp",
-  "carebnb": "/control/world/carebnb.efc30b2d85b3.webp",
-  "fax-and-furious": "/control/brands/fax-and-furious.png",
-  "proscrip-ish": "/control/world/proscrip-ish.199068fd1efa.webp",
-  "witherings": "/control/world/witherings.97004cccf5b8.webp",
-  "millenni-ish": "/control/world/millenni-ish.4a28ec7a07c2.webp",
-  "systemtwo": "/control/world/systemtwo.e90ef2c50330.webp"
+  "document-inbox": "/control/brands/document-inbox.svg",
+  "staff-identity": "/control/brands/staff-identity.svg",
+  "community-care": "/control/brands/community-care.svg",
+  "messagey": "/control/brands/messagey.svg",
+  "pharmacy": "/control/brands/pharmacy.svg",
+  "home-health": "/control/brands/home-health.svg",
+  "hospital-epr": "/control/brands/hospital-epr.svg",
+  "gp-records": "/control/brands/gp-records.svg"
 };
 const places = [
   {
@@ -27,7 +27,7 @@ const places = [
     id: "hospital",
     title: "Northbank General",
     label: "Secondary care",
-    description: "Work the ward list and coordinate discharge in Millenni-ish EPR.",
+    description: "Work the ward list and coordinate discharge in Hospital EPR.",
     href: "/hospital/",
     x: 75,
     y: 39,
@@ -63,14 +63,14 @@ const places = [
   },
 ];
 const apps = {
-  gp: { name: "SystemTwo", detail: "Patient records & appointments", href: "/gp/", icon: "systemtwo" },
+  gp: { name: "GP Records", detail: "Patient records & appointments", href: "/gp/", icon: "gp-records" },
   ...practiceApps,
-  hospital: { name: "Millenni-ish", detail: "Emergency department, wards & patient charts", href: "/hospital/", icon: "millenni-ish" },
-  community: { name: "CareBnB", detail: "Caseloads & home visits", href: "/community/", icon: "carebnb" },
-  pharmacy: { name: "NoobScript", detail: "Dispensing, stock & purchasing", href: "/pharmacy/", icon: "proscrip-ish" },
-  health: { name: "Witherings", detail: "Your health & connected devices", href: "/wearables/", icon: "witherings" },
-  messages: { name: "Messages", detail: "Conversations with your practice", href: "/wearables/messages/", icon: "fax-and-furious" },
-  identity: { name: "CIS-too", detail: "Staff identity & smartcard sign-in", href: "/cis2/", icon: "cistoo" },
+  hospital: { name: "Hospital EPR", detail: "Emergency department, wards & patient charts", href: "/hospital/", icon: "hospital-epr" },
+  community: { name: "Community Care", detail: "Caseloads & home visits", href: "/community/", icon: "community-care" },
+  pharmacy: { name: "Pharmacy", detail: "Dispensing, stock & purchasing", href: "/pharmacy/", icon: "pharmacy" },
+  health: { name: "Home Health", detail: "Your health & connected devices", href: "/wearables/", icon: "home-health" },
+  messages: { name: "Messages", detail: "Conversations with your practice", href: "/wearables/messages/", icon: "messagey" },
+  identity: { name: "Staff Identity", detail: "Staff identity & smartcard sign-in", href: "/cis2/", icon: "staff-identity" },
 } satisfies Record<string, { name: string; detail: string; href: string; icon: keyof typeof assets }>;
 const installed: Record<string, (keyof typeof apps)[]> = {
   practice: ["gp", "documents", "messaging", "telephony", "identity"],

@@ -79,7 +79,7 @@ const adapterDefinitions = [
   },
   {
     id: "immunisations",
-    name: "Jab-a-Dabba-Doo",
+    name: "Immunisation Register",
     site: "population",
     resource: "Immunization",
     kind: "vaccination",
@@ -87,7 +87,7 @@ const adapterDefinitions = [
   },
   {
     id: "screening",
-    name: "Screen Time",
+    name: "Screening Register",
     site: "population",
     resource: "ServiceRequest",
     kind: "screening",
@@ -119,14 +119,14 @@ const adapterDefinitions = [
   },
   {
     id: "nhs-login",
-    name: "NHS-ish Login",
+    name: "Patient Login Simulator",
     site: "nhsapp",
     resource: "Person",
-    description: "Patient-facing identity fixture; separate from CIS-too",
+    description: "Patient-facing identity fixture; separate from Staff Identity",
   },
   {
     id: "nrl",
-    name: "National Record Lo-Cater",
+    name: "Record Locator",
     site: "nhsapp",
     resource: "DocumentReference",
     kind: "document",
@@ -134,14 +134,14 @@ const adapterDefinitions = [
   },
   {
     id: "personal-demographics",
-    name: "Who Do You Think You Are?",
+    name: "Patient Demographics",
     site: "nhsapp",
     resource: "Patient",
     description: "Patient-facing demographic projection",
   },
   {
     id: "111",
-    name: "Pathways-ish API",
+    name: "Urgent Care",
     site: "urgent",
     resource: "ServiceRequest",
     kind: "disposition",
@@ -149,7 +149,7 @@ const adapterDefinitions = [
   },
   {
     id: "uec-booking",
-    name: "Book Me Maybe",
+    name: "Urgent Care Booking",
     site: "urgent",
     resource: "Appointment",
     kind: "appointment",
@@ -157,7 +157,7 @@ const adapterDefinitions = [
   },
   {
     id: "mental-health",
-    name: "MHSDS-ish",
+    name: "Mental Health Care Plans",
     site: "mental",
     resource: "CarePlan",
     kind: "mental-health-plan",
@@ -165,7 +165,7 @@ const adapterDefinitions = [
   },
   {
     id: "maternity",
-    name: "Maternity Matters",
+    name: "Maternity Records",
     site: "maternity",
     resource: "EpisodeOfCare",
     kind: "maternity-episode",
@@ -173,7 +173,7 @@ const adapterDefinitions = [
   },
   {
     id: "dental",
-    name: "Open Wide API",
+    name: "Dental Care",
     site: "dental",
     resource: "ServiceRequest",
     kind: "dental-recall",
@@ -181,7 +181,7 @@ const adapterDefinitions = [
   },
   {
     id: "social-care",
-    name: "Care Act-ually",
+    name: "Social Care",
     site: "social",
     resource: "CarePlan",
     kind: "care-package",
@@ -189,7 +189,7 @@ const adapterDefinitions = [
   },
   {
     id: "genomics",
-    name: "Genome Sweet Genome",
+    name: "Genomic Reports",
     site: "genomics",
     resource: "DiagnosticReport",
     kind: "genomic-test",
@@ -197,7 +197,7 @@ const adapterDefinitions = [
   },
   {
     id: "beds",
-    name: "Bedrock Flow",
+    name: "Bed Management",
     site: "beds",
     resource: "Location",
     kind: "bed",
@@ -205,7 +205,7 @@ const adapterDefinitions = [
   },
   {
     id: "theatres",
-    name: "All the Ward's a Stage",
+    name: "Theatre Scheduling",
     site: "theatre",
     resource: "Appointment",
     kind: "theatre-slot",
@@ -213,7 +213,7 @@ const adapterDefinitions = [
   },
   {
     id: "workforce",
-    name: "ES-Arrr Workforce",
+    name: "Workforce",
     site: "hr",
     resource: "PractitionerRole",
     kind: "staff",
@@ -221,7 +221,7 @@ const adapterDefinitions = [
   },
   {
     id: "rostering",
-    name: "Allocate-ish Roster",
+    name: "Staff Roster",
     site: "roster",
     resource: "Schedule",
     kind: "staff",
@@ -229,7 +229,7 @@ const adapterDefinitions = [
   },
   {
     id: "ambulance",
-    name: "CAD-astrophe Feed",
+    name: "Ambulance Handover",
     site: "ambulance",
     resource: "Encounter",
     kind: "handover",
@@ -237,7 +237,7 @@ const adapterDefinitions = [
   },
   {
     id: "provider-metrics",
-    name: "League of Extraordinary Providers",
+    name: "Provider Metrics",
     site: "icb",
     resource: "MeasureReport",
     kind: "provider-metric",
@@ -245,7 +245,7 @@ const adapterDefinitions = [
   },
   {
     id: "research",
-    name: "Trial & Error Finder",
+    name: "Research Cohorts",
     site: "research",
     resource: "ResearchSubject",
     kind: "trial-candidate",
