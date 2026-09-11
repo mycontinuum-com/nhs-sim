@@ -63,18 +63,19 @@ function send(res: ServerResponse, status: number, value: unknown, type = "appli
   });
   res.end(type === "application/json" || type === "application/fhir+json" ? JSON.stringify(value) : String(value));
 }
-async function body(req: IncomingMessage) {
-  let text = "";
+async function body(req: IncomingMessage, maxBytes = 65536) {
+  let text = "", bytes = 0;
   for await (const part of req) {
+    bytes += Buffer.isBuffer(part) ? part.length : Buffer.byteLength(String(part));
+    if (bytes > maxBytes) throw new SimError("Body too large", 413);
     text += part;
-    if (text.length > 65536) throw new SimError("Body too large", 413);
   }
   return text;
 }
 const requestReferences = new WeakMap<IncomingMessage, string[]>();
-async function json(req: IncomingMessage) {
+async function json(req: IncomingMessage, maxBytes = 65536) {
   try {
-    const value = JSON.parse((await body(req)) || "{}");
+    const value = JSON.parse((await body(req,maxBytes)) || "{}");
     if (value && typeof value === "object") requestReferences.set(req, [value.patientId,value.resourceId].filter((id): id is string => typeof id === "string"));
     return value;
   } catch (e) {
@@ -99,7 +100,8 @@ const server = createServer(async (req, res) => {
     const key = store.authenticate(bearer || sessionKey);
     if (key && (path.startsWith("/api/") || path.startsWith("/browser/"))) res.once("finish", () => {
       const references = new Set([...path.split("/"), url.searchParams.get("patientId"), url.searchParams.get("patient"), url.searchParams.get("q"), ...(requestReferences.get(req) ?? [])]);
-      const current = store.engine.require(key.world);
+      const current = store.engine.state.worlds[key.world];
+      if (!current) return;
       for (const reference of requestReferences.get(req) ?? []) {
         const resource = current.resources.find(item => item.id === reference);
         if (resource?.patientId) references.add(resource.patientId);
@@ -165,6 +167,22 @@ const server = createServer(async (req, res) => {
     if (path === "/api/control/teams" && method === "GET") {
       operator();
       return send(res,200,await operatorTeams(store));
+    }
+    if (path === "/api/control/teams/delete" && method === "POST") {
+      operator();
+      const input = z.object({teams:z.array(z.object({world:z.string(),confirmTeamName:z.string()})).min(1).max(5000)}).parse(await json(req,1048576));
+      return send(res,200,await store.deleteTeams(input.teams));
+    }
+    if (path === "/api/control/incidents/all" && method === "POST") {
+      operator();
+      const input = z.object({id:z.enum(scenarios.map(s=>s.id) as [string,...string[]]),enabled:z.boolean(),expectedWorlds:z.array(z.string()).max(5000)}).parse(await json(req,1048576));
+      return send(res,200,await store.allTeamIncident(input.id,input.enabled,input.expectedWorlds));
+    }
+    const deleteTeamPath = path.match(/^\/api\/control\/teams\/([^/]+)$/);
+    if (deleteTeamPath && method === "DELETE") {
+      operator();
+      const input = z.object({confirmTeamName:z.string()}).parse(await json(req));
+      return send(res,200,await store.deleteTeam(decodeURIComponent(deleteTeamPath[1]!),input.confirmTeamName));
     }
     const operatorTeam = path.match(/^\/api\/control\/teams\/([^/]+)\/(activity|session)$/);
     if (operatorTeam) {

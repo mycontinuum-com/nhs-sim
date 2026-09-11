@@ -1,5 +1,5 @@
 import { initializeOperatorAudit } from './operator.ts';
-import type { OperatorSession } from '../../../packages/contracts/src/operator.ts';
+import type { OperatorAllTeamIncident, OperatorBulkDeletion, OperatorDeletion, OperatorSession } from '../../../packages/contracts/src/operator.ts';
 import { teamNameSchema, normalizeTeamName } from "../../../packages/contracts/src/team.ts";
 import { seedPatientBloodResults } from "../../../packages/engine/src/blood-results.ts";
 import { upgradeMessagingWorld } from "../../../packages/engine/src/messaging-seed.ts";
@@ -207,6 +207,61 @@ export class Store {
       await this.pool.query("INSERT INTO team_keys(hash,team,world,scopes,recoverable_key) VALUES($1,$2,$3,$4,$5)",[key.hash,key.team,world,JSON.stringify(key.scopes),raw]);
       this.keys.push(key);
       return {apiKey:raw,team:key.team,teamName:normalizeTeamName(key.team),world,scopes:key.scopes,created:false};
+    });
+  }
+  async deleteTeam(world: string, confirmTeamName: string): Promise<OperatorDeletion> {
+    await this.deleteTeams([{world,confirmTeamName}]);
+    return {deleted:true,world,teamName:confirmTeamName};
+  }
+  deleteTeams(input: {world:string;confirmTeamName:string}[]): Promise<OperatorBulkDeletion> {
+    return this.enqueue(async () => {
+      if (!input.length || input.length > 5000 || new Set(input.map(team=>team.world)).size !== input.length) throw new SimError("Choose between 1 and 5,000 distinct teams",400);
+      const byWorld = new Map<string, TeamKey[]>();
+      for (const key of this.keys) byWorld.set(key.world,[...(byWorld.get(key.world) ?? []),key]);
+      const teams = input.map(({world,confirmTeamName}) => {
+        const matches = byWorld.get(world) ?? [];
+        const selected = matches.find(key => key.recoverable_key) ?? matches[0];
+        if (world === "default" || !selected || !this.engine.state.worlds[world]) throw new SimError("Unknown team world", 404);
+        const teamName = normalizeTeamName(selected.team);
+        if (confirmTeamName !== teamName) throw new SimError("The selected team has changed. Refresh the teams and review the selection again.",409);
+        return {world,teamName};
+      });
+      const worlds = teams.map(team=>team.world), selectedWorlds = new Set(worlds);
+      const before = this.engine.state;
+      const after = {
+        worlds: Object.fromEntries(Object.entries(before.worlds).filter(([id]) => !selectedWorlds.has(id))),
+        events: Object.fromEntries(Object.entries(before.events).filter(([id]) => !selectedWorlds.has(id))),
+        receipts: Object.fromEntries(Object.entries(before.receipts).filter(([id]) => !selectedWorlds.has(id.split(":")[0] ?? ""))),
+      };
+      const client = await this.pool.connect();
+      try {
+        await client.query("BEGIN");
+        const commit = await this.persistence.write(client, before, after, worlds);
+        await client.query("DELETE FROM team_keys WHERE world=ANY($1::text[])", [worlds]);
+        await client.query("DELETE FROM team_api_requests WHERE world=ANY($1::text[])", [worlds]);
+        await client.query("COMMIT");
+        commit();
+        this.engine.state = after;
+        this.keys = this.keys.filter(key => !selectedWorlds.has(key.world));
+        return {deleted:true,teams};
+      } catch (error) {
+        await client.query("ROLLBACK");
+        this.persistence.discardAttachments();
+        throw error;
+      } finally {
+        client.release();
+      }
+    });
+  }
+  allTeamIncident(id: string, enabled: boolean, expectedWorlds: string[]): Promise<OperatorAllTeamIncident> {
+    return this.enqueue(async () => {
+      const worlds = [...new Set(this.keys.map(key=>key.world))].filter(world=>world !== "default").sort();
+      const current = new Set(worlds);
+      if (expectedWorlds.length !== worlds.length || new Set(expectedWorlds).size !== worlds.length || expectedWorlds.some(world=>!current.has(world))) throw new SimError("The team list has changed. Refresh and review all teams before applying this disruption.",409);
+      return this.write(() => {
+        for (const world of worlds) if (Boolean(this.engine.require(world).faults[id]) !== enabled) this.engine.fault(world,id,enabled);
+        return {id,enabled,affectedTeams:worlds.length,worlds};
+      },worlds);
     });
   }
   authenticate(raw: string) {

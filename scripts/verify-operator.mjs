@@ -4,9 +4,9 @@ import { setTimeout } from "node:timers/promises";
 const origin = process.env.TEST_ORIGIN ?? "http://localhost:8080";
 const operatorToken = process.env.OPERATOR_TOKEN;
 assert.ok(operatorToken, "Set OPERATOR_TOKEN for this deployment");
-async function call(path, credential, data) {
+async function call(path, credential, data, method = data === undefined ? "GET" : "POST") {
   const response = await fetch(origin + path, {
-    method: data === undefined ? "GET" : "POST",
+    method,
     headers: { "Content-Type": "application/json", ...(credential ? { Authorization: "Bearer " + credential } : {}) },
     ...(data === undefined ? {} : { body: JSON.stringify(data) }),
   });
@@ -55,4 +55,20 @@ assert.equal((await call("/api/team", session.data.apiKey)).data.world, team.dat
 assert.equal((await call("/api/sites/hospital/view", session.data.apiKey)).status, 403);
 assert.equal((await call("/api/operator/cis2", operatorToken)).status, 200);
 assert.equal((await call("/api/operator/cis2", key)).status, 401);
-console.log(JSON.stringify({ ok: true, team: team.data.team, world: team.data.world, checks: ["team directory", "request log including failures", "affected patient and attribution", "credential redaction", "exploration preserves scopes", "CIS2 operator access"] }));
+const deletePath = "/api/control/teams/" + encodeURIComponent(team.data.world);
+const confirmation = { confirmTeamName: team.data.teamName };
+assert.equal((await call(deletePath, key, confirmation, "DELETE")).status, 403);
+assert.equal((await call(deletePath, operatorToken, { confirmTeamName: "wrong-team" }, "DELETE")).status, 409);
+assert.equal((await call("/api/team", key)).status, 200, "incorrect confirmation preserves access");
+assert.equal((await call(deletePath, operatorToken, confirmation, "DELETE")).status, 200);
+assert.equal((await call("/api/team", key)).status, 401, "deleted team's key is revoked");
+assert.equal((await call(activityPath, operatorToken)).status, 404);
+assert.ok(!(await call("/api/control/teams", operatorToken)).data.teams.some(entry => entry.world === team.data.world));
+const bulkTeams = await Promise.all(["one", "two"].map(suffix => call("/api/keys", undefined, { teamName: name + suffix, site: "gp" })));
+for (const entry of bulkTeams) assert.equal(entry.status, 201);
+const targets = bulkTeams.map(entry => ({ world: entry.data.world, confirmTeamName: entry.data.teamName }));
+assert.equal((await call("/api/control/teams/delete", operatorToken, { teams: [targets[0], { ...targets[1], confirmTeamName: "wrong-team" }] })).status, 409);
+for (const entry of bulkTeams) assert.equal((await call("/api/team", entry.data.apiKey)).status, 200, "failed bulk confirmation preserves all teams");
+assert.equal((await call("/api/control/teams/delete", operatorToken, { teams: targets })).status, 200);
+for (const entry of bulkTeams) assert.equal((await call("/api/team", entry.data.apiKey)).status, 401);
+console.log(JSON.stringify({ ok: true, team: team.data.team, world: team.data.world, checks: ["team directory", "request log including failures", "affected patient and attribution", "credential redaction", "exploration preserves scopes", "CIS2 operator access", "confirmed deletion and key revocation", "atomic bulk deletion"] }));

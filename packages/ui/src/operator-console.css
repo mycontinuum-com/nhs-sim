@@ -60,7 +60,7 @@
   max-height: 70svh;
   overflow: auto;
 }
-.operator-team-list > button {
+.operator-team-row > button {
   display: flex;
   flex-direction: column;
   text-align: left;
@@ -71,7 +71,7 @@
   margin: 8px 0;
   padding: 14px;
 }
-.operator-team-list > button.selected {
+.operator-team-row > button.selected {
   border-color: #236b7a;
   background: #e3f1f3;
   box-shadow: inset 3px 0 #236b7a;
@@ -271,4 +271,81 @@
   .immersive-app .immersive-ehr:not(.systemtwo) {
     height: calc(100dvh - var(--workspace-status-height) - var(--operator-banner-height, 0px));
   }
+}
+
+.operator-delete {
+  padding: 18px;
+  margin-top: 20px;
+  background: #fff4ef;
+  border: 1px solid #c89282;
+}
+.operator-delete h4 {
+  margin: 0;
+  color: #852a1d;
+}
+.operator-delete code {
+  overflow-wrap: anywhere;
+}
+.operator-delete form {
+  margin-bottom: 0;
+}
+.operator-delete .operator-delete-confirm {
+  background: #962e20;
+  border-color: #962e20;
+  color: white;
+}
+.operator-delete .operator-delete-confirm:disabled {
+  opacity: 0.45;
+}
+
+.operator-team-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 5px;
+}
+.operator-team-row > input[type="checkbox"] {
+  margin-top: 22px;
+}
+.operator-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.operator-bulk-actions button {
+  padding: 6px 8px;
+  font-size: 11px;
+}
+.operator-delete-targets {
+  max-height: 180px;
+  overflow: auto;
+  padding-left: 22px;
+}
+.operator-delete-targets li {
+  margin: 8px 0;
+}
+.operator-delete-targets small {
+  overflow-wrap: anywhere;
+}
+.operator-all-incidents {
+  margin-top: 14px;
+  border: 1px solid #c3d1d7;
+  background: white;
+  padding: 12px;
+}
+.operator-all-incidents > div {
+  padding: 6px 8px;
+}
+.operator-all-incidents select {
+  font-size: 13px;
+  max-width: 100%;
+}
+.operator-incident-confirm {
+  margin-top: 15px;
+  padding: 14px;
+  border: 1px solid #ccb367;
+  background: #fff8df;
+}
+.operator-incident-confirm h4 {
+  margin: 0;
 }

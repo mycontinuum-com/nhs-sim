@@ -34,11 +34,21 @@ Choose **Explore as this team** to open the team's existing world using its part
 
 Operator access is remembered in this browser tab for navigation to CIS2 and the clinical apps. Disconnect operator access when finished. Operator credentials are separate from the participant key saved in localStorage.
 
+## Delete an unused team
+
+Select a team and choose **Delete team**, or use the directory checkboxes to select several teams. **Select all matching** selects the teams in the current search. Review the selected names and world IDs, then confirm permanent deletion once. You do not need to type team names. Cancel leaves every team unchanged.
+
+Deletion revokes all keys for that world and removes its records, events, pending work and API request history. It frees a team slot. Other teams and shared synthetic population baselines remain intact. Anyone entering the deleted name later creates a new world; they cannot recover the old records that way.
+
+Use the activity history to decide which teams to remove. **No requests yet** can mean the team predates request logging, so it is not proof that the team is unused. Teams are never deleted automatically.
+
 ## Introduce a failure
 
 In Organiser controls, select the team before changing incidents, agents or simulation time. The selected team's name identifies which world each control affects. Leave deterministic agents enabled for the initial run, then introduce one incident for the team's second demonstration.
 
 World agents are scripted simulation workers, not participants' AI models. They process work as simulation time advances. Turning off an incident removes the fault condition but does not undo requests or arrivals it already created.
+
+Use **All-team incidents** to introduce the same disruption across every current team, or restore that service across all teams. Choose the incident and review the number of teams before confirming. The default seed world is excluded, and teams created later do not inherit the disruption. If the team list changes before you confirm, refresh and review the new count before trying again.
 
 Operator API endpoints accept `?world=...`. Team clock requests always affect the key's own world.
 

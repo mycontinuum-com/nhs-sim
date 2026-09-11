@@ -18,7 +18,7 @@ export async function initializeOperatorAudit(client: pg.PoolClient) {
 }
 const requestRows = z.array(z.object({ id: z.string(), time: z.string(), team: z.string(), world: z.string(), method: z.string(), path: z.string(), status: z.number(), durationMs: z.number(), patientIds: z.array(z.string()) }));
 export async function recordTeamRequest(store: Store, entry: Omit<OperatorRequest, 'id' | 'time'>) {
-  await store.pool.query('INSERT INTO team_api_requests(team,world,method,path,status,duration_ms,patient_ids) VALUES($1,$2,$3,$4,$5,$6,$7)', [entry.team,entry.world,entry.method,entry.path,entry.status,entry.durationMs,JSON.stringify(entry.patientIds)]);
+  await store.pool.query('WITH active_world AS (SELECT id FROM simulation_worlds WHERE id=$2 FOR KEY SHARE) INSERT INTO team_api_requests(team,world,method,path,status,duration_ms,patient_ids) SELECT $1,id,$3,$4,$5,$6,$7 FROM active_world', [entry.team,entry.world,entry.method,entry.path,entry.status,entry.durationMs,JSON.stringify(entry.patientIds)]);
 }
 export async function pruneTeamRequests(store: Store) {
   await store.pool.query(`DELETE FROM team_api_requests WHERE time < now() - interval '7 days' OR id IN (SELECT id FROM (SELECT id,row_number() OVER (PARTITION BY world ORDER BY time DESC,id DESC) AS position FROM team_api_requests) ranked WHERE position > 2000)`);

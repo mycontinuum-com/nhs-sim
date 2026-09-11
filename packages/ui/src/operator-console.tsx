@@ -106,6 +106,17 @@ export function OperatorConsole({ api }: { api: Api }) {
   const [world, setWorld] = useState(() => sessionStorage.getItem("sim-operator-world") ?? "");
   const [tab, setTab] = useState<"requests" | "patients" | "changes" | "controls">("requests");
   const [message, setMessage] = useState("");
+  const [deletion, setDeletion] = useState<{ world: string; teamName: string }[] | null>(null);
+  const [checked, setChecked] = useState<string[]>([]);
+  const [allIncidentsOpen, setAllIncidentsOpen] = useState(false);
+  const [incidentId, setIncidentId] = useState<string>(scenarios[0].id);
+  const [incidentEnabled, setIncidentEnabled] = useState(true);
+  const [incidentConfirmation, setIncidentConfirmation] = useState<{
+    id: string;
+    title: string;
+    enabled: boolean;
+    worlds: string[];
+  } | null>(null);
   const teams = useQuery({
     queryKey: ["operator-teams", token],
     enabled: !!token,
@@ -113,6 +124,14 @@ export function OperatorConsole({ api }: { api: Api }) {
     refetchInterval: 10000,
   });
   const selected = teams.data?.teams.find((team) => team.world === world);
+  const checkedWorlds = new Set(checked);
+  const teamNameCounts = new Map<string, number>();
+  for (const team of teams.data?.teams ?? [])
+    teamNameCounts.set(team.teamName, (teamNameCounts.get(team.teamName) ?? 0) + 1);
+  const matchingTeams =
+    teams.data?.teams.filter((team) =>
+      team.teamName.toLowerCase().includes(search.toLowerCase().replace(/\s/g, "")),
+    ) ?? [];
   const activity = useQuery({
     queryKey: ["operator-activity", token, world],
     enabled: !!token && !!selected,
@@ -173,6 +192,75 @@ export function OperatorConsole({ api }: { api: Api }) {
     },
     onError: () => setMessage(""),
   });
+  const remove = useMutation({
+    mutationFn: async (targets: { world: string; teamName: string }[]) => {
+      if (localStorage.getItem("sim-operator-viewing"))
+        throw new Error("Return to organiser before deleting teams.");
+      return api<{ deleted: true; teams: { world: string; teamName: string }[] }>(
+        "/api/control/teams/delete",
+        {
+          teams: targets.map((target) => ({
+            world: target.world,
+            confirmTeamName: target.teamName,
+          })),
+        },
+        token,
+      );
+    },
+    onSuccess: (result) => {
+      const removed = new Set(result.teams.map((team) => team.world));
+      setDeletion(null);
+      setChecked((values) => values.filter((value) => !removed.has(value)));
+      if (removed.has(world)) {
+        setWorld("");
+        sessionStorage.removeItem("sim-operator-world");
+      }
+      setMessage(
+        `Deleted ${result.teams.length} team${result.teams.length === 1 ? "" : "s"} and their worlds. Their API keys no longer work.`,
+      );
+      if (removed.has(localStorage.getItem("sim-world") ?? "")) {
+        for (const field of sessionFields) localStorage.removeItem(field);
+        sessionStorage.removeItem("sim-tour-world");
+        window.dispatchEvent(
+          new StorageEvent("storage", {
+            key: "sim-key",
+            newValue: null,
+            storageArea: localStorage,
+          }),
+        );
+      }
+      void teams.refetch();
+    },
+  });
+  const allIncident = useMutation({
+    mutationFn: (target: { id: string; enabled: boolean; worlds: string[] }) =>
+      api<{ id: string; enabled: boolean; affectedTeams: number; worlds: string[] }>(
+        "/api/control/incidents/all",
+        { id: target.id, enabled: target.enabled, expectedWorlds: target.worlds },
+        token,
+      ),
+    onSuccess: (result) => {
+      setIncidentConfirmation(null);
+      setMessage(
+        `${result.enabled ? "Introduced disruption" : "Restored service"} for ${result.affectedTeams} teams.`,
+      );
+      void teams.refetch();
+      if (selected) {
+        void activity.refetch();
+        void state.refetch();
+      }
+    },
+  });
+  function reviewDeletion() {
+    const targets = teams.data?.teams.filter((team) => checkedWorlds.has(team.world)) ?? [];
+    if (targets.length !== checked.length) {
+      setMessage("Some selected teams are no longer listed. Refresh and update your selection.");
+      return;
+    }
+    setDeletion(targets.map(({ world, teamName }) => ({ world, teamName })));
+    remove.reset();
+    setMessage("");
+  }
   const refresh = () => {
     void teams.refetch();
     if (selected) {
@@ -241,6 +329,153 @@ export function OperatorConsole({ api }: { api: Api }) {
           <button onClick={disconnect}>Disconnect organiser</button>
         </div>
       </header>
+      {message && <p role="status">{message}</p>}
+      <section className="operator-all-incidents">
+        <button
+          aria-expanded={allIncidentsOpen}
+          onClick={() => setAllIncidentsOpen(!allIncidentsOpen)}
+        >
+          All-team incidents
+        </button>
+        {allIncidentsOpen && (
+          <div>
+            <h3>Disrupt or restore services across all teams</h3>
+            <p>
+              Applies to all current teams, regardless of the team filter or checked rows. Teams
+              created later are unaffected.
+            </p>
+            <div className="operator-actions">
+              <label>
+                Incident
+                <select
+                  value={incidentId}
+                  disabled={allIncident.isPending}
+                  onChange={(event) => {
+                    setIncidentId(event.target.value);
+                    setIncidentConfirmation(null);
+                  }}
+                >
+                  {scenarios.map((scenario) => (
+                    <option key={scenario.id} value={scenario.id}>
+                      {scenario.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Action
+                <select
+                  value={incidentEnabled ? "on" : "off"}
+                  disabled={allIncident.isPending}
+                  onChange={(event) => {
+                    setIncidentEnabled(event.target.value === "on");
+                    setIncidentConfirmation(null);
+                  }}
+                >
+                  <option value="on">Introduce disruption</option>
+                  <option value="off">Restore service</option>
+                </select>
+              </label>
+              <button
+                disabled={!teams.data?.teams.length || allIncident.isPending || remove.isPending}
+                onClick={() => {
+                  setIncidentConfirmation({
+                    id: incidentId,
+                    title:
+                      scenarios.find((scenario) => scenario.id === incidentId)?.title ?? incidentId,
+                    enabled: incidentEnabled,
+                    worlds: teams.data?.teams.map((team) => team.world) ?? [],
+                  });
+                  allIncident.reset();
+                }}
+              >
+                Review all-team change
+              </button>
+            </div>
+            <p>{scenarios.find((scenario) => scenario.id === incidentId)?.description}</p>
+            {incidentConfirmation && (
+              <div className="operator-incident-confirm">
+                <h4>
+                  {incidentConfirmation.enabled ? "Introduce" : "Restore"}:{" "}
+                  {incidentConfirmation.title}
+                </h4>
+                <p>
+                  This affects{" "}
+                  <strong>all {incidentConfirmation.worlds.length} current teams</strong>. Restoring
+                  service does not undo arrivals, records or other work already generated.
+                </p>
+                <div className="operator-actions">
+                  <button
+                    disabled={allIncident.isPending}
+                    onClick={() => setIncidentConfirmation(null)}
+                  >
+                    Cancel incident change
+                  </button>
+                  <button
+                    className="primary"
+                    disabled={allIncident.isPending || remove.isPending}
+                    onClick={() => allIncident.mutate(incidentConfirmation)}
+                  >
+                    {allIncident.isPending
+                      ? "Applying to all teams…"
+                      : `Apply to ${incidentConfirmation.worlds.length} teams`}
+                  </button>
+                </div>
+                {allIncident.error && (
+                  <p role="alert">
+                    {allIncident.error.message} Refresh the team list and review again if it has
+                    changed.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+      {deletion && (
+        <section className="operator-delete" aria-label="Confirm team deletion">
+          <h4>
+            Delete {deletion.length} team{deletion.length === 1 ? "" : "s"} permanently?
+          </h4>
+          <p>
+            This deletes the listed teams' API keys, worlds, patient record changes, simulation
+            settings and request history. This cannot be undone.
+          </p>
+          <ul className="operator-delete-targets">
+            {deletion.map((target) => (
+              <li key={target.world}>
+                <strong>{target.teamName}</strong> <small>World {target.world}</small>
+              </li>
+            ))}
+          </ul>
+          <div className="operator-actions">
+            <button
+              disabled={remove.isPending}
+              onClick={() => {
+                setDeletion(null);
+                remove.reset();
+              }}
+            >
+              Cancel deletion
+            </button>
+            <button
+              className="operator-delete-confirm"
+              disabled={remove.isPending || allIncident.isPending}
+              onClick={() => remove.mutate(deletion)}
+            >
+              {remove.isPending
+                ? "Deleting teams…"
+                : `Delete ${deletion.length} team${deletion.length === 1 ? "" : "s"} permanently`}
+            </button>
+          </div>
+          {remove.error && (
+            <p role="alert">
+              {remove.error.message} Refresh the team list and review your selection if a team has
+              changed.
+            </p>
+          )}
+        </section>
+      )}
       <div className="operator-layout">
         <aside className="operator-team-list">
           <label>
@@ -252,6 +487,39 @@ export function OperatorConsole({ api }: { api: Api }) {
             />
           </label>
           <p>{teams.data?.teams.length ?? 0} teams · updates automatically</p>
+          <div className="operator-bulk-actions">
+            <button
+              disabled={!matchingTeams.length || remove.isPending}
+              onClick={() => {
+                setDeletion(null);
+                setChecked((values) => [
+                  ...new Set([...values, ...matchingTeams.map((team) => team.world)]),
+                ]);
+              }}
+            >
+              Select all {matchingTeams.length} matching
+            </button>
+            <button
+              disabled={!checked.length || remove.isPending}
+              onClick={() => {
+                setChecked([]);
+                setDeletion(null);
+              }}
+            >
+              Clear selection
+            </button>
+            <button
+              disabled={
+                !checked.length ||
+                remove.isPending ||
+                allIncident.isPending ||
+                !!localStorage.getItem("sim-operator-viewing")
+              }
+              onClick={reviewDeletion}
+            >
+              Delete {checked.length} selected
+            </button>
+          </div>
           {teams.isPending && <p role="status">Loading teams…</p>}
           {teams.data?.teams.length === 0 && <p>No teams have joined yet.</p>}
           {teams.data &&
@@ -259,16 +527,29 @@ export function OperatorConsole({ api }: { api: Api }) {
             !teams.data.teams.some((team) =>
               team.teamName.toLowerCase().includes(search.toLowerCase().replace(/\s/g, "")),
             ) && <p>No matching teams.</p>}
-          {teams.data?.teams
-            .filter((team) =>
-              team.teamName.toLowerCase().includes(search.toLowerCase().replace(/\s/g, "")),
-            )
-            .map((team) => (
+          {matchingTeams.map((team) => (
+            <div className="operator-team-row" key={team.world}>
+              <input
+                type="checkbox"
+                aria-label={`Select ${team.teamName}, world ${team.world}`}
+                checked={checkedWorlds.has(team.world)}
+                disabled={remove.isPending}
+                onChange={(event) => {
+                  setDeletion(null);
+                  setChecked((values) =>
+                    event.target.checked
+                      ? [...new Set([...values, team.world])]
+                      : values.filter((value) => value !== team.world),
+                  );
+                }}
+              />
               <button
-                key={team.world}
                 className={team.world === world ? "selected" : ""}
+                disabled={remove.isPending}
                 onClick={() => {
                   setWorld(team.world);
+                  setDeletion(null);
+                  remove.reset();
                   sessionStorage.setItem("sim-operator-world", team.world);
                   setMessage("");
                   change.reset();
@@ -276,15 +557,14 @@ export function OperatorConsole({ api }: { api: Api }) {
                 }}
               >
                 <strong>{team.teamName}</strong>
-                {teams.data &&
-                  teams.data.teams.filter((candidate) => candidate.teamName === team.teamName)
-                    .length > 1 && <small>World {team.world}</small>}
+                {(teamNameCounts.get(team.teamName) ?? 0) > 1 && <small>World {team.world}</small>}
                 <span>
                   {team.requestCount} API calls · {team.affectedPatientCount} patients affected
                 </span>
                 <small>{when(team.lastRequestAt)}</small>
               </button>
-            ))}
+            </div>
+          ))}
         </aside>
         <main className="operator-detail">
           {!selected ? (
@@ -305,13 +585,33 @@ export function OperatorConsole({ api }: { api: Api }) {
                     {selected.patientCount} patients · {selected.scopes.join(", ")}
                   </small>
                 </div>
-                <button
-                  className="primary"
-                  disabled={enter.isPending}
-                  onClick={() => enter.mutate("/control/")}
-                >
-                  {enter.isPending ? "Opening…" : "Explore as this team"}
-                </button>
+                <div className="operator-actions">
+                  <button
+                    disabled={
+                      enter.isPending ||
+                      remove.isPending ||
+                      !!localStorage.getItem("sim-operator-viewing")
+                    }
+                    title={
+                      localStorage.getItem("sim-operator-viewing")
+                        ? "Return to organiser before deleting teams"
+                        : undefined
+                    }
+                    onClick={() => {
+                      setDeletion([{ world: selected.world, teamName: selected.teamName }]);
+                      remove.reset();
+                    }}
+                  >
+                    Delete team
+                  </button>
+                  <button
+                    className="primary"
+                    disabled={enter.isPending || remove.isPending || deletion !== null}
+                    onClick={() => enter.mutate("/control/")}
+                  >
+                    {enter.isPending ? "Opening…" : "Explore as this team"}
+                  </button>
+                </div>
               </div>
               <p className="operator-context">
                 Exploring uses this team's API permissions. Any edits you make affect its world.
