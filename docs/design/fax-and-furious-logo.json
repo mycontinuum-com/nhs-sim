@@ -1,0 +1,6 @@
+{
+  "mode": "Built-in imagegen",
+  "prompt": "Use case: logo-brand. Create one square app icon for the fictional NHS hackathon messaging app Fax & Furious. A cheeky beige 1990s fax machine turned into a tiny drag racer, chunky black wheels, orange exhaust flames, a long curling sheet of paper streaming behind like a racing scarf. Three-quarter view pointing right, bold playful polished illustrated desktop icon, legible at 64px, strong silhouette, simple navy outlines, cream machine and orange accents. Genuine transparent background, centered object occupying 85% with breathing room, no surrounding tile. No words, no letters, no logos, no watermark, no medical cross, no references to other messaging brands. Humorous bureaucratic speed, not aggressive.",
+  "source": "/Users/souradip/.codex/generated_images/01a08d49-a217-7fb3-be58-b6fb4f7e4910/exec-df6d936f-4ee5-495c-9d66-907e3bca23a8.png",
+  "asset": "apps/control/public/brands/fax-and-furious.png"
+}

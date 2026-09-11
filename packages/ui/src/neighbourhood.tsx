@@ -7,7 +7,7 @@ const assets = {
   "documanana": "/control/world/documanana.d17145d30597.webp",
   "cistoo": "/control/world/cistoo.4551d6a902b7.webp",
   "carebnb": "/control/world/carebnb.efc30b2d85b3.webp",
-  "inaccurx": "/control/world/inaccurx.62cc9b00ceca.webp",
+  "fax-and-furious": "/control/brands/fax-and-furious.png",
   "proscrip-ish": "/control/world/proscrip-ish.199068fd1efa.webp",
   "witherings": "/control/world/witherings.97004cccf5b8.webp",
   "millenni-ish": "/control/world/millenni-ish.4a28ec7a07c2.webp",
@@ -69,7 +69,7 @@ const apps = {
   community: { name: "CareBnB", detail: "Caseloads & home visits", href: "/community/", icon: "carebnb" },
   pharmacy: { name: "NoobScript", detail: "Dispensing, stock & purchasing", href: "/pharmacy/", icon: "proscrip-ish" },
   health: { name: "Witherings", detail: "Your health & connected devices", href: "/wearables/", icon: "witherings" },
-  messages: { name: "Messages", detail: "Conversations with your practice", href: "/wearables/messages/", icon: "inaccurx" },
+  messages: { name: "Messages", detail: "Conversations with your practice", href: "/wearables/messages/", icon: "fax-and-furious" },
   identity: { name: "CIS-too", detail: "Staff identity & smartcard sign-in", href: "/cis2/", icon: "cistoo" },
 } satisfies Record<string, { name: string; detail: string; href: string; icon: keyof typeof assets }>;
 const installed: Record<string, (keyof typeof apps)[]> = {

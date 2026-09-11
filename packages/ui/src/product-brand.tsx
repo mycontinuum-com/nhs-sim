@@ -7,7 +7,7 @@ const brands = {
   community: { name: "CareBnB", asset: "carebnb", line: "Home visits. No cleaning fee." },
   wearables: { name: "Witherings", asset: "witherings", line: "Every step counts. Eventually." },
   documents: { name: "DocuMañana", asset: "documanana", line: "Today's letters. Tomorrow's problem." },
-  messaging: { name: "InaccuRx", asset: "inaccurx", line: "Message received. Probably." },
+  messaging: { name: "Fax & Furious", asset: "fax-and-furious", line: "Family. Forms. Follow-ups." },
   telephony: { name: "Surgery Disconnect", asset: "surgery-disconnect", line: "Please continue to hold." },
   identity: { name: "CIS-too", asset: "cistoo", line: "You again?" },
 } as const;

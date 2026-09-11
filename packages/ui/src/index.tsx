@@ -90,7 +90,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
   const isTelephony = siteId === "gp" && location.pathname.replace(/\/$/, "") === practiceApps.telephony.href.replace(/\/$/, "");
   const isOffice = isDocuments || isMessages || isTelephony;
   useEffect(() => { if (isTelephony) document.title = practiceApps.telephony.name + " | NHS-SIM"; }, [isTelephony]);
-  useEffect(() => { if (isMessages) document.title = (siteId === "gp" ? "InaccuRx" : "Messages") + " | NHS-SIM"; }, [isMessages, siteId]);
+  useEffect(() => { if (isMessages) document.title = (siteId === "gp" ? "Fax & Furious" : "Messages") + " | NHS-SIM"; }, [isMessages, siteId]);
   useEffect(() => { if (isDocuments) document.title = "DocuMañana | NHS-SIM"; }, [isDocuments]);
   const [tourStep, setTourStep] = useState<number | null>(() =>
     siteId !== "control" && localStorage.getItem("sim-key") && sessionStorage.getItem("sim-tour-world") ? 0 : null,
@@ -445,7 +445,7 @@ function WorldApp({ siteId }: { siteId: SiteId }) {
           {!key ? (
             <main className="access-gate">
               <a href="/control/">Back to neighbourhood</a>
-              <h1>{isTelephony ? practiceApps.telephony.name : isMessages ? (siteId === "gp" ? "InaccuRx" : "Messages") : isDocuments ? "DocuMañana" : sites.find((s) => s.id === siteId)?.name}</h1>
+              <h1>{isTelephony ? practiceApps.telephony.name : isMessages ? (siteId === "gp" ? "Fax & Furious" : "Messages") : isDocuments ? "DocuMañana" : sites.find((s) => s.id === siteId)?.name}</h1>
               <p>Join a team world to open this workspace.</p>
               <button
                 className="primary"

@@ -1,6 +1,6 @@
-# InaccuRx and patient Messages
+# Fax & Furious and patient Messages
 
-InaccuRx is a fictional practice messaging office. Clicking the GP building offers SystemTwo, DocuMañana and InaccuRx. It does not add another map location. Clicking the home offers Witherings and Messages; both apps retain the selected resident when moving between them.
+Fax & Furious is a fictional practice messaging office. Clicking the GP building offers SystemTwo, DocuMañana and Fax & Furious. It does not add another map location. Clicking the home offers Witherings and Messages; both apps retain the selected resident when moving between them.
 
 The practice has an inbox, completed conversations, editable templates, patient search, assignment and private internal notes. Outgoing SMS and email stay within the simulation. Delivery controls support queued, failed, retried and delivered messages. Patients see delivered messages and can reply when the practice permits it. Patient responses and delivery changes preserve the conversation history.
 
@@ -8,9 +8,8 @@ The patient projection excludes internal notes, staff assignment and undelivered
 
 ## Design choice
 
-Reuse the standalone DocuMañana route pattern rather than add a new service or a panel inside the EHR. A mint and navy inbox and conversation layout distinguishes the practice app from SystemTwo. The patient app uses an iPhone Messages-inspired layout: a separate conversation list, grey received bubbles, blue sent bubbles, a compact reply bar, and a back-to-inbox action on narrow screens. Patient selection is disclosed from the top bar. The fictional bird-and-envelope mark was generated with built-in imagegen; its prompt and saved paths are in `inaccurx-logo.json`.
+Reuse the standalone DocuMañana route pattern rather than add a new service or a panel inside the EHR. A mint and navy inbox and conversation layout distinguishes the practice app from SystemTwo. The patient app uses an iPhone Messages-inspired layout: a separate conversation list, grey received bubbles, blue sent bubbles, a compact reply bar, and a back-to-inbox action on narrow screens. Patient selection is disclosed from the top bar. The fax-machine drag racer icon was generated with built-in imagegen; its prompt and saved paths are in `fax-and-furious-logo.json`.
 
-Accurx's public [inbox guide](https://support.accurx.com/en/articles/768591-accurx-desktop-inbox-how-to-navigate-the-new-look-inbox) and [patient messaging guide](https://support.accurx.com/en/articles/768503-accurx-web-how-to-send-a-message-to-a-patient) informed the familiar conversation, template and completed-queue workflow. This implementation uses its own branding and simulation behaviour.
 
 ## Work ownership
 

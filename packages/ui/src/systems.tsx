@@ -796,7 +796,7 @@ function PracticeWorkspace(props: Props) {
     document.addEventListener("pointerdown", dismiss);
     return () => document.removeEventListener("pointerdown", dismiss);
   }, [menu]);
-  const navigate = (name: string) => { if (name === "InaccuRx") { location.assign(`/gp/messages/${props.selectedPatient ? "?patient=" + encodeURIComponent(props.selectedPatient) : ""}`); return; } if (name === "DocuMañana") { location.assign(`/gp/documents/${props.selectedPatient ? "?patient=" + encodeURIComponent(props.selectedPatient) : ""}`); return; } setTab(name); setRecordId(""); setMenu(""); };
+  const navigate = (name: string) => { if (name === "Fax & Furious") { location.assign(`/gp/messages/${props.selectedPatient ? "?patient=" + encodeURIComponent(props.selectedPatient) : ""}`); return; } if (name === "DocuMañana") { location.assign(`/gp/documents/${props.selectedPatient ? "?patient=" + encodeURIComponent(props.selectedPatient) : ""}`); return; } setTab(name); setRecordId(""); setMenu(""); };
   const findPatient = () => { setMenu(""); document.getElementById("ehr-patient-search")?.focus(); };
   const shortcuts = [
     { label: "Search", icon: "search", run: findPatient },
@@ -806,14 +806,14 @@ function PracticeWorkspace(props: Props) {
     { label: "Results", icon: "results", run: () => navigate("Results") },
     { label: "Medication", icon: "medicine", run: () => navigate("Medication") },
     { label: "Tasks", icon: "task", run: () => navigate("Tasks") },
-    { label: "InaccuRx", icon: "note", run: () => navigate("InaccuRx") },
+    { label: "Fax & Furious", icon: "note", run: () => navigate("Fax & Furious") },
     { label: "DocuMañana", icon: "note", run: () => navigate("DocuMañana") },
     { label: "Care coordination", icon: "transfer", run: () => navigate("Care coordination") },
   ] satisfies { label: string; icon: DesktopIconName; run: () => void }[];
   const recordGroups = [
     { name: "Record", sections: ["Journal", "Consultations", "Documents", "Coded history"] },
     { name: "Clinical", sections: ["Problems", "Allergies", "Medication", "Results"] },
-    { name: "Workflow", sections: ["Appointment book", "Tasks", "DocuMañana", "InaccuRx", "Care coordination"] },
+    { name: "Workflow", sections: ["Appointment book", "Tasks", "DocuMañana", "Fax & Furious", "Care coordination"] },
   ];
   return (
     <section className="system-ui immersive-ehr systemtwo">
@@ -823,7 +823,7 @@ function PracticeWorkspace(props: Props) {
           { name: "Patient", items: [{ label: "Find patient", run: findPatient }, { label: "Practice home", run: () => navigate("Home") }, { label: "Patient journal", run: () => navigate("Journal") }] },
           { name: "Appointments", items: [{ label: "Appointment book", run: () => navigate("Appointment book") }] },
           { name: "Clinical tools", items: shortcuts.filter((item) => ["Consultations", "Problems", "Medication", "Results"].includes(item.label)) },
-          { name: "Workflow", items: [{ label: "Task list", run: () => navigate("Tasks") }, { label: "Pathology / radiology inbox", run: () => navigate("Results") }, { label: "InaccuRx · Patient messaging", run: () => navigate("InaccuRx") }, { label: "DocuMañana · Document management", run: () => navigate("DocuMañana") }, { label: "Care coordination", run: () => navigate("Care coordination") }] },
+          { name: "Workflow", items: [{ label: "Task list", run: () => navigate("Tasks") }, { label: "Pathology / radiology inbox", run: () => navigate("Results") }, { label: "Fax & Furious · Patient messaging", run: () => navigate("Fax & Furious") }, { label: "DocuMañana · Document management", run: () => navigate("DocuMañana") }, { label: "Care coordination", run: () => navigate("Care coordination") }] },
         ].map((group) => <div className="practice-menu" key={group.name}>
           <button aria-expanded={menu === group.name} onClick={() => setMenu(menu === group.name ? "" : group.name)}>{group.name}</button>
           {menu === group.name && <div className="practice-menu-items">{group.items.map((item) => <button key={item.label} onClick={item.run}>{item.label}</button>)}</div>}
