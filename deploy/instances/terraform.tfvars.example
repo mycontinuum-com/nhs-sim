@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars (git-ignored). Add or remove ids and re-run `terraform apply`.
+instances = ["abc123", "team-two"]
+
+# Optional: pin every instance to one release instead of "latest pushed".
+# image = "sha256:0123...abcd"      # or a 40-character commit tag
+
+# Optional: one operator token shared by all instances (otherwise per-instance random).
+# operator_token = "replace-with-24-to-128-alphanumerics"
