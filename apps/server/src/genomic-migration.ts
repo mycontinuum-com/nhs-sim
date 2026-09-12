@@ -26,16 +26,17 @@ export async function migrateGenomicRecords(client: Pick<pg.PoolClient, "query">
     const ordinals = new Map(ordinalRows.map(row => [row.scope, row.ordinal]));
     let previousScope = "", previousId = "";
     for (;;) {
+      // Keep the patient index lookup ahead of genomic filters; new rows have no planner statistics during this transaction.
       const candidates = baseline
-        ? `SELECT p.population_id AS scope,p.id,COALESCE((SELECT (w.payload->>'now')::double precision FROM simulation_worlds w WHERE w.population_id=p.population_id ORDER BY w.id LIMIT 1),extract(epoch FROM now()) * 1000)::double precision AS now FROM population_patients p WHERE NOT EXISTS (SELECT 1 FROM population_resources r WHERE r.population_id=p.population_id AND r.patient_id=p.id AND ${isGenome("r")})`
+        ? `SELECT p.population_id AS scope,p.id,COALESCE((SELECT (w.payload->>'now')::double precision FROM simulation_worlds w WHERE w.population_id=p.population_id ORDER BY w.id LIMIT 1),extract(epoch FROM now()) * 1000)::double precision AS now FROM population_patients p WHERE NOT EXISTS (SELECT 1 FROM (SELECT * FROM population_resources WHERE population_id=p.population_id AND patient_id=p.id OFFSET 0) r WHERE ${isGenome("r")})`
         : `SELECT w.id AS scope,p.id,(w.payload->>'now')::double precision AS now FROM simulation_worlds w JOIN (
             SELECT world_id,id FROM world_patients WHERE NOT deleted
             UNION
             SELECT wr.world_id,pr.patient_id AS id FROM world_resources wr JOIN simulation_worlds sw ON sw.id=wr.world_id JOIN population_resources pr ON pr.population_id=sw.population_id AND pr.id=wr.id WHERE ${isGenome("pr")}
           ) p ON p.world_id=w.id
           WHERE NOT EXISTS (SELECT 1 FROM world_patients deleted WHERE deleted.world_id=w.id AND deleted.id=p.id AND deleted.deleted)
-          AND NOT EXISTS (SELECT 1 FROM world_resources own WHERE own.world_id=w.id AND own.patient_id=p.id AND NOT own.deleted AND ${isGenome("own")})
-          AND NOT EXISTS (SELECT 1 FROM population_resources r WHERE r.population_id=w.population_id AND r.patient_id=p.id AND ${isGenome("r")} AND NOT EXISTS (SELECT 1 FROM world_resources shadow WHERE shadow.world_id=w.id AND shadow.id=r.id))`;
+          AND NOT EXISTS (SELECT 1 FROM (SELECT * FROM world_resources WHERE world_id=w.id AND patient_id=p.id OFFSET 0) own WHERE NOT own.deleted AND ${isGenome("own")})
+          AND NOT EXISTS (SELECT 1 FROM (SELECT * FROM population_resources WHERE population_id=w.population_id AND patient_id=p.id OFFSET 0) r WHERE ${isGenome("r")} AND NOT EXISTS (SELECT 1 FROM world_resources shadow WHERE shadow.world_id=w.id AND shadow.id=r.id))`;
       const result = await client.query(`SELECT c.* FROM (${candidates}) c WHERE (c.scope,c.id)>($1,$2) ORDER BY c.scope,c.id LIMIT $3`, [previousScope, previousId, batchSize]);
       const found = z.array(rowSchema).parse(result.rows);
       if (!found.length) break;
