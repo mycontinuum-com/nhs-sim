@@ -15,7 +15,7 @@ Status: approved by the user on 10 September 2026. Provisioned and live at https
 Create a dedicated CloudFormation stack using AWS CLI, tagged `Project=nhs-sim`. Its resources are separate from production application networks and databases.
 
 - One dedicated VPC and public subnet, internet gateway and route table. No NAT gateway.
-- One on-demand x86 Amazon Linux 2023 `t3.large` instance, 2 vCPU and 8 GiB memory. Require IMDSv2. No SSH port or SSH key; administer through Systems Manager.
+- One on-demand x86 Amazon Linux 2023 instance selected through the `InstanceType` parameter. The initial `t3.large` had 2 vCPU and 8 GiB memory; the running host was resized to `m7i.xlarge`, 4 vCPU and 16 GiB, on 12 September 2026. Require IMDSv2. No SSH port or SSH key; administer through Systems Manager.
 - One Elastic IP. Allow public TCP 80/443 only. Caddy handles HTTPS and forwards to the app over the private Docker network. PostgreSQL has no published port.
 - Encrypted root EBS volume and separate retained 80 GiB gp3 data volume. PostgreSQL and TLS state survive application image replacement.
 - ECR repository with immutable commit tags and image retention rules.
@@ -39,7 +39,7 @@ AWS documents GitHub OIDC at https://aws.amazon.com/blogs/security/use-iam-roles
 
 ## Cost and event readiness
 
-AWS Pricing API on 10 September 2026 returned $0.0944/hour for Linux t3.large in London, about $68.91 for 730 hours. Plan approximately $90–120/month total at light traffic for compute, EBS, public IPv4, backups, registry and logs, excluding taxes. This is an estimate, not a fixed quote; transfer and burst CPU credits can add cost. Set a $120 monthly budget alert; an alert is not a spending cap.
+AWS Pricing API on 12 September 2026 returned $0.2331/hour for Linux `m7i.xlarge` in London, about $170.16 for 730 hours of compute. The original `t3.large` base rate was $0.0944/hour, excluding surplus CPU credits. EBS, public IPv4, backups, registry, logs, transfer and taxes add to compute charges. Budget alerts should reflect the selected capacity and are not spending caps.
 
 Before the event, measure concurrent participant/API workloads and check memory, event-loop latency and database persistence time. Current functional tests are not evidence of 100-team capacity. Increase the single host only if measurements justify it. Do not add app replicas without redesigning simulator ownership.
 

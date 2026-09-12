@@ -1,3 +1,4 @@
+import { DeathStatus } from "./death-status.tsx";
 import { ClinicalJournal, ClinicalRecordBody } from "./clinical-journal.tsx";
 import { HospitalNoteEditor } from "./hospital-note-editor.tsx";
 import { HospitalOrderComposer } from "./hospital-order-composer.tsx";
@@ -167,6 +168,7 @@ function PatientFinder(props: Props) {
               <small>
                 {patient.id} · {date(patient.birthDate)}
               </small>
+              <DeathStatus patient={patient} compact />
             </button>
           ))}
           {!props.patientMatches.length && <p>No matching patients.</p>}
@@ -198,6 +200,7 @@ function Banner({ patient, rows }: { patient: Patient | undefined; rows: Resourc
         </b>
       </div>
       <span className="ehr-synthetic">SYNTHETIC</span>
+      <DeathStatus patient={patient} />
     </div>
   );
 }
@@ -290,6 +293,7 @@ function Summary({
     <aside className="ehr-summary">
       <section>
         <h3>Patient summary</h3>
+        <DeathStatus patient={patient} />
         <dl>
           <dt>Name</dt>
           <dd>{patient?.name ?? "No patient selected"}</dd>
@@ -634,6 +638,7 @@ function HospitalWorklist({
                     <small>
                       {p.id} · {date(p.birthDate)}
                     </small>
+                    <DeathStatus patient={p} compact />
                   </td>
                   <td>{p.conditions.join(", ") || "No problems recorded"}</td>
                   <td>
@@ -765,7 +770,7 @@ function DesktopIcon({ name }: { name: DesktopIconName }) {
 }
 function PracticePatientStrip({ patient, rows }: { patient: Patient | undefined; rows: Resource[] }) {
   const allergies = patient ? patientAllergies(rows, patient.id).filter((item) => item.status === "active") : [];
-  return <div className="practice-patient-strip"><strong>{patient?.name ?? "No patient open"}</strong><span>{patient?.id ?? "Select a patient using Search"}</span>{patient && <span>Born {date(patient.birthDate)}</span>}<span className="practice-allergies">Allergies: {patient ? allergies.map((item) => item.term).join(", ") || "None recorded" : "—"}</span><small>Synthetic patient</small></div>;
+  return <div className="practice-patient-strip"><strong>{patient?.name ?? "No patient open"}</strong><span>{patient?.id ?? "Select a patient using Search"}</span>{patient && <span>Born {date(patient.birthDate)}</span>}<span className="practice-allergies">Allergies: {patient ? allergies.map((item) => item.term).join(", ") || "None recorded" : "—"}</span><small>Synthetic patient</small><DeathStatus patient={patient} /></div>;
 }
 function PracticeWorkspace(props: Props) {
   const careService = new URLSearchParams(location.search).get("care") ?? "";
@@ -849,7 +854,7 @@ function PracticeWorkspace(props: Props) {
             {tab === "Home" ? (
               <div className="practice-desktop">
                 <section className="practice-shortcuts"><h2>Riverside Practice</h2><p>Clinical workspace</p><div>{shortcuts.map((shortcut) => <button key={shortcut.label} onClick={shortcut.run}><DesktopIcon name={shortcut.icon} />{shortcut.label}</button>)}</div></section>
-                <section className="practice-recent"><h2>Open a patient record</h2><p>Search the directory or select a patient below.</p>{props.patients.slice(0, 8).map((person) => <button key={person.id} onClick={() => { props.selectPatient(person.id); navigate("Journal"); }}><b>{person.name}</b><span>{person.id} · {date(person.birthDate)}</span></button>)}</section>
+                <section className="practice-recent"><h2>Open a patient record</h2><p>Search the directory or select a patient below.</p>{props.patients.slice(0, 8).map((person) => <button key={person.id} onClick={() => { props.selectPatient(person.id); navigate("Journal"); }}><b>{person.name}</b><span>{person.id} · {date(person.birthDate)}</span><DeathStatus patient={person} compact /></button>)}</section>
               </div>
             ) : tab === "Appointment book" ? (
               <AppointmentBook

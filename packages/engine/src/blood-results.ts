@@ -1,3 +1,4 @@
+import { current, isDraft } from "immer";
 import type { World } from "../../contracts/src/index.ts";
 import { bloodPanels, type BloodAnalyte, type BloodResult } from "../../contracts/src/blood-results.ts";
 
@@ -80,15 +81,18 @@ export function upgradeBloodResultWorld(world: World): World {
   return upgraded;
 }
 
-export function seedPatientBloodResults(world: World, patientId: string): void {
-  if (world.counters[`bloodPatient:${patientId}`] === 1) return;
-  const patient = world.patients.find(item => item.id === patientId);
-  if (!patient) return;
-  const sample: World = { ...world, patients: [patient], resources: [], counters: {} };
+export function seedBloodResultsForPatients(world: World, patientIds: Iterable<string>): void {
+  const requested = new Set([...patientIds].filter(id => world.counters[`bloodPatient:${id}`] !== 1));
+  if (!requested.size) return;
+  const patients = isDraft(world.patients) ? current(world.patients) : world.patients;
+  const selected = patients.filter(patient => requested.has(patient.id));
+  if (!selected.length) return;
+  const sample: World = { ...world, patients: selected, resources: [], counters: {} };
   seedBloodResults(sample);
-  const ids = new Set(world.resources.filter(resource => resource.patientId === patientId).map(resource => resource.id));
+  const resources = isDraft(world.resources) ? current(world.resources) : world.resources;
+  const ids = new Set(resources.filter(resource => resource.patientId && requested.has(resource.patientId)).map(resource => resource.id));
   world.resources.push(...sample.resources.filter(resource => !ids.has(resource.id)));
-  world.counters[`bloodPatient:${patientId}`] = 1;
+  for (const patient of selected) world.counters[`bloodPatient:${patient.id}`] = 1;
 }
 
 export function orderedBloodResult(panelName: string, patientId: string, collectedAt: number): BloodResult | undefined {

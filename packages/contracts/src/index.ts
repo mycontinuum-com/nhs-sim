@@ -93,6 +93,7 @@ export const activeServices: SiteId[] = [
 ];
 
 export type Patient = {
+  death?: import("./mortality.ts").PatientDeath;
   id: string;
   name: string;
   birthDate: string;

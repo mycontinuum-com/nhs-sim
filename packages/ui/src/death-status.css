@@ -1,0 +1,22 @@
+.patient-death-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 8px 10px;
+  border: 1px solid #80666c;
+  border-left: 4px solid #593a43;
+  border-radius: 3px;
+  background: #f9eff1;
+  color: #482a33;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: normal;
+}
+.patient-death-status > strong { font-size: 13px; color: #482a33; }
+.patient-death-status > span { overflow-wrap: anywhere; }
+.patient-death-compact { margin-top: 4px; padding: 3px 6px; font-size: 11px; }
+.ehr-patient-banner > .patient-death-status { flex-basis: 100%; }
+.practice-patient-strip > .patient-death-status { flex-basis: 100%; }
+
+.ehr-patient-banner:has(> .patient-death-status) { flex-wrap: wrap; }

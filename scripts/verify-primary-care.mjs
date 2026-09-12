@@ -13,9 +13,11 @@ export async function verifyPrimaryCare(base, issued, gpKey) {
   assert.equal((await call(path, { headers: {} })).status, 401);
   assert.equal((await call(path, { method: "POST", body: "{}" })).status, 405);
   assert.equal((await call("/api/sites/gp/prescriptions?limit=501")).status, 400);
-  const created = await action({ type: "draft_prescription", patientId, title: "Synthetic primary care API proof" });
+  const medicationOrder = { drug: "Fictional API fixture", dose: "1", unit: "test unit", route: "Synthetic", frequency: "Test schedule", duration: "Test duration", quantity: 1, indication: "Fictional workflow verification only." };
+  const created = await action({ type: "draft_prescription", patientId, title: "Synthetic primary care API proof", medicationOrder });
   assert.equal(created.status, 200, JSON.stringify(created.data));
   assert.equal(created.data.status, "draft");
+  assert.deepEqual(created.data.data.medicationOrder, medicationOrder);
   const resourceId = created.data.id;
   assert.equal((await action({ type: "review", resourceId })).status, 400, "GP review requires a version");
   const premature = await action({ type: "accept", resourceId, expectedVersion: created.data.version });

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Engine } from "../packages/engine/src/index.ts";
 import { bloodResultSchema } from "../packages/contracts/src/blood-results.ts";
-import { seedBloodResults, upgradeBloodResultWorld } from "../packages/engine/src/blood-results.ts";
+import { seedBloodResults, seedBloodResultsForPatients, upgradeBloodResultWorld } from "../packages/engine/src/blood-results.ts";
 
 function unseededWorld() {
   const initial = new Engine().require("default");
@@ -94,27 +94,74 @@ test("Infant histories stay within their lifetime and portal results respect vis
 });
 
 test("Existing large cohorts seed only the opened patient and preserve that history", async () => {
-  const { seedPatientBloodResults } = await import("../packages/engine/src/blood-results.ts");
+  const { seedBloodResultsForPatients } = await import("../packages/engine/src/blood-results.ts");
   const world = unseededWorld();
   const patient = world.patients[5];
   assert.ok(patient);
   const before = world.resources.length;
-  seedPatientBloodResults(world, patient.id);
+  seedBloodResultsForPatients(world, [patient.id]);
   assert.equal(world.resources.length, before + 36);
   assert.ok(world.resources.slice(before).every(resource => resource.patientId === patient.id));
   world.now += 86400000;
-  seedPatientBloodResults(world, patient.id);
+  seedBloodResultsForPatients(world, [patient.id]);
   assert.equal(world.resources.length, before + 36);
-  seedPatientBloodResults(world, "missing-patient");
+  seedBloodResultsForPatients(world, ["missing-patient"]);
   assert.equal(world.resources.length, before + 36);
 });
 
 test("A patient added after cohort seeding still receives their own blood history", async () => {
-  const { seedPatientBloodResults } = await import("../packages/engine/src/blood-results.ts");
+  const { seedBloodResultsForPatients } = await import("../packages/engine/src/blood-results.ts");
   const world = new Engine().require("default");
   const template = world.patients[0];
   assert.ok(template);
   world.patients.push({ ...template, id: "SIM-NEW-PATIENT" });
-  seedPatientBloodResults(world, "SIM-NEW-PATIENT");
+  seedBloodResultsForPatients(world, ["SIM-NEW-PATIENT"]);
   assert.equal(world.resources.filter(resource => resource.patientId === "SIM-NEW-PATIENT").length, 36);
+});
+
+test("Patient blood seeding sees additions and edited reports in the same transaction", () => {
+  const engine = new Engine();
+  const patient = { ...engine.require("default").patients[0], id: "SIM-DRAFT-PATIENT" };
+  const sample: ReturnType<Engine["require"]> = { ...engine.require("default"), patients: [patient], resources: [], counters: {} };
+  seedBloodResults(sample);
+  const report = sample.resources[0];
+  assert.ok(report);
+  engine.transaction("default", world => {
+    world.patients.push(patient);
+    world.resources.push(report);
+    const pending = world.resources[world.resources.length - 1];
+    pending.title = "Reviewed during this transaction";
+    pending.data.reviewed = true;
+    seedBloodResultsForPatients(world, [patient.id]);
+    seedBloodResultsForPatients(world, [patient.id]);
+  });
+  const reports = engine.require("default").resources.filter(resource => resource.patientId === patient.id);
+  assert.equal(reports.length, 36);
+  assert.equal(new Set(reports.map(resource => resource.id)).size, 36);
+  assert.equal(reports.find(resource => resource.id === report.id)?.title, "Reviewed during this transaction");
+  assert.equal(reports.find(resource => resource.id === report.id)?.data.reviewed, true);
+  assert.equal(engine.require("default").counters[`bloodPatient:${patient.id}`], 1);
+});
+
+test("Bulk patient blood seeding deduplicates requests, preserves edits and ignores missing patients", () => {
+  const world: ReturnType<Engine["require"]> = unseededWorld();
+  const [first, second, untouched] = world.patients;
+  assert.ok(first && second && untouched);
+  seedBloodResultsForPatients(world, [first.id]);
+  const report = world.resources.find(resource => resource.patientId === first.id && resource.id.startsWith("blood-v1-"));
+  assert.ok(report);
+  report.title = "Reviewed result";
+  report.data.reviewed = true;
+  delete world.counters[`bloodPatient:${first.id}`];
+  seedBloodResultsForPatients(world, [first.id, second.id, first.id, "missing"]);
+  const reports = world.resources.filter(resource => resource.id.startsWith("blood-v1-"));
+  assert.equal(reports.length, 72);
+  assert.equal(new Set(reports.map(resource => resource.id)).size, 72);
+  assert.equal(reports.find(resource => resource.id === report.id), report);
+  assert.equal(report.title, "Reviewed result");
+  assert.equal(report.data.reviewed, true);
+  assert.equal(world.counters[`bloodPatient:${first.id}`], 1);
+  assert.equal(world.counters[`bloodPatient:${second.id}`], 1);
+  assert.equal(world.counters[`bloodPatient:${untouched.id}`], undefined);
+  assert.equal(world.counters["bloodPatient:missing"], undefined);
 });

@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { practiceApps } from "../packages/contracts/src/practice-apps.ts";
 import { verifySecondaryCare } from "./verify-secondary-care.mjs";
 import { verifyPrimaryCare } from "./verify-primary-care.mjs";
+import { verifyMortality } from "./verify-mortality.mjs";
 const base = process.env.TEST_ORIGIN ?? "http://localhost:8080";
 const call = async (path, options = {}) => {
   const r = await fetch(base + path, options);
@@ -123,6 +124,7 @@ const headers = {
 };
 await verifySecondaryCare(base, issued.data, otherTeam.data.apiKey);
 await verifyPrimaryCare(base, issued.data, otherTeam.data.apiKey);
+await verifyMortality(base, issued.data);
 for (const collection of ["devices", "readings"]) {
   const path = `/api/sites/wearables/${collection}?patient=SIM-000006`;
   assert.equal((await call(path)).status, 401, "wearable data requires authentication");

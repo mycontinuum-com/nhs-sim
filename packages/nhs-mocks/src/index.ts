@@ -269,6 +269,7 @@ export function bundle(engine: Engine, world: string, id: string, q: string) {
           identifier: [{ system: "urn:nhs-sim:synthetic", value: p.id }],
           name: [{ text: p.name }],
           birthDate: p.birthDate,
+          ...(p.death ? { deceasedDateTime: p.death.date } : {}),
           meta: { tag: [{ code: "SYNTHETIC" }] },
         },
       })),

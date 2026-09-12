@@ -1,9 +1,10 @@
 import { seedGenomeRecords } from "../../../packages/engine/src/genomics.ts";
+import { migrateMortality } from "./mortality-migration.ts";
 import { migrateGenomicRecords } from "./genomic-migration.ts";
 import { initializeOperatorAudit } from './operator.ts';
 import type { OperatorAllTeamIncident, OperatorBulkDeletion, OperatorDeletion, OperatorSession } from '../../../packages/contracts/src/operator.ts';
 import { teamNameSchema, normalizeTeamName } from "../../../packages/contracts/src/team.ts";
-import { seedPatientBloodResults } from "../../../packages/engine/src/blood-results.ts";
+import { seedBloodResultsForPatients } from "../../../packages/engine/src/blood-results.ts";
 import { upgradeMessagingWorld } from "../../../packages/engine/src/messaging-seed.ts";
 import { upgradeAppointmentWorld } from "../../../packages/engine/src/appointment-sessions.ts";
 import { upgradeDocumentWorld } from "../../../packages/engine/src/document-seed.ts";
@@ -24,6 +25,9 @@ export class Store {
   keys: TeamKey[] = [];
   private tail: Promise<unknown> = Promise.resolve();
   private persistence = new RowPersistence();
+  private bloodReads = new Map<string, Map<string, Promise<void>>>();
+  private bloodBatches = new Map<string, { patients: Set<string>; promise: Promise<void> }>();
+  private resourceReads = new WeakMap<Resource[], Map<string, Resource[]>>();
   lockClient?: pg.PoolClient;
   constructor(url: string) {
     this.pool = new pg.Pool({ connectionString: url, max: 4 });
@@ -59,6 +63,7 @@ export class Store {
         await this.persistence.write(client, null, this.engine.state);
       }
       await migrateGenomicRecords(client);
+      await migrateMortality(client);
       await migrateMedicationHistory(client);
       await migrateRecordAttribution(client);
       const loaded = await this.persistence.load(client);
@@ -306,6 +311,38 @@ export class Store {
     );
     return { total: count.rows[0].total, items: result.rows.map((row) => row.payload) };
   }
+  private ensurePatientBloodResults(world: string, patient: string): Promise<void> {
+    let pending = this.bloodReads.get(world);
+    const existing = pending?.get(patient);
+    if (existing) return existing;
+    if (this.engine.require(world).counters[`bloodPatient:${patient}`] === 1) return Promise.resolve();
+    if (!pending) {
+      pending = new Map();
+      this.bloodReads.set(world, pending);
+    }
+    const batch = this.bloodBatches.get(world);
+    if (batch) {
+      batch.patients.add(patient);
+      pending.set(patient, batch.promise);
+      if (batch.patients.size === 32) this.bloodBatches.delete(world);
+      return batch.promise;
+    }
+    const patients = new Set([patient]);
+    const promise = this.enqueue(() => {
+      if (this.bloodBatches.get(world)?.patients === patients) this.bloodBatches.delete(world);
+      return this.write(() => {
+        this.engine.transaction(world, draft => seedBloodResultsForPatients(draft, patients));
+      }, world);
+    }).finally(() => {
+      if (this.bloodBatches.get(world)?.patients === patients) this.bloodBatches.delete(world);
+      const requests = this.bloodReads.get(world);
+      for (const id of patients) if (requests?.get(id) === promise) requests.delete(id);
+      if (requests?.size === 0) this.bloodReads.delete(world);
+    });
+    pending.set(patient, promise);
+    this.bloodBatches.set(world, { patients, promise });
+    return promise;
+  }
   async readResources(
     world: string,
     site: SiteId,
@@ -320,14 +357,9 @@ export class Store {
     resourceOffset: number;
     resourceLimit: number;
   }> {
-    const current = this.engine.require(world);
-    if (patient && ["gp", "hospital", "diagnostics"].includes(site) && current.counters[`bloodPatient:${patient}`] !== 1) {
-      await this.enqueue(() => this.write(() => {
-        const current = this.engine.require(world);
-        if (current.counters[`bloodPatient:${patient}`] === 1) return;
-        this.engine.transaction(world, draft => seedPatientBloodResults(draft, patient));
-      }, world));
-    }
+    this.engine.require(world);
+    if (patient && ["gp", "hospital", "diagnostics"].includes(site))
+      await this.ensurePatientBloodResults(world, patient);
     offset = Math.max(0, Math.trunc(offset));
     limit = Math.max(1, Math.min(1000, Math.trunc(limit)));
     let start: number | undefined;
@@ -336,28 +368,49 @@ export class Store {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(start))
         throw new SimError("Use a calendar date in YYYY-MM-DD format");
     }
-    const resources: Resource[] = [];
-    let resourceTotal = 0;
-    for (const resource of this.engine.require(world).resources) {
-      if (resource.kind === "genome-record" && site !== "hospital" && site !== "control") continue;
-      if (site !== "control" && !resource.visibleTo.includes(site)) continue;
-      if (patient && resource.patientId != null && resource.patientId !== patient) continue;
-      if (kind && resource.kind !== kind) continue;
-      if (start !== undefined) {
-        const startsAt = resource.data.startsAt;
-        const occursAt = (typeof startsAt === "number" || typeof startsAt === "string") && /^\d+$/.test(String(startsAt))
-          ? Number(startsAt) : resource.createdAt;
-        if (occursAt < start || occursAt >= start + 86400000) continue;
+    const source = this.engine.require(world).resources;
+    const key = JSON.stringify([site, patient || null, kind || null, date || null]);
+    let queries = this.resourceReads.get(source);
+    let matches = queries?.get(key);
+    if (!matches) {
+      matches = [];
+      for (const resource of source) {
+        if (resource.kind === "genome-record" && site !== "hospital" && site !== "control") continue;
+        if (site !== "control" && !resource.visibleTo.includes(site)) continue;
+        if (patient && resource.patientId != null && resource.patientId !== patient) continue;
+        if (kind && resource.kind !== kind) continue;
+        if (start !== undefined) {
+          const startsAt = resource.data.startsAt;
+          const occursAt = (typeof startsAt === "number" || typeof startsAt === "string") && /^\d+$/.test(String(startsAt))
+            ? Number(startsAt) : resource.createdAt;
+          if (occursAt < start || occursAt >= start + 86400000) continue;
+        }
+        matches.push(resource);
       }
-      if (resourceTotal >= offset && resources.length < limit) resources.push(resource);
-      resourceTotal++;
+      if (!queries) {
+        queries = new Map();
+        this.resourceReads.set(source, queries);
+      }
+      let references = matches.length;
+      for (const cached of queries.values()) references += cached.length;
+      for (const [oldest, cached] of queries) {
+        if (queries.size < 8 && references <= source.length) break;
+        queries.delete(oldest);
+        references -= cached.length;
+      }
+      queries.set(key, matches);
     }
     return {
-      resources,
-      resourceTotal,
+      resources: matches.slice(offset, offset + limit),
+      resourceTotal: matches.length,
       resourceOffset: offset,
       resourceLimit: limit,
     };
+  }
+  async health(): Promise<void> {
+    if (!this.lockClient) throw new Error("Store is not initialized");
+    const query = { text: "SELECT 1", query_timeout: 2000 };
+    await this.lockClient.query(query);
   }
   async close() {
     await this.tail;

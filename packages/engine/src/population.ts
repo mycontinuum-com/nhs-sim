@@ -1,3 +1,4 @@
+import { seedMortality } from "./mortality.ts";
 import { seedGenomeRecords } from "./genomics.ts";
 import { attributeSyntheticRecord } from "./synthetic-attribution.ts";
 import { generateMedicationHistory, generateAllergyHistory } from "./medication-history.ts";
@@ -814,6 +815,7 @@ export function enrichPatientStories(world: World) {
       );
     }
   }
+  world.patients = seedMortality(world.patients, world.now);
   seedGenomeRecords(world);
   world.resources.slice(initialResources).forEach(attributeSyntheticRecord);
 }

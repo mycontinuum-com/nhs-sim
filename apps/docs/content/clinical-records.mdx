@@ -49,3 +49,25 @@ The <a href="/api/openapi.json">OpenAPI document</a> describes the response sche
 - Laboratory requests use `type: "order_test"`, `patientId`, `title` and `bloodTestOrder`, containing `panel`, `panelId`, `specimen`, `priority`, `collection` and `clinicalDetails`. Supported panel IDs are `fbc`, `ue`, `hba1c`, `lft`, `crp` and `lipids`. Collection is `now` or `next-round`.
 
 Supply an `Idempotency-Key` header or a `clientRequestId` UUID and reuse it for an identical retry. Stale edits and attempts to overwrite signed notes fail without changing the record.
+
+
+## Deceased synthetic patients
+
+Patient records include an optional `death` object with the date, authored cause, `synthetic: true`, and source `authored-synthetic-mortality-v1`. Its presence means the patient is deceased. GP and hospital records show the status, date, cause, and age at death. Existing consultation and medication history remains available.
+
+The fixtures are `SIM-000009` (road traffic collision), `SIM-000011` (pneumonia), `SIM-000012` (sepsis), `SIM-000018` (cancer), and `SIM-000019` (stroke). Names, dates of birth, and ages can differ between populations. Read the current patient record for those values. These causes are authored simulation data.
+
+The startup migration adds the fixtures to existing shared populations and patient overlays without changing demographics or replacing existing death records. New generated populations receive the same fixture IDs. Deceased patients are excluded from future generated demand and new telephone calls. Patient APIs retain the `death` object; PDS FHIR Patient responses include `deceasedDateTime`. FHIR `active` continues to describe record availability.
+
+## Issue and approve primary care prescriptions
+
+Use a team key with `gp` scope. All records are synthetic.
+
+1. POST to `/api/sites/gp/actions` with `type: "draft_prescription"`, `patientId`, `title`, and the `medicationOrder` fields listed above. The response contains the prescription `id`, `version`, and `status: "draft"`.
+2. Retrieve prescriptions with `GET /api/sites/gp/prescriptions?patient=SIM-000001&offset=0&limit=100`. The response contains `items`, `total`, `offset`, and `limit`. Each item includes its medication details, status, version, and provenance. Omit `patient` to list all GP-visible prescriptions. The maximum `limit` is 500.
+3. POST to `/api/sites/gp/actions` with `type: "review"`, `resourceId`, and the latest `expectedVersion`. The status becomes `reviewed`.
+4. POST to the same endpoint with `type: "accept"`, `resourceId`, and the version returned by review. The status becomes `approved`.
+
+GP can review and approve prescriptions originally issued through GP. Sharing a hospital prescription with GP permits retrieval but does not grant approval permission. Pharmacy retains ownership and handles stock linking, dispensing, and collection. A GP-only key can complete issuance and approval without pharmacy scope.
+
+Approval before review and stale versions return `409`. Missing versions on GP review or approval return `400`. Unauthorized service changes return `403`. Send an `Idempotency-Key` header when creating or changing a prescription to retry that exact request safely.

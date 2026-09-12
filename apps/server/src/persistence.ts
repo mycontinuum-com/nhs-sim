@@ -9,7 +9,8 @@ type Population = { id: string; patients: Patient[]; resources: Resource[] };
 type Queryable = Pick<pg.PoolClient, "query">;
 type Row = { id: string; payload: unknown; deleted?: boolean; ordinal?: number };
 const freezeRows = (rows: readonly object[]) => {
-  for (const row of rows) freeze(row, true);
+  for (let index = 0; index < rows.length; index++) freeze(rows[index], true);
+  freeze(rows);
 };
 const metadata = (world: World) => {
   const { patients, resources, ...rest } = world;
@@ -20,7 +21,7 @@ export function changedRows<T extends { id: string }>(
   after: readonly T[],
 ): { upserts: T[]; deleted: string[] } {
   if (before === after) return { upserts: [], deleted: [] };
-  if (before.length === after.length && before.every((row, index) => row.id === after[index]?.id))
+  if (before.length <= after.length && before.every((row, index) => row.id === after[index]?.id))
     return { upserts: after.filter((row, index) => row !== before[index]), deleted: [] };
   const previous = new Map(before.map((row) => [row.id, row])),
     present = new Set(after.map((row) => row.id));
@@ -28,6 +29,14 @@ export function changedRows<T extends { id: string }>(
     upserts: after.filter((row) => row !== previous.get(row.id)),
     deleted: before.filter((row) => !present.has(row.id)).map((row) => row.id),
   };
+}
+function indexedRows<T extends { id: string }>(values: readonly T[], upserts: readonly T[]) {
+  const changed = new Set(upserts);
+  const indexed: { id: string; payload: T; ordinal: number }[] = [];
+  values.forEach((payload, ordinal) => {
+    if (changed.has(payload)) indexed.push({ id: payload.id, payload, ordinal });
+  });
+  return indexed;
 }
 const schema = `
 CREATE TABLE IF NOT EXISTS simulation_storage (id integer PRIMARY KEY CHECK(id=1), schema_version integer NOT NULL);
@@ -114,8 +123,8 @@ export class RowPersistence {
         );
         population = {
           id: row.population_id,
-          patients: patients.rows.map((row) => freeze(row.payload, true)),
-          resources: resources.rows.map((row) => freeze(row.payload, true)),
+          patients: freeze(patients.rows.map((row) => freeze(row.payload, true))),
+          resources: freeze(resources.rows.map((row) => freeze(row.payload, true))),
         };
         this.populations.set(population.id, population);
       }
@@ -142,7 +151,7 @@ export class RowPersistence {
           changes.delete(item.id);
         }
         for (const overlay of changes.values()) if (!overlay.deleted) merged.push(overlay.payload);
-        return merged;
+        return freeze(merged);
       };
       state.worlds[row.id] = {
         ...row.payload,
@@ -197,7 +206,7 @@ export class RowPersistence {
     affected?: string | string[],
   ): Promise<() => void> {
     if (before === after) return () => {};
-    const pendingFreeze: (readonly object[])[] = [];
+    const pendingFreeze = new Set<readonly object[]>();
     const populations = new Map(this.populations),
       bindings = new Map(this.worldPopulations);
     const ids = affected
@@ -224,7 +233,8 @@ export class RowPersistence {
         if (!population) {
           population = await this.createPopulation(client, world);
           populations.set(population.id, population);
-          pendingFreeze.push(population.patients, population.resources);
+          pendingFreeze.add(population.patients);
+          pendingFreeze.add(population.resources);
         }
         populationId = population.id;
         bindings.set(id, populationId);
@@ -252,21 +262,15 @@ export class RowPersistence {
         ],
       ] as const) {
         const diff = changedRows<Patient | Resource>(oldValues, newValues);
-        if (diff.upserts.length) pendingFreeze.push(diff.upserts);
+        if (oldValues !== newValues || !Object.isFrozen(newValues)) pendingFreeze.add(newValues);
         if (diff.upserts.length || diff.deleted.length) {
-          const ordinals = new Map(newValues.map((value, index) => [value.id, index]));
           await rows(
             client,
             table,
             "world_id",
             id,
             [
-              ...diff.upserts.map((payload) => ({
-                id: payload.id,
-                payload,
-                ordinal: ordinals.get(payload.id),
-                deleted: false,
-              })),
+              ...indexedRows(newValues, diff.upserts).map(row => ({ ...row, deleted: false })),
               ...diff.deleted.map((deleted) => ({
                 id: deleted,
                 payload: null,
@@ -281,18 +285,14 @@ export class RowPersistence {
       const oldEvents = before?.events[id] ?? [],
         events = after.events[id] ?? [];
       const eventDiff = changedRows(oldEvents, events);
+      if (oldEvents !== events || !Object.isFrozen(events)) pendingFreeze.add(events);
       if (eventDiff.upserts.length) {
-        const ordinals = new Map(events.map((event, index) => [event.id, index]));
         await rows(
           client,
           "world_events",
           "world_id",
           id,
-          eventDiff.upserts.map((payload) => ({
-            id: payload.id,
-            payload,
-            ordinal: ordinals.get(payload.id),
-          })),
+          indexedRows(events, eventDiff.upserts),
         );
       }
       if (eventDiff.deleted.length)
