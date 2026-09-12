@@ -1,4 +1,4 @@
-sim.animahacks.com {
+sim.animahacks.com, sim.animahealth.com {
 	encode zstd gzip
 	reverse_proxy app:8080
 }

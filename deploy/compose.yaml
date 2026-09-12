@@ -34,6 +34,7 @@ services:
       NODE_ENV: production
       PORT: 8080
       PUBLIC_ORIGIN: https://sim.animahacks.com
+      PUBLIC_ORIGINS: https://sim.animahacks.com,https://sim.animahealth.com
       DATABASE_URL: postgres://nhssim:${POSTGRES_PASSWORD:?}@postgres:5432/nhssim
       OPERATOR_TOKEN: ${OPERATOR_TOKEN:?}
     depends_on:

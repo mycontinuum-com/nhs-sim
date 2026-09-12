@@ -85,10 +85,13 @@ jobs:
       - name: Verify public participant journey
         id: public
         run: |
-          node .agents/skills/verify-nhs-sim/control-nhs-sim.mjs doctor --origin https://sim.animahacks.com
-          node .agents/skills/verify-nhs-sim/control-nhs-sim.mjs journey --origin https://sim.animahacks.com
-          sleep 2
-          TEST_ORIGIN=https://sim.animahacks.com node scripts/smoke.mjs
+          for origin in https://sim.animahacks.com https://sim.animahealth.com; do
+            node .agents/skills/verify-nhs-sim/control-nhs-sim.mjs doctor --origin "$origin"
+            node .agents/skills/verify-nhs-sim/control-nhs-sim.mjs journey --origin "$origin"
+            sleep 2
+            TEST_ORIGIN="$origin" node scripts/smoke.mjs
+          done
+          TEST_ORIGINS=https://sim.animahacks.com,https://sim.animahealth.com node scripts/verify-origins.mjs
       - name: Roll back if public verification failed
         if: failure() && steps.public.outcome == 'failure' && steps.deploy.outputs.previous_digest != ''
         env:

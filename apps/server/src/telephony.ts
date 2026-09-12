@@ -3,11 +3,12 @@ import type { Server } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
 import { telephonyClientMessageSchema, type TelephonyMember, type TelephonySnapshot, type TelephonyServerMessage } from "../../../packages/contracts/src/telephony.ts";
 import { applyTelephonyCommand, releaseCalls, replenishCalls, telephonyCalls } from "../../../packages/engine/src/telephony.ts";
+import type { PublicOrigins } from "./origins.ts";
 import type { Store } from "./store.ts";
 
 type Member = { id: string; name: string; available: boolean; socket: WebSocket; apiKey: string; alive: boolean; requests: Map<string, string> };
 type Room = { world: string; revision: number; members: Map<string, Member> };
-export function attachTelephony(server: Server, store: Store, origin: string) {
+export function attachTelephony(server: Server, store: Store, origins: PublicOrigins) {
   const rooms = new Map<string, Room>();
   const wss = new WebSocketServer({ noServer: true, maxPayload: 8192 });
   const send = (socket: WebSocket, message: TelephonyServerMessage) => {
@@ -31,9 +32,9 @@ export function attachTelephony(server: Server, store: Store, origin: string) {
     for (const member of room.members.values()) send(member.socket, { kind: "snapshot", memberId: member.id, revision: room.revision, ...state, ...(member === requester && requestId ? { requestId } : {}) });
   };
   server.on("upgrade", (request, socket, head) => {
-    const url = new URL(request.url ?? "/", origin);
+    const url = new URL(request.url ?? "/", origins.forHost(request.headers.host));
     if (url.pathname !== "/api/telephony/live") { socket.destroy(); return; }
-    if (request.headers.origin && request.headers.origin !== new URL(origin).origin) {
+    if (!origins.allows(request.headers.origin)) {
       socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n"); socket.destroy(); return;
     }
     wss.handleUpgrade(request, socket, head, socket => wss.emit("connection", socket));

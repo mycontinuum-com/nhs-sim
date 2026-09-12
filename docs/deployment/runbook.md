@@ -1,6 +1,8 @@
 # Operating the simulator
 
-The deployment stack is `nhs-sim` in AWS account `797629229500`, region `eu-west-2`. The public origin is https://sim.animahacks.com.
+The deployment stack is `nhs-sim` in AWS account `797629229500`, region `eu-west-2`. It serves https://sim.animahacks.com and https://sim.animahealth.com from the same application and database. The latter provides an event address on an established domain.
+
+Both names point directly to Elastic IP `51.24.181.153`. The `sim.animahealth.com` A record has TTL 60 in Route 53 zone `Z06200331BS535CH7W4US` and is managed separately from the CloudFormation stack. Caddy manages certificates for both names. `PUBLIC_ORIGINS` lists both permitted origins, while `PUBLIC_ORIGIN` supplies the default for requests without a recognized public host. Browser requests and identity endpoints use the selected origin.
 
 ## Deploy
 

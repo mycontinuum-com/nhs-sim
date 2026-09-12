@@ -101,6 +101,7 @@ type Claims = {
   nhs_sim: true;
 };
 type Request = {
+  origin: string;
   client: string;
   redirect: string;
   challenge: string;
@@ -132,8 +133,10 @@ export class MockOIDC {
   private tokens = new Map<string, { claims: Claims; expires: number }>();
   origin: string;
   private now: () => number;
-  constructor(origin: string, now: () => number = Date.now) {
+  private origins: readonly string[];
+  constructor(origin: string, now: () => number = Date.now, origins: readonly string[] = [origin]) {
     this.origin = origin;
+    this.origins = origins;
     this.now = now;
     this.settings = {
       scenario: "normal",
@@ -142,7 +145,7 @@ export class MockOIDC {
         {
           id: "nhs-sim-client",
           name: "NHS simulation explorer",
-          redirectUris: [origin + "/cis2/callback"],
+          redirectUris: origins.map(value => value + "/cis2/callback"),
         },
       ],
     };
@@ -173,13 +176,14 @@ export class MockOIDC {
     this.codes.clear();
     this.tokens.clear();
   }
-  discovery() {
+  discovery(origin = this.origin) {
+    this.requireOrigin(origin);
     return {
-      issuer: this.origin + "/cis2",
-      authorization_endpoint: this.origin + "/cis2/authorize",
-      token_endpoint: this.origin + "/cis2/token",
-      userinfo_endpoint: this.origin + "/cis2/userinfo",
-      jwks_uri: this.origin + "/cis2/jwks",
+      issuer: origin + "/cis2",
+      authorization_endpoint: origin + "/cis2/authorize",
+      token_endpoint: origin + "/cis2/token",
+      userinfo_endpoint: origin + "/cis2/userinfo",
+      jwks_uri: origin + "/cis2/jwks",
       response_types_supported: ["code"],
       subject_types_supported: ["public"],
       id_token_signing_alg_values_supported: ["RS256"],
@@ -197,7 +201,11 @@ export class MockOIDC {
       ],
     };
   }
-  private request(params: URLSearchParams): Request {
+  private requireOrigin(origin: string) {
+    if (!this.origins.includes(origin)) throw new Cis2Error("invalid_request", "Unknown identity origin");
+  }
+  private request(params: URLSearchParams, origin: string): Request {
+    this.requireOrigin(origin);
     const client = this.settings.clients.find((entry) => entry.id === params.get("client_id"));
     const redirect = params.get("redirect_uri") ?? "";
     if (!client || !client.redirectUris.includes(redirect))
@@ -221,10 +229,10 @@ export class MockOIDC {
         "invalid_request",
         "Use authorization code, PKCE S256, state, nonce and openid scope",
       );
-    return { client: client.id, redirect, challenge, nonce, state, scope };
+    return { origin, client: client.id, redirect, challenge, nonce, state, scope };
   }
-  begin(params: URLSearchParams) {
-    const request = this.request(params);
+  begin(params: URLSearchParams, origin = this.origin) {
+    const request = this.request(params, origin);
     if (this.settings.scenario === "unavailable")
       throw new Cis2Error(
         "temporarily_unavailable",
@@ -285,8 +293,8 @@ export class MockOIDC {
       params.get("assignment") ?? "",
     );
   }
-  authorize(params: URLSearchParams) {
-    return this.issue(this.request(params), "SIM-STAFF-1", "gp");
+  authorize(params: URLSearchParams, origin = this.origin) {
+    return this.issue(this.request(params, origin), "SIM-STAFF-1", "gp");
   }
   private issue(request: Request, identityId: string, assignmentId: string) {
     const identity = cis2Identities.find((person) => person.id === identityId);
@@ -313,7 +321,8 @@ export class MockOIDC {
     result.searchParams.set("state", request.state);
     return result.toString();
   }
-  async token(params: URLSearchParams) {
+  async token(params: URLSearchParams, origin = this.origin) {
+    this.requireOrigin(origin);
     const revision = this.revision;
     const code = params.get("code") ?? "",
       data = this.codes.get(code);
@@ -321,6 +330,7 @@ export class MockOIDC {
     const verifier = params.get("code_verifier") ?? "";
     if (
       !data ||
+      data.request.origin !== origin ||
       data.expires <= this.now() ||
       params.get("grant_type") !== "authorization_code" ||
       params.get("client_id") !== data.request.client ||
@@ -342,7 +352,7 @@ export class MockOIDC {
       auth_time: now,
     })
       .setProtectedHeader({ alg: "RS256", kid: "sim-key" })
-      .setIssuer(this.origin + "/cis2")
+      .setIssuer(data.request.origin + "/cis2")
       .setAudience(data.request.client)
       .setIssuedAt(now)
       .setExpirationTime(now + expires_in)

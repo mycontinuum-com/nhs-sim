@@ -7,6 +7,7 @@ services:
     environment:
       PORT: 8080
       PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      PUBLIC_ORIGINS: ${PUBLIC_ORIGINS:-}
       DATABASE_URL: postgres://nhssim:${POSTGRES_PASSWORD:-local-database-change-me}@postgres:5432/nhssim
       OPERATOR_TOKEN: ${OPERATOR_TOKEN:-local-operator-change-me}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}

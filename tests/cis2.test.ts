@@ -282,3 +282,37 @@ test("CIS2 revocation also cancels a token exchange already signing", async () =
   await assert.rejects(() => exchangeInFlight, /revoked during token exchange/);
   assert.equal(oidc.configuration().active.tokens, 0);
 });
+
+test("CIS2 keeps callbacks, discovery and signed issuers on both configured origins with shared revocation", async () => {
+  const origins = ["https://sim.animahacks.com", "https://sim.animahealth.com"];
+  const oidc = new MockOIDC("https://sim.animahacks.com", Date.now, origins);
+  await oidc.init();
+  assert.deepEqual(oidc.configuration().clients[0]?.redirectUris, ["https://sim.animahacks.com/cis2/callback", "https://sim.animahealth.com/cis2/callback"]);
+  const accessTokens: string[] = [];
+  for (const host of origins) {
+    const discovery = oidc.discovery(host);
+    assert.equal(discovery.issuer, host + "/cis2");
+    assert.equal(discovery.authorization_endpoint, host + "/cis2/authorize");
+    assert.equal(discovery.token_endpoint, host + "/cis2/token");
+    const params = request();
+    params.set("redirect_uri", host + "/cis2/callback");
+    const interaction = oidc.begin(params, host);
+    const redirect = new URL(oidc.complete(new URLSearchParams({ interaction: interaction.interaction, csrf: interaction.csrf, identity: "SIM-STAFF-1", assignment: "gp" }), interaction.csrf));
+    assert.equal(redirect.origin, host);
+    const tokenParams = exchange(redirect);
+    tokenParams.set("redirect_uri", host + "/cis2/callback");
+    const tokens = await oidc.token(tokenParams, host);
+    const { payload } = await jwtVerify(tokens.id_token, createLocalJWKSet(await oidc.jwks()), { issuer: host + "/cis2", audience: "nhs-sim-client" });
+    assert.equal(payload.name, "Dr Maya Bennett");
+    accessTokens.push(tokens.access_token);
+  }
+  oidc.revoke();
+  for (const token of accessTokens) assert.throws(() => oidc.userinfo(token), /Invalid/);
+  assert.throws(() => oidc.discovery("https://attacker.example"), /Unknown identity origin/);
+  const params = request();
+  params.set("redirect_uri", "https://sim.animahealth.com/cis2/callback");
+  const redirect = new URL(oidc.authorize(params, "https://sim.animahealth.com"));
+  const tokenParams = exchange(redirect);
+  tokenParams.set("redirect_uri", "https://sim.animahealth.com/cis2/callback");
+  await assert.rejects(() => oidc.token(tokenParams, "https://sim.animahacks.com"), /Invalid or expired/);
+});

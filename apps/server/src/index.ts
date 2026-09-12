@@ -1,3 +1,4 @@
+import { PublicOrigins } from "./origins.ts";
 import { attachTelephony } from "./telephony.ts";
 import { practiceApps } from "../../../packages/contracts/src/practice-apps.ts";
 import { auditPath, operatorTeams, operatorActivity, recordTeamRequest, pruneTeamRequests } from './operator.ts';
@@ -33,7 +34,7 @@ import { ModelAgent } from "../../../packages/agents/src/index.ts";
 import { openApiDocument } from "./openapi.ts";
 
 const port = Number(process.env.PORT ?? 8080);
-const origin = process.env.PUBLIC_ORIGIN ?? "http://localhost:" + port;
+const origins = new PublicOrigins(process.env.PUBLIC_ORIGIN ?? "http://localhost:" + port, process.env.PUBLIC_ORIGINS);
 const adminToken = process.env.OPERATOR_TOKEN;
 if (!adminToken || adminToken.length < 16)
   throw new Error("Set OPERATOR_TOKEN to at least 16 characters");
@@ -41,7 +42,7 @@ const store = new Store(
   process.env.DATABASE_URL ?? "postgres://nhssim:nhssim@localhost:5432/nhssim",
 );
 await store.init();
-const oidc = new MockOIDC(origin);
+const oidc = new MockOIDC(origins.primary, Date.now, origins.values);
 await oidc.init();
 const staticRoot = resolve("dist/sites");
 const sessions = new Map<string, { key: string; csrf: string; expires: number }>();
@@ -88,6 +89,7 @@ async function json(req: IncomingMessage, maxBytes = 65536) {
 const server = createServer(async (req, res) => {
   const started = performance.now();
   try {
+    const origin = origins.forHost(req.headers.host);
     const url = new URL(req.url ?? "/", origin),
       path = url.pathname,
       method = req.method ?? "GET";
@@ -120,7 +122,7 @@ const server = createServer(async (req, res) => {
       method !== "GET" &&
       method !== "HEAD" &&
       req.headers.origin &&
-      req.headers.origin !== origin
+      !origins.allows(req.headers.origin)
     )
       throw new SimError("Origin not allowed", 403);
     if (path === "/healthz") {
@@ -654,7 +656,7 @@ const timer = setInterval(() => {
       ticking = false;
     });
 }, 1000);
-const telephony = attachTelephony(server, store, origin);
+const telephony = attachTelephony(server, store, origins);
 server.listen(port, "0.0.0.0", () =>
   console.log(
     "NHS-SIM ready on port " + port + "; " + sites.length + " sites; PostgreSQL backing store",

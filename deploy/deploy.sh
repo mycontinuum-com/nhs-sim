@@ -45,7 +45,7 @@ mkdir -p /srv/nhs-sim/postgres /srv/nhs-sim/caddy/data /srv/nhs-sim/caddy/config
 "${compose[@]}" up -d --wait --wait-timeout 180 postgres
 if "${compose[@]}" up -d --no-deps --wait --wait-timeout 240 app &&
    curl --fail --silent --show-error --max-time 15 http://127.0.0.1:8080/healthz >/dev/null &&
-   "${compose[@]}" up -d --no-deps --wait --wait-timeout 60 caddy; then
+   "${compose[@]}" up -d --no-deps --force-recreate --wait --wait-timeout 60 caddy; then
   if [[ -n "$previous_image" && "$previous_image" != "$new_image" ]]; then
     printf '%s\n' "$previous_image" > previous-image
   fi

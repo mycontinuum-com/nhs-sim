@@ -137,10 +137,10 @@ export async function handleCis2({
     } else if ((path === "/cis2/" || path === "/cis2") && method === "GET")
       send(200, landing(), true);
     else if (path === "/cis2/.well-known/openid-configuration" && method === "GET")
-      send(200, oidc.discovery());
+      send(200, oidc.discovery(url.origin));
     else if (path === "/cis2/jwks" && method === "GET") send(200, await oidc.jwks());
     else if (path === "/cis2/token" && method === "POST") {
-      const tokens = await oidc.token(new URLSearchParams(await readBody(req)));
+      const tokens = await oidc.token(new URLSearchParams(await readBody(req)), url.origin);
       res.setHeader(
         "Set-Cookie",
         `cis2_staff=${tokens.access_token}; HttpOnly; SameSite=Lax; Path=/cis2/; Max-Age=${tokens.expires_in}${url.protocol === "https:" ? "; Secure" : ""}`,
@@ -162,7 +162,7 @@ export async function handleCis2({
       send(200, oidc.userinfo((req.headers.authorization ?? "").replace(/^Bearer /, "")));
     else if (path === "/cis2/callback" && method === "GET") send(200, callback(), true);
     else if (path === "/cis2/authorize" && method === "GET") {
-      const interaction = oidc.begin(url.searchParams);
+      const interaction = oidc.begin(url.searchParams, url.origin);
       res.setHeader(
         "Set-Cookie",
         `cis2_interaction=${interaction.csrf}; HttpOnly; SameSite=Lax; Path=/cis2/authorize; Max-Age=300${url.protocol === "https:" ? "; Secure" : ""}`,
