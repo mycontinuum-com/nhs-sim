@@ -329,3 +329,4 @@ console.log(
   "PASS: all sites and assets, all NHS namespaces, wearable devices and readings, authorization, legacy boundary and delayed result workflow",
 );
 await import("./verify-telephony.mjs");
+await import("./verify-messaging.mjs");

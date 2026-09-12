@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { z } from "zod";
 import { Engine } from "../packages/engine/src/index.ts";
 import { mortalityFixtures, seedMortality, syntheticDeath } from "../packages/engine/src/mortality.ts";
+import { conversationSchema, patientReplyPresets, type MessagingCommand } from "../packages/contracts/src/messaging.ts";
 import { patientDeathSchema } from "../packages/contracts/src/mortality.ts";
 import { generatePopulationBatch } from "../packages/engine/src/population-batch.ts";
 import { replenishCalls } from "../packages/engine/src/telephony.ts";
@@ -67,4 +68,33 @@ test("future demand and telephony avoid deceased patients while retained histori
   replenishCalls(world, world.now);
   engine.clock("default", { advanceMinutes: 60 });
   assert.equal(engine.require("default").resources.filter(resource => resource.patientId).length, 0);
+});
+
+
+test("deceased patients do not send scheduled scripted replies after message delivery", () => {
+  const engine = new Engine();
+  const patientId = "SIM-000009";
+  assert.ok(engine.require("default").patients.find(patient => patient.id === patientId)?.death);
+  const created = engine.action("default", "gp", {
+    type: "messaging_action", patientId,
+    messagingCommand: { kind: "create", subject: "Administrative message", body: "Please confirm receipt", channel: "sms", allowReply: true },
+  }, "Dr Rowan Page");
+  const read = () => {
+    const resource = engine.require("default").resources.find(resource => resource.id === created.id);
+    assert.ok(resource);
+    return resource;
+  };
+  const command = (messagingCommand: MessagingCommand) => engine.action("default", "gp", {
+    type: "messaging_action", patientId, resourceId: created.id, expectedVersion: read().version, messagingCommand,
+  }, "Dr Rowan Page");
+  const preset = patientReplyPresets.find(item => item.id === "acknowledgment");
+  assert.ok(preset);
+  command({ kind: "configure_auto_reply", steps: preset.steps });
+  command({ kind: "delivery", entryId: `${created.id}-1`, status: "delivered" });
+  assert.ok(engine.require("default").scheduled.some(job => job.type === "patient-auto-reply" && job.resourceId === created.id));
+  engine.clock("default", { paused: true, advanceMinutes: 5 });
+  const entries = conversationSchema.parse(read().data).entries;
+  assert.deepEqual(entries.filter(entry => entry.direction === "incoming"), []);
+  assert.equal(entries[0].body, "Please confirm receipt");
+  assert.equal(engine.events("default", "gp").filter(event => event.type === "messaging.patient_auto_reply" && event.resourceId === created.id).length, 0);
 });

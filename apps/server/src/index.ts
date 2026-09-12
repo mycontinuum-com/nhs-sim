@@ -4,6 +4,8 @@ import { practiceApps } from "../../../packages/contracts/src/practice-apps.ts";
 import { auditPath, auditPatientIds, operatorTeams, operatorActivity, recordTeamRequest, pruneTeamRequests } from './operator.ts';
 import { teamNameSchema } from "../../../packages/contracts/src/team.ts";
 import { patientConversation } from "../../../packages/engine/src/messaging.ts";
+import { patientReplyPresets } from "../../../packages/contracts/src/messaging.ts";
+import { messagingApi, messageListQuerySchema, patientMessageRequestSchema, practiceMessageRequestSchema } from "../../../packages/contracts/src/messaging-api.ts";
 import { freeze, original } from "immer";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -144,11 +146,16 @@ const server = createServer(async (req, res) => {
         workspaces: Object.values(practiceApps),
         wearables: wearableApi,
         secondaryCare: secondaryCareApi,
+        messaging: messagingApi,
         scenarios,
         identity: { issuer: origin + "/cis2", clientId: "nhs-sim-client" },
         documentation: { handbook: "/docs/", explorer: "/docs/explorer/", openapi: "/api/openapi.json" },
         notice: "Local approximations, not NHS-certified implementations. No real patient data.",
       });
+    if (path === messagingApi.replyPresets) {
+      if (method !== "GET") throw new SimError("Method not allowed", 405);
+      return send(res, 200, { presets: patientReplyPresets });
+    }
     if (path === "/api/keys" && method === "POST") {
       const input = z
         .object({ teamName: teamNameSchema, site: z.string().optional() })
@@ -470,11 +477,11 @@ const server = createServer(async (req, res) => {
       }
       throw new SimError("Unsupported mock operation", 405);
     }
-    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents|messaging-workspace|devices|readings|consultations|genomes)$/);
+    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents|messaging-workspace|messages|devices|readings|consultations|genomes)$/);
     if (match) {
       const site = match[1] as SiteId,
         id = site === "control" ? operator() : authenticated();
-      if (!activeServices.includes(site) && !(site === "patient" && ["messaging-workspace", "actions", "view"].includes(match[2] ?? ""))) throw new SimError("Unknown site", 404);
+      if (!activeServices.includes(site) && !(site === "patient" && ["messaging-workspace", "messages", "actions", "view"].includes(match[2] ?? ""))) throw new SimError("Unknown site", 404);
       if (site === "legacy")
         return send(res, 501, {
           error: "Use /browser/legacy after creating a team browser session.",
@@ -492,6 +499,26 @@ const server = createServer(async (req, res) => {
         if (method !== "GET") throw new SimError("Method not allowed", 405);
         const query = (match[2] === "readings" ? wearableReadingsQuerySchema : wearableQuerySchema).parse(Object.fromEntries(url.searchParams));
         return send(res, 200, wearablePage(store.engine.require(id), match[2] === "devices" ? "device" : "observation", query));
+      }
+      if (match[2] === "messages") {
+        if (site !== "gp" && site !== "patient") throw new SimError("Messaging service required", 404);
+        if (method === "POST") {
+          const input = (site === "patient" ? patientMessageRequestSchema : practiceMessageRequestSchema).parse(await json(req));
+          const { command, ...target } = input;
+          const result = await store.run(() => store.engine.action(id, site,
+            { ...target, type: "messaging_action", messagingCommand: command },
+            key ? { kind: "team", name: key.team } : { kind: "operator", name: "Operator" },
+            req.headers["idempotency-key"] as string | undefined));
+          return send(res, 200, site === "patient" ? patientConversation(result) : result);
+        }
+        if (method !== "GET") throw new SimError("Method not allowed", 405);
+        const query = messageListQuerySchema.parse(Object.fromEntries(url.searchParams));
+        const world = store.engine.require(id);
+        if (site === "patient" && (!query.patientId || !world.patients.some(patient => patient.id === query.patientId))) throw new SimError("Choose a patient", 400);
+        const conversations = world.resources.filter(resource => resource.kind === "conversation" && resource.owner === "gp" && resource.visibleTo.includes(site) && (!query.patientId || resource.patientId === query.patientId))
+          .map(resource => site === "patient" ? patientConversation(resource) : resource)
+          .filter(resource => site !== "patient" || (Array.isArray(resource.data.entries) && resource.data.entries.length > 0));
+        return send(res, 200, { items: conversations.slice(query.offset, query.offset + query.limit), total: conversations.length, offset: query.offset, limit: query.limit, now: world.now });
       }
       if (match[2] === "messaging-workspace") {
         if (method !== "GET") throw new SimError("Method not allowed", 405);

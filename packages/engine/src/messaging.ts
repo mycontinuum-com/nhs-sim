@@ -1,10 +1,18 @@
-import type { RecordActor, Resource, SiteId, World } from "../../contracts/src/index.ts";
-import { conversationSchema, type MessagingCommand } from "../../contracts/src/messaging.ts";
+import type { RecordActor, Resource, Scheduled, SiteId, World } from "../../contracts/src/index.ts";
+import { conversationSchema, type Conversation, type MessagingCommand } from "../../contracts/src/messaging.ts";
 type Context = { world: World; site: SiteId; command: MessagingCommand; actor: RecordActor; resource?: Resource; patientId?: string; expectedVersion?: number; add: (kind: string, title: string, patientId?: string) => Resource; fail: (message: string, status: number) => never };
 export function applyMessaging({ world, site, command, actor, resource, patientId, expectedVersion, add, fail }: Context): Resource {
   if (site !== "gp" && site !== "patient") return fail("Use the practice or patient messaging workspace", 403);
-  if (site === "patient" && command.kind !== "reply") return fail("Patients can only reply to practice conversations", 403);
+  if (site === "patient" && command.kind !== "reply" && command.kind !== "patient_create") return fail("Patients can only reply to or start conversations", 403);
+  if (site === "gp" && (command.kind === "reply" || command.kind === "patient_create")) return fail("Use the patient workspace to send a patient message", 403);
   if (resource && expectedVersion === undefined) return fail("A resource version is required", 409);
+  if (command.kind === "patient_create") {
+    if (resource || !patientId) return fail("Choose a patient for a new conversation", 400);
+    const r = add("conversation", command.subject, patientId);
+    r.status = "open"; r.visibleTo = ["gp", "patient"];
+    r.data = { assignee: "", allowReply: true, entries: [{ id: `${r.id}-1`, direction: "incoming", body: command.body, channel: command.channel, at: world.now, actor }] };
+    return r;
+  }
   if (command.kind === "create") {
     if (resource || !patientId) return fail("Choose a patient for a new conversation", 400);
     const r = add("conversation", command.subject, patientId);
@@ -26,7 +34,14 @@ export function applyMessaging({ world, site, command, actor, resource, patientI
   if (!resource || resource.kind !== "conversation" || resource.owner !== "gp") return fail("Choose a practice conversation", 400);
   if (site === "patient" && patientId !== resource.patientId) return fail("Select the patient who owns this conversation", 403);
   const doc = conversationSchema.parse(resource.data);
-  if (command.kind === "complete") resource.status = "done";
+  if (command.kind === "configure_auto_reply") {
+    if (command.steps.length && (resource.status !== "open" || !doc.allowReply)) return fail("Automatic replies require an open conversation with replies enabled", 409);
+    cancelPendingReplies(world, resource.id, doc);
+    doc.autoReply = { steps: command.steps, nextStep: 0, pending: [] };
+  } else if (command.kind === "complete") {
+    resource.status = "done";
+    cancelPendingReplies(world, resource.id, doc);
+  }
   else if (command.kind === "reopen") resource.status = "open";
   else if (command.kind === "assign") doc.assignee = command.assignee;
   else if (command.kind === "delivery" || command.kind === "retry") {
@@ -36,6 +51,15 @@ export function applyMessaging({ world, site, command, actor, resource, patientI
     if (command.kind === "retry" && previous !== "failed") return fail("Only failed messages can be retried", 409);
     if (command.kind === "delivery" && previous !== "queued") return fail("Only queued messages can receive a delivery outcome", 409);
     entry.delivery.push({ status: command.kind === "retry" ? "queued" : command.status, at: world.now, actor });
+    if (command.kind === "delivery" && command.status === "delivered" && resource.status === "open" && doc.allowReply) {
+      const config = doc.autoReply;
+      const step = config?.steps[config.nextStep];
+      if (config && step) {
+        const pending = { entryId: entry.id, stepIndex: config.nextStep++, at: world.now + step.delayMinutes * 60000 };
+        config.pending.push(pending);
+        world.scheduled.push({ ...pending, type: "patient-auto-reply", resourceId: resource.id });
+      }
+    }
   } else {
     if (resource.status !== "open") return fail("Reopen the conversation before adding messages", 409);
     const base = { id: `${resource.id}-${doc.entries.length + 1}`, body: command.body, at: world.now, actor };
@@ -45,6 +69,7 @@ export function applyMessaging({ world, site, command, actor, resource, patientI
       if (!doc.allowReply) return fail("Replies are disabled for this conversation", 409);
       const last = [...doc.entries].reverse().find(entry => entry.direction === "outgoing" && entry.delivery.at(-1)?.status === "delivered");
       if (!last || last.direction !== "outgoing") return fail("Wait for a delivered message before replying", 409);
+      cancelPendingReplies(world, resource.id, doc);
       doc.entries.push({ ...base, direction: "incoming", channel: last.channel });
     }
   }
@@ -52,5 +77,30 @@ export function applyMessaging({ world, site, command, actor, resource, patientI
 }
 export function patientConversation(resource: Resource): Resource {
   const doc = conversationSchema.parse(resource.data);
-  return { ...resource, data: { ...doc, assignee: "", entries: doc.entries.filter(entry => entry.direction === "incoming" || (entry.direction === "outgoing" && entry.delivery.at(-1)?.status === "delivered")) }, provenance: undefined };
+  return { ...resource, data: { allowReply: doc.allowReply, assignee: "", entries: doc.entries.filter(entry => entry.direction === "incoming" || (entry.direction === "outgoing" && entry.delivery.at(-1)?.status === "delivered")) }, provenance: undefined };
+}
+
+function cancelPendingReplies(world: World, resourceId: string, doc: Conversation) {
+  world.scheduled = world.scheduled.filter(job => job.type !== "patient-auto-reply" || job.resourceId !== resourceId);
+  if (doc.autoReply) doc.autoReply.pending = [];
+}
+export function applyScheduledPatientReply(world: World, resource: Resource | undefined, job: Extract<Scheduled, { type: "patient-auto-reply" }>): RecordActor | undefined {
+  if (!resource || resource.kind !== "conversation") return;
+  const doc = conversationSchema.parse(resource.data);
+  const config = doc.autoReply;
+  const pending = config?.pending.find(item => item.entryId === job.entryId && item.stepIndex === job.stepIndex && item.at === job.at);
+  if (!config || !pending) return;
+  config.pending = config.pending.filter(item => item !== pending);
+  const step = config.steps[pending.stepIndex];
+  const outgoing = doc.entries.find(entry => entry.id === pending.entryId);
+  const patient = world.patients.find(item => item.id === resource.patientId);
+  if (resource.status !== "open" || !doc.allowReply || !step || !patient || outgoing?.direction !== "outgoing" || outgoing.delivery.at(-1)?.status !== "delivered") {
+    resource.data = doc;
+    return;
+  }
+  const actor = { kind: "simulation", name: patient.name } satisfies RecordActor;
+  doc.entries.push({ id: `${resource.id}-${doc.entries.length + 1}`, direction: "incoming", body: step.body, channel: outgoing.channel, at: world.now, actor });
+  resource.data = doc;
+  resource.version++;
+  return actor;
 }

@@ -29,21 +29,111 @@ Conversations can be assigned to a named clinician or team, supplemented with in
 
 **Templates** supports creating, editing and archiving reusable SMS and email text. Applying a template copies its content into an editable composer; changing a template does not rewrite previously sent messages.
 
-## API
+## Send messages through the API
 
-Read practice conversations and templates with `GET /api/sites/gp/messaging-workspace`. Read one patient's delivered conversations with `GET /api/sites/patient/messaging-workspace?patientId=SIM-000001`. Both use the existing team key with GP scope.
+Open the **Messaging** group in the <a href="/docs/explorer/#/Messaging">API explorer</a>. Authorize with your team key. Both practice and patient operations require `gp` scope and stay inside your team's world. The key lets participants role-play synthetic patients; selecting a patient is not an identity sign-in.
 
-Post to `/api/sites/gp/actions` with `type: "messaging_action"` and a `messagingCommand`. Commands are discriminated by `kind`:
+Use these operations:
 
-- `create`: `subject`, `body`, `channel` (`sms` or `email`), `allowReply`; also supply top-level `patientId`.
-- `send`: `body`, `channel`.
-- `reply`: `body`; the patient route is `/api/sites/patient/actions` and requires the matching top-level `patientId`.
-- `note`: `body`.
-- `assign`: `assignee`; an empty value clears the assignment.
-- `complete` and `reopen`.
-- `delivery`: `entryId`, `status` (`delivered` or `failed`).
-- `retry`: `entryId`.
-- `save_template`: `title`, `body`, `channel`.
-- `archive_template`.
+| Operation | Purpose |
+| --- | --- |
+| `GET /api/sites/gp/messages` | Read practice conversations, optionally filtered by `patientId` |
+| `POST /api/sites/gp/messages` | Send as the practice or doctor, manage delivery, and configure patient scripts |
+| `GET /api/sites/patient/messages?patientId=SIM-000003` | Read one patient's visible conversations |
+| `POST /api/sites/patient/messages` | Start a patient conversation or reply as that patient |
+| `GET /api/messaging/reply-presets` | Retrieve editable administrative reply scripts without authentication |
 
-Existing resources require top-level `resourceId` and `expectedVersion`. Supply an `Idempotency-Key` header for safely retried requests. A stale version returns a conflict instead of overwriting another participant's changes. Patient messaging commands only accept `reply`; patient reads and responses omit internal notes and undelivered outgoing messages.
+List responses contain `items`, `total`, `offset`, `limit`, and `now`. The default page size is 100; the maximum `limit` is 500. Increase `offset` to retrieve further pages. Conversations retain storage order. Patient reads require `patientId` and exclude private notes, queued or failed outgoing messages, and script configuration.
+
+### Start as a patient
+
+Post this request to `/api/sites/patient/messages`:
+
+```json
+{
+	"patientId": "SIM-000003",
+	"command": {
+		"kind": "patient_create",
+		"subject": "Appointment request",
+		"body": "Could I arrange an afternoon appointment?",
+		"channel": "sms"
+	}
+}
+```
+
+The incoming conversation appears immediately in the practice inbox and patient app. Save the returned `id` and `version`.
+
+### Send as the practice or doctor
+
+To start a practice conversation, post to `/api/sites/gp/messages`:
+
+```json
+{
+	"patientId": "SIM-000003",
+	"command": {
+		"kind": "create",
+		"subject": "Appointment preference",
+		"body": "Would a morning or afternoon appointment suit you?",
+		"channel": "sms",
+		"allowReply": true
+	}
+}
+```
+
+To send another message in an existing conversation, use `command: {"kind": "send", "body": "Please confirm Tuesday.", "channel": "sms"}` with top-level `resourceId` and `expectedVersion`. The message is queued. Copy the outgoing entry's `id` from `data.entries`, then send a `delivery` command with that `entryId` and `status: "delivered"`.
+
+Practice messages have direction `outgoing`; patient messages have direction `incoming`. The authenticated team remains the audit actor, so the API cannot forge another participant's identity.
+
+### Enable scripted patient replies
+
+1. Retrieve `/api/messaging/reply-presets`. Choose appointment preference, acknowledgment, or collection availability. You can edit the returned text or supply your own synthetic administrative script.
+2. Before delivering the practice message, post a script to `/api/sites/gp/messages`. Replace the conversation ID and version below with the latest returned values.
+
+```json
+{
+	"resourceId": "REPLACE_WITH_CONVERSATION_ID",
+	"expectedVersion": 1,
+	"command": {
+		"kind": "configure_auto_reply",
+		"steps": [
+			{"body": "An afternoon appointment would suit me, thank you.", "delayMinutes": 2},
+			{"body": "Tuesday works for me.", "delayMinutes": 1}
+		]
+	}
+}
+```
+
+3. Use the new version to deliver the queued outgoing message:
+
+```json
+{
+	"resourceId": "REPLACE_WITH_CONVERSATION_ID",
+	"expectedVersion": 2,
+	"command": {
+		"kind": "delivery",
+		"entryId": "REPLACE_WITH_OUTGOING_ENTRY_ID",
+		"status": "delivered"
+	}
+}
+```
+
+4. Post `{"paused": true, "advanceMinutes": 2}` to `/api/clock`.
+5. Read the conversation again. The first scripted reply appears as an incoming message attributed to the synthetic patient. Use its updated version for further commands.
+
+Each successfully delivered practice message consumes one script step. The second step waits for another outgoing message to be delivered; it does not follow the first reply automatically. A script accepts up to 20 steps, each delayed by 0 through 10,080 simulation minutes. A zero-minute step runs on the next clock advance, including an advance of zero. Pausing the clock pauses replies. Scripts and pending replies persist in the team's world.
+
+Only open conversations with replies enabled accept a nonempty script. Failed delivery does not consume a step. Scripts stop when their steps run out. Multiple delivered messages can have separate pending replies. Each delay starts at that message's delivery, so shorter delays can produce replies before earlier scheduled ones.
+
+To disable automation, send `configure_auto_reply` with `steps: []`. Replacing a script cancels pending replies, resets its sequence, and applies only to future deliveries. Manually replying as the patient or completing the conversation also cancels pending replies. Those reserved steps remain consumed, including after reopening. Private notes and assignments do not cancel replies. No model or external SMS/email provider generates these responses.
+
+### Reply manually as the patient
+
+Post to `/api/sites/patient/messages` with the matching `patientId`, the conversation's `resourceId` and `expectedVersion`, and `command: {"kind": "reply", "body": "Tuesday afternoon works for me."}`. A reply requires an open conversation with replies enabled and a delivered practice message. The patient API rejects practice commands and a mismatched patient.
+
+### Retry and manage conversations
+
+Send an `Idempotency-Key` header when retrying the same request. Reuse its original body. A changed body with the same key returns `409`. Existing resources require the latest `expectedVersion`; stale updates also return `409`. Scheduled replies change the version, so refresh before the next update.
+
+The practice API also accepts `note`, `assign`, `complete`, `reopen`, `retry`, `save_template`, and `archive_template`. Their fields appear in the Explorer's `PracticeMessageRequest` schema. Templates remain in `GET /api/sites/gp/messaging-workspace` alongside conversations.
+
+Existing integrations can continue posting `type: "messaging_action"` with `messagingCommand` to `/api/sites/gp/actions` or `/api/sites/patient/actions`. The same role restrictions, versions, scripts, and retry handling apply.
