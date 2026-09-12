@@ -15,8 +15,11 @@ async function json(origin, path, status, options) {
 async function websocket(origin, apiKey, denied = false) {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(origin.replace(/^http/, "ws") + "/api/telephony/live", { origin: denied ? hostile : origin, handshakeTimeout: 15000 });
+    let settled = false;
     const timer = setTimeout(() => finish(new Error("WebSocket probe timed out")), 20000);
     function finish(error) {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       socket.terminate();
       error ? reject(error) : resolve();
@@ -25,6 +28,7 @@ async function websocket(origin, apiKey, denied = false) {
       if (denied && /403/.test(error.message)) finish();
       else finish(new Error("WebSocket connection failed"));
     });
+    socket.once("close", (code, reason) => finish(new Error(`WebSocket closed before probe completed (${code}): ${reason.toString()}`)));
     socket.once("open", () => {
       if (denied) return finish(new Error("Untrusted WebSocket Origin was accepted"));
       socket.send(JSON.stringify({ kind: "authenticate", apiKey, name: "Origin verification" }));
@@ -65,16 +69,6 @@ for (const [index, origin] of origins.entries()) {
   const sessionCookie = session.headers.get("set-cookie") ?? "";
   assert.ok(sessionCookie.includes("sim_session="));
   if (origin.startsWith("https:")) assert.ok(sessionCookie.includes("Secure"));
-  await websocket(origin, team.apiKey);
-  console.log(`PASS ${origin} browser signup, session and authenticated telephony snapshot, team ${teamName}`);
-
-  assert.equal((await request(origin, "/api/keys", {
-    method: "POST", headers: { Origin: hostile, "Content-Type": "application/json" },
-    body: JSON.stringify({ teamName: `Rejected ${run}` }),
-  })).status, 403);
-  await websocket(origin, "", true);
-  console.log(`PASS ${origin} rejects untrusted HTTP and WebSocket origins`);
-
   const verifier = randomBytes(32).toString("base64url");
   const state = randomBytes(24).toString("base64url");
   const nonce = randomBytes(24).toString("base64url");
@@ -108,5 +102,16 @@ for (const [index, origin] of origins.entries()) {
   const identity = await json(origin, "/cis2/userinfo", 200, { headers: { Authorization: "Bearer " + tokens.access_token } });
   assert.equal(identity.name, "Dr Maya Bennett");
   console.log(`PASS ${origin} CIS2 browser consent, callback, signed issuer and staff identity`);
+
+  await websocket(origin, team.apiKey);
+  console.log(`PASS ${origin} browser signup, session and authenticated telephony snapshot, team ${teamName}`);
+
+  assert.equal((await request(origin, "/api/keys", {
+    method: "POST", headers: { Origin: hostile, "Content-Type": "application/json" },
+    body: JSON.stringify({ teamName: `Rejected ${run}` }),
+  })).status, 403);
+  await websocket(origin, "", true);
+  console.log(`PASS ${origin} rejects untrusted HTTP and WebSocket origins`);
+
 }
 console.log(`PASS all ${origins.length} configured origins`);

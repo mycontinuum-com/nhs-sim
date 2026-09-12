@@ -56,6 +56,7 @@ export function attachTelephony(server: Server, store: Store, origins: PublicOri
             if (member) throw new Error("Already connected");
             const key = store.authenticate(message.apiKey);
             if (!key || !key.scopes.includes("gp")) { send(socket, { kind: "error", message: "A GP team key is required" }); socket.close(1008, "A GP team key is required"); return; }
+            clearTimeout(timeout);
             const identity: Member = { id: randomUUID(), name: message.name, available: true, socket, apiKey: message.apiKey, alive: true, requests: new Map() };
             member = identity;
             const joined = await store.run(() => {
@@ -72,7 +73,6 @@ export function attachTelephony(server: Server, store: Store, origins: PublicOri
               return capture(room);
             }, key.world);
             if (!room) throw new Error("Unable to connect");
-            clearTimeout(timeout);
             broadcast(room, joined);
             return;
           }
