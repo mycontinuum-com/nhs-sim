@@ -29,6 +29,7 @@ function patientResource(patient: Patient, origin: string) {
   return { resourceType: "Patient", id: patient.id, meta: meta(), active: true,
     identifier: [{ use: "usual", system: simulationIdentifierSystem, value: patient.id }],
     name: [nameParts(patient)], birthDate: patient.birthDate,
+    ...(patient.death ? { deceasedDateTime: patient.death.date } : {}),
     address: [{ use: "home", type: "physical", line: [`${1 + ordinal % 180} ${streets[ordinal % streets.length]}`], city: "Northbank", country: "GB" }],
     telecom: [{ system: "email", value: `${patient.id.toLowerCase()}@patients.example`, use: "home" }],
     generalPractitioner: [{ reference: `${origin}/api/nhs/ods/Organization/SIM-RIVERSIDE`, display: "Riverside Practice" }],

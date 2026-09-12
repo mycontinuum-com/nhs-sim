@@ -1310,6 +1310,8 @@ export class Engine {
     const flowIndices: number[] = [];
     const activeAttendances = new Set<string>();
     const deviceIndices = new Map<string, number>();
+    const livingPatients = w.scheduled.some(job => job.at <= end)
+      ? (original(w)?.patients ?? w.patients).filter(patient => !patient.death) : [];
     if (w.scheduled.some((job) => job.at <= end)) {
       resourceSnapshot(w).forEach((record, index) => {
         if (targets.has(record.id)) targetIndices.set(record.id, index);
@@ -1333,7 +1335,7 @@ export class Engine {
       const r = resourceIndex < 0 ? undefined : w.resources[resourceIndex];
       const enabled = (id: string) => w.agents.some((a) => a.id === id && a.enabled);
       if (job.type === "acute") {
-        if (enabled("acute-flow")) {
+        if (enabled("acute-flow") && livingPatients.length) {
           const capacity = Math.floor(this.staffing(w, flowIndices.map((index) => w.resources[index])).staffedSpaces / 2);
           const queue = flowIndices
             .filter((index) => {
@@ -1357,7 +1359,7 @@ export class Engine {
           }
           for (let i = 0; i < 3; i++) {
             w.rng = (Math.imul(1664525, w.rng) + 1013904223) >>> 0;
-            const patient = w.patients[w.rng % w.patients.length];
+            const patient = livingPatients[w.rng % livingPatients.length];
             const item = this.add(
               w,
               i === 0 ? "handover" : "hospital-attendance",
@@ -1404,9 +1406,9 @@ export class Engine {
         w.scheduled.push({ at: w.now + 60 * minute, type: "bed-pressure" });
       }
       if (job.type === "screening") {
-        if (enabled("prevention-recall")) {
+        if (enabled("prevention-recall") && livingPatients.length) {
           w.rng = (Math.imul(1664525, w.rng) + 1013904223) >>> 0;
-          const patient = w.patients[w.rng % w.patients.length];
+          const patient = livingPatients[w.rng % livingPatients.length];
           const item = this.add(w, "screening", "Population recall due", "population", patient.id, {
             channel: patient.needs.includes("Offline contact") ? "letter" : "app",
             completed: false,
@@ -1417,7 +1419,7 @@ export class Engine {
         w.scheduled.push({ at: w.now + 24 * 60 * minute, type: "screening" });
       }
       if (job.type === "service-demand") {
-        if (enabled("service-demand")) {
+        if (enabled("service-demand") && livingPatients.length) {
           const services: [SiteId, string, string][] = [
             ["mental", "mental-health-plan", "New community mental-health review"],
             ["maternity", "maternity-episode", "New maternity contact awaiting triage"],
@@ -1428,7 +1430,7 @@ export class Engine {
           ];
           w.rng = (Math.imul(1664525, w.rng) + 1013904223) >>> 0;
           const [owner, kind, title] = services[w.rng % services.length];
-          const patient = w.patients[(w.rng >>> 4) % w.patients.length];
+          const patient = livingPatients[(w.rng >>> 4) % livingPatients.length];
           const item = this.add(w, kind, title, owner, patient.id, { generated: true });
           item.visibleTo = [owner, "patient"];
           this.event(w, "service.requested", "service-demand", item.title, item);
@@ -1436,9 +1438,9 @@ export class Engine {
         w.scheduled.push({ at: w.now + 30 * minute, type: "service-demand" });
       }
       if (job.type === "arrival") {
-        if (enabled("patient-demand")) {
+        if (enabled("patient-demand") && livingPatients.length) {
           w.rng = (Math.imul(1664525, w.rng) + 1013904223) >>> 0;
-          const p = w.patients[w.rng % w.patients.length];
+          const p = livingPatients[w.rng % livingPatients.length];
           const x = this.add(w, "request", "New synthetic patient request", "triage", p.id);
           x.visibleTo = ["triage", "gp", "patient"];
           this.event(w, "request.arrived", "patient-demand", x.title, x);
@@ -1446,7 +1448,7 @@ export class Engine {
         w.scheduled.push({ at: w.now + 15 * minute, type: "arrival" });
       }
       if (job.type === "observation") {
-        if (enabled("home-monitor")) {
+        if (enabled("home-monitor") && livingPatients.some(patient => patient.id === job.patientId)) {
           const x = this.add(
             w,
             "observation",
@@ -1524,14 +1526,16 @@ export class Engine {
   fault(id: string, name: string, enabled: boolean) {
     return this.transaction(id, (w) => {
       w.faults[name] = enabled;
-      if (name === "demand-surge" && enabled)
+      const livingPatients = enabled && (name === "demand-surge" || name === "winter-pressure")
+        ? (original(w)?.patients ?? w.patients).filter(patient => !patient.death) : [];
+      if (name === "demand-surge" && enabled && livingPatients.length)
         for (let i = 0; i < 20; i++) {
           const item = this.add(
             w,
             "request",
             "Demand surge: new patient request",
             "triage",
-            w.patients[i % w.patients.length].id,
+            livingPatients[i % livingPatients.length].id,
           );
           item.visibleTo = ["triage", "gp", "patient"];
           this.event(w, "request.arrived", "scenario", item.title, item);
@@ -1548,9 +1552,9 @@ export class Engine {
           beds.data.total = enabled ? 1 : 2;
           beds.version++;
         }
-        if (enabled)
+        if (enabled && livingPatients.length)
           for (let i = 0; i < 8; i++) {
-            const patientId = w.patients[(i + 12) % w.patients.length].id;
+            const patientId = livingPatients[(i + 12) % livingPatients.length].id;
             if (resourceSnapshot(w).some((r) => r.kind === "hospital-attendance" && r.patientId === patientId && r.status !== "discharged")) continue;
             const item = this.add(
               w,

@@ -1,4 +1,4 @@
-import { current, isDraft } from "immer";
+import { current, isDraft, original } from "immer";
 import type { Resource, World } from "../../contracts/src/index.ts";
 import { callDataSchema, type TelephonyCall, type TelephonyCommand, type TelephonyMember } from "../../contracts/src/telephony.ts";
 import { SimError } from "./index.ts";
@@ -21,12 +21,14 @@ export function telephonyCalls(world: World): TelephonyCall[] {
   });
 }
 export function replenishCalls(world: World, now: number): void {
-  if (!world.patients.length) return;
   const calls = telephonyCalls(world);
   let waiting = calls.filter(c => c.state.kind === "waiting").length;
+  if (waiting >= 8) return;
+  const patients = (isDraft(world) ? original(world)!.patients : world.patients).filter(patient => !patient.death);
+  if (!patients.length) return;
   while (waiting < 8) {
     const index = world.counters.telephonySequence ?? 0;
-    const patient = world.patients[index % world.patients.length];
+    const patient = patients[index % patients.length];
     const [reason, script] = reasons[index % reasons.length];
     const id = `call-${world.id}-${++world.nextId}`;
     world.resources.push({ id, patientId: patient.id, kind: "telephone-call", owner: "gp", visibleTo: ["gp"], title: reason, status: "waiting", priority: "routine", createdAt: now, version: 1, data: { patientName: patient.name, phone: `07700 900${String(index % 1000).padStart(3, "0")}`, reason, script: `Hello, my name is ${patient.name}. ${script}`, voiceSeed: index % 12, state: { kind: "waiting", queuedAt: now } } });

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { setTimeout } from "node:timers/promises";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { practiceApps } from "../packages/contracts/src/practice-apps.ts";
+import { verifyMortality } from "./verify-mortality.mjs";
 import { verifySecondaryCare } from "./verify-secondary-care.mjs";
 const base = process.env.TEST_ORIGIN ?? "http://localhost:8080";
 const call = async (path, options = {}) => {
@@ -121,6 +122,7 @@ const headers = {
   "Content-Type": "application/json",
 };
 await verifySecondaryCare(base, issued.data, otherTeam.data.apiKey);
+await verifyMortality(base, issued.data);
 for (const collection of ["devices", "readings"]) {
   const path = `/api/sites/wearables/${collection}?patient=SIM-000006`;
   assert.equal((await call(path)).status, 401, "wearable data requires authentication");

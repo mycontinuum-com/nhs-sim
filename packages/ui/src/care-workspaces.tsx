@@ -1,3 +1,4 @@
+import { DeathStatus } from "./death-status.tsx";
 import { ProductBrand } from "./product-brand.tsx";
 import { RecordAttribution } from "./record-attribution.tsx";
 import React, { useState } from "react";
@@ -62,6 +63,7 @@ function PersonContext({ patient }: { patient?: Patient }) {
           <p className="care-muted">
             {patient.id} · Born {date(patient.birthDate)}
           </p>
+          <DeathStatus patient={patient} />
           <h4>Recorded needs</h4>
           <ul>
             {patient.needs.map((need) => (

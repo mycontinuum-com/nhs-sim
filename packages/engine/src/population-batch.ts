@@ -1,3 +1,4 @@
+import { syntheticDeath } from "./mortality.ts";
 import { createGenomeRecord } from "./genomics.ts";
 import { attributeSyntheticRecord } from "./synthetic-attribution.ts";
 import { generateMedicationHistory, generateAllergyHistory } from "./medication-history.ts";
@@ -364,6 +365,7 @@ export function generatePopulationBatch(input: BatchInput): {
       goals: [life.goal],
       synthetic: true,
     };
+    patient.death = syntheticDeath(patient, input.now);
     patients.push(patient);
     resources.push(createGenomeRecord(patient.id, input.now));
     const historySpan = Math.max(0, Math.min(input.now - birth, 1460 * day));

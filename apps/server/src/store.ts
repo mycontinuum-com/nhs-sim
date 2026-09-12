@@ -1,4 +1,5 @@
 import { seedGenomeRecords } from "../../../packages/engine/src/genomics.ts";
+import { migrateMortality } from "./mortality-migration.ts";
 import { migrateGenomicRecords } from "./genomic-migration.ts";
 import { initializeOperatorAudit } from './operator.ts';
 import type { OperatorAllTeamIncident, OperatorBulkDeletion, OperatorDeletion, OperatorSession } from '../../../packages/contracts/src/operator.ts';
@@ -60,6 +61,7 @@ export class Store {
         await this.persistence.write(client, null, this.engine.state);
       }
       await migrateGenomicRecords(client);
+      await migrateMortality(client);
       await migrateMedicationHistory(client);
       await migrateRecordAttribution(client);
       const loaded = await this.persistence.load(client);
