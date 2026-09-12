@@ -139,3 +139,53 @@ test("concurrent first resource reads persist one blood seed and retain it after
     await admin.end();
   }
 });
+
+test("cached resource pages stay independent and refresh after changes and rollback", async () => {
+  const store = fixture([resource("first"), resource("second"), resource("third")]);
+  try {
+    const first = await store.readResources("default", "gp", undefined, 0, 2);
+    first.resources.pop();
+    assert.deepEqual((await store.readResources("default", "gp", undefined, 1, 2)).resources.map(row => row.id), ["second", "third"]);
+    assert.deepEqual((await store.readResources("default", "gp", undefined, 0, 2)).resources.map(row => row.id), ["first", "second"]);
+    await assert.rejects(store.run(async () => {
+      store.engine.transaction("default", world => { world.resources[0].visibleTo = ["hospital"]; });
+      assert.deepEqual((await store.readResources("default", "gp")).resources.map(row => row.id), ["second", "third"]);
+      throw new Error("Restore original resources");
+    }), /Restore original/);
+    assert.deepEqual((await store.readResources("default", "gp")).resources.map(row => row.id), ["first", "second", "third"]);
+    store.engine.transaction("default", world => { world.resources.splice(1, 1); });
+    assert.deepEqual((await store.readResources("default", "gp")).resources.map(row => row.id), ["first", "third"]);
+    for (let i = 0; i < 10; i++) await store.readResources("default", "gp", undefined, 0, 1, "kind-" + i);
+    assert.equal((await store.readResources("default", "gp")).resourceTotal, 2);
+  } finally { await store.close(); }
+});
+
+test("staffing summaries refresh for draft edits, replacement and rollback without sharing mutable results", async () => {
+  const store = fixture([
+    resource("doctor", { kind: "staff", data: { role: "doctor", allocated: true } }),
+    resource("nurse", { kind: "staff", data: { role: "nurse", allocated: true } }),
+    resource("waiting", { kind: "hospital-attendance", status: "waiting" }),
+    resource("unallocated", { kind: "staff", data: { role: "doctor", allocated: false } }),
+  ]);
+  const original = { doctors: 1, nurses: 1, staffedSpaces: 2, waiting: 1 };
+  const changed = { doctors: 0, nurses: 1, staffedSpaces: 0, waiting: 0 };
+  try {
+    const result = store.engine.staffing(store.engine.require("default"));
+    assert.deepEqual(result, original);
+    result.doctors = 99;
+    assert.deepEqual(store.engine.staffing(store.engine.require("default")), original);
+    await assert.rejects(store.run(() => {
+      store.engine.transaction("default", world => {
+        assert.deepEqual(store.engine.staffing(world), original);
+        world.resources[0].status = "unavailable";
+        world.resources[2].status = "completed";
+        assert.deepEqual(store.engine.staffing(world), changed);
+      });
+      assert.deepEqual(store.engine.staffing(store.engine.require("default")), changed);
+      throw new Error("Restore staffing");
+    }), /Restore staffing/);
+    assert.deepEqual(store.engine.staffing(store.engine.require("default")), original);
+    const world = store.engine.require("default");
+    assert.deepEqual(store.engine.staffing(world, [world.resources[0]]), { doctors: 1, nurses: 0, staffedSpaces: 0, waiting: 0 });
+  } finally { await store.close(); }
+});

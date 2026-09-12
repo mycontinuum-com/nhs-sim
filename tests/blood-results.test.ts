@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Engine } from "../packages/engine/src/index.ts";
 import { bloodResultSchema } from "../packages/contracts/src/blood-results.ts";
-import { seedBloodResults, upgradeBloodResultWorld } from "../packages/engine/src/blood-results.ts";
+import { seedBloodResults, seedPatientBloodResults, upgradeBloodResultWorld } from "../packages/engine/src/blood-results.ts";
 
 function unseededWorld() {
   const initial = new Engine().require("default");
@@ -117,4 +117,28 @@ test("A patient added after cohort seeding still receives their own blood histor
   world.patients.push({ ...template, id: "SIM-NEW-PATIENT" });
   seedPatientBloodResults(world, "SIM-NEW-PATIENT");
   assert.equal(world.resources.filter(resource => resource.patientId === "SIM-NEW-PATIENT").length, 36);
+});
+
+test("Patient blood seeding sees additions and edited reports in the same transaction", () => {
+  const engine = new Engine();
+  const patient = { ...engine.require("default").patients[0], id: "SIM-DRAFT-PATIENT" };
+  const sample: ReturnType<Engine["require"]> = { ...engine.require("default"), patients: [patient], resources: [], counters: {} };
+  seedBloodResults(sample);
+  const report = sample.resources[0];
+  assert.ok(report);
+  engine.transaction("default", world => {
+    world.patients.push(patient);
+    world.resources.push(report);
+    const pending = world.resources[world.resources.length - 1];
+    pending.title = "Reviewed during this transaction";
+    pending.data.reviewed = true;
+    seedPatientBloodResults(world, patient.id);
+    seedPatientBloodResults(world, patient.id);
+  });
+  const reports = engine.require("default").resources.filter(resource => resource.patientId === patient.id);
+  assert.equal(reports.length, 36);
+  assert.equal(new Set(reports.map(resource => resource.id)).size, 36);
+  assert.equal(reports.find(resource => resource.id === report.id)?.title, "Reviewed during this transaction");
+  assert.equal(reports.find(resource => resource.id === report.id)?.data.reviewed, true);
+  assert.equal(engine.require("default").counters[`bloodPatient:${patient.id}`], 1);
 });

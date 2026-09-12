@@ -20,7 +20,7 @@ export function changedRows<T extends { id: string }>(
   after: readonly T[],
 ): { upserts: T[]; deleted: string[] } {
   if (before === after) return { upserts: [], deleted: [] };
-  if (before.length === after.length && before.every((row, index) => row.id === after[index]?.id))
+  if (before.length <= after.length && before.every((row, index) => row.id === after[index]?.id))
     return { upserts: after.filter((row, index) => row !== before[index]), deleted: [] };
   const previous = new Map(before.map((row) => [row.id, row])),
     present = new Set(after.map((row) => row.id));
@@ -28,6 +28,14 @@ export function changedRows<T extends { id: string }>(
     upserts: after.filter((row) => row !== previous.get(row.id)),
     deleted: before.filter((row) => !present.has(row.id)).map((row) => row.id),
   };
+}
+function indexedRows<T extends { id: string }>(values: readonly T[], upserts: readonly T[]) {
+  const changed = new Set(upserts);
+  const indexed: { id: string; payload: T; ordinal: number }[] = [];
+  values.forEach((payload, ordinal) => {
+    if (changed.has(payload)) indexed.push({ id: payload.id, payload, ordinal });
+  });
+  return indexed;
 }
 const schema = `
 CREATE TABLE IF NOT EXISTS simulation_storage (id integer PRIMARY KEY CHECK(id=1), schema_version integer NOT NULL);
@@ -254,19 +262,13 @@ export class RowPersistence {
         const diff = changedRows<Patient | Resource>(oldValues, newValues);
         if (diff.upserts.length) pendingFreeze.push(diff.upserts);
         if (diff.upserts.length || diff.deleted.length) {
-          const ordinals = new Map(newValues.map((value, index) => [value.id, index]));
           await rows(
             client,
             table,
             "world_id",
             id,
             [
-              ...diff.upserts.map((payload) => ({
-                id: payload.id,
-                payload,
-                ordinal: ordinals.get(payload.id),
-                deleted: false,
-              })),
+              ...indexedRows(newValues, diff.upserts).map(row => ({ ...row, deleted: false })),
               ...diff.deleted.map((deleted) => ({
                 id: deleted,
                 payload: null,
@@ -282,17 +284,12 @@ export class RowPersistence {
         events = after.events[id] ?? [];
       const eventDiff = changedRows(oldEvents, events);
       if (eventDiff.upserts.length) {
-        const ordinals = new Map(events.map((event, index) => [event.id, index]));
         await rows(
           client,
           "world_events",
           "world_id",
           id,
-          eventDiff.upserts.map((payload) => ({
-            id: payload.id,
-            payload,
-            ordinal: ordinals.get(payload.id),
-          })),
+          indexedRows(events, eventDiff.upserts),
         );
       }
       if (eventDiff.deleted.length)

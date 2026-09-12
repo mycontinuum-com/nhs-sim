@@ -1,5 +1,5 @@
 import type pg from 'pg';
-import type { Resource } from '../../../packages/contracts/src/index.ts';
+import type { Patient, Resource } from '../../../packages/contracts/src/index.ts';
 import { catalogue } from '../../../packages/nhs-mocks/src/index.ts';
 import { z } from 'zod';
 import type { Store } from './store.ts';
@@ -9,6 +9,21 @@ import { SimError } from '../../../packages/engine/src/index.ts';
 
 const retentionDays = 7;
 const maxRequestsPerWorld = 2000;
+const patientPositions = new WeakMap<Patient[], Map<string, number>>();
+export function auditPatientIds(patients: Patient[], references: Iterable<string | null>): string[] {
+  let positions = patientPositions.get(patients);
+  if (!positions) {
+    positions = new Map(patients.map((patient, index) => [patient.id, index]));
+    patientPositions.set(patients, positions);
+  }
+  const matches: number[] = [];
+  for (const reference of new Set(references)) {
+    if (reference === null) continue;
+    const index = positions.get(reference);
+    if (index !== undefined) matches.push(index);
+  }
+  return matches.sort((a, b) => a - b).map(index => patients[index].id);
+}
 export async function initializeOperatorAudit(client: pg.PoolClient) {
   await client.query(`CREATE TABLE IF NOT EXISTS operator_audit_metadata (id integer PRIMARY KEY CHECK(id=1), started_at timestamptz NOT NULL DEFAULT now());
     INSERT INTO operator_audit_metadata(id) VALUES(1) ON CONFLICT DO NOTHING;

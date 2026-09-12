@@ -1,7 +1,7 @@
 import { PublicOrigins } from "./origins.ts";
 import { attachTelephony } from "./telephony.ts";
 import { practiceApps } from "../../../packages/contracts/src/practice-apps.ts";
-import { auditPath, operatorTeams, operatorActivity, recordTeamRequest, pruneTeamRequests } from './operator.ts';
+import { auditPath, auditPatientIds, operatorTeams, operatorActivity, recordTeamRequest, pruneTeamRequests } from './operator.ts';
 import { teamNameSchema } from "../../../packages/contracts/src/team.ts";
 import { patientConversation } from "../../../packages/engine/src/messaging.ts";
 import { freeze, original } from "immer";
@@ -114,7 +114,7 @@ const server = createServer(async (req, res) => {
         const resource = current.resources.find(item => item.id === reference);
         if (resource?.patientId) references.add(resource.patientId);
       }
-      void recordTeamRequest(store, {team:key.team,world:key.world,method,path:auditPath(path),status:res.statusCode,durationMs:Math.round(performance.now()-started),patientIds:current.patients.filter(patient => references.has(patient.id)).map(patient => patient.id)})
+      void recordTeamRequest(store, {team:key.team,world:key.world,method,path:auditPath(path),status:res.statusCode,durationMs:Math.round(performance.now()-started),patientIds:auditPatientIds(current.patients, references)})
         .catch(() => console.error("Team request audit persistence failed"));
     });
     if (path === "/control/" && url.searchParams.has("challenges") && (method === "GET" || method === "HEAD")) {
@@ -130,7 +130,7 @@ const server = createServer(async (req, res) => {
     )
       throw new SimError("Origin not allowed", 403);
     if (path === "/healthz") {
-      await store.pool.query("SELECT 1");
+      await store.health();
       return send(res, 200, { ok: true, database: "postgresql", mode: "synthetic" });
     }
     if (path === "/api/openapi.json" || path === "/openapi.json") {

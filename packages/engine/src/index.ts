@@ -492,7 +492,10 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
   }
   return w;
 }
+type StaffingSummary = { doctors: number; nurses: number; staffedSpaces: number; waiting: number };
+
 export class Engine {
+  private staffingReads = new WeakMap<Resource[], StaffingSummary>();
   state: {
     worlds: Record<string, World>;
     events: Record<string, SimEvent[]>;
@@ -1254,20 +1257,21 @@ export class Engine {
       return r!;
     });
   }
-  staffing(w: World, resources = resourceSnapshot(w)) {
-    const on = resources.filter(
-      (r) => r.kind === "staff" && r.status === "available" && r.data.allocated,
-    );
-    const doctors = on.filter((r) => r.data.role === "doctor").length;
-    const nurses = on.filter((r) => r.data.role === "nurse").length;
-    return {
-      doctors,
-      nurses,
-      staffedSpaces: Math.min(doctors * 2, nurses * 2),
-      waiting: resources.filter(
-        (r) => ["encounter", "handover", "hospital-attendance"].includes(r.kind) && r.status === "waiting",
-      ).length,
-    };
+  staffing(w: World, resources = resourceSnapshot(w)): StaffingSummary {
+    const cacheable = !isDraft(w) && resources === w.resources;
+    const cached = cacheable ? this.staffingReads.get(resources) : undefined;
+    if (cached) return { ...cached };
+    const result: StaffingSummary = { doctors: 0, nurses: 0, staffedSpaces: 0, waiting: 0 };
+    for (const resource of resources) {
+      if (resource.kind === "staff" && resource.status === "available" && resource.data.allocated) {
+        if (resource.data.role === "doctor") result.doctors++;
+        if (resource.data.role === "nurse") result.nurses++;
+      }
+      if ((resource.kind === "encounter" || resource.kind === "handover" || resource.kind === "hospital-attendance") && resource.status === "waiting") result.waiting++;
+    }
+    result.staffedSpaces = Math.min(result.doctors * 2, result.nurses * 2);
+    if (cacheable) this.staffingReads.set(resources, result);
+    return { ...result };
   }
   clock(id: string, update: { paused?: boolean; speed?: number; advanceMinutes?: number }, actor?: string) {
     return this.transaction(id, (w) => {

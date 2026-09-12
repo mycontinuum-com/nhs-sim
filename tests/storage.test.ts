@@ -314,3 +314,67 @@ test(
     }
   },
 );
+
+test("row diffs support append with edits and retain deletion and reordered-edit behavior", () => {
+  const a = { id: "a", value: 1 }, b = { id: "b", value: 2 }, c = { id: "c", value: 3 };
+  const edited = { ...b, value: 20 };
+  assert.deepEqual(changedRows([a, b], [a, b, c]), { upserts: [c], deleted: [] });
+  assert.deepEqual(changedRows([a, b], [a, edited, c]), { upserts: [edited, c], deleted: [] });
+  assert.deepEqual(changedRows([a, b, c], [edited, c]), { upserts: [edited], deleted: ["a"] });
+  assert.deepEqual(changedRows([a, b], [edited, a, c]), { upserts: [edited, c], deleted: [] });
+  assert.deepEqual(changedRows([], [a]), { upserts: [a], deleted: [] });
+  assert.deepEqual(changedRows([a], []), { upserts: [], deleted: ["a"] });
+});
+
+test("persistence retains upsert ordinals for append, edit, reordered edit and deletion", { skip: !process.env.ROW_STORAGE_TEST_URL }, async () => {
+  const url = process.env.ROW_STORAGE_TEST_URL;
+  assert.ok(url);
+  const admin = new pg.Client({ connectionString: url });
+  await admin.connect();
+  const database = "nhssim_ordinals_" + Date.now();
+  const isolated = new URL(url); isolated.pathname = "/" + database;
+  let store: Store | undefined;
+  try {
+    await admin.query('CREATE DATABASE "' + database + '"');
+    store = new Store(isolated.toString());
+    await store.init();
+    const active = store;
+    const template = active.engine.require("default").resources[0];
+    assert.ok(template);
+    await active.run(() => {
+      active.engine.create("ordinals", 42, 8);
+      active.engine.transaction("ordinals", world => {
+        world.resources = ["a", "b", "c"].map(id => ({ ...template, id, title: id }));
+      });
+    }, "ordinals");
+    await active.run(() => active.engine.transaction("ordinals", world => {
+      world.resources[1].title = "Edited b";
+      world.resources.push({ ...template, id: "d", title: "Appended d" });
+      active.engine.event(world, "test.append", "Test", "First event");
+      active.engine.event(world, "test.append", "Test", "Second event");
+    }), "ordinals");
+    const appended = await active.pool.query("SELECT id,ordinal,payload->>'title' AS title FROM world_resources WHERE world_id='ordinals' AND NOT deleted ORDER BY ordinal");
+    assert.deepEqual(appended.rows, [{ id: "b", ordinal: 1, title: "Edited b" }, { id: "d", ordinal: 3, title: "Appended d" }]);
+    const events = await active.pool.query("SELECT ordinal,payload->>'detail' AS detail FROM world_events WHERE world_id='ordinals' ORDER BY ordinal");
+    assert.deepEqual(events.rows, [{ ordinal: 0, detail: "First event" }, { ordinal: 1, detail: "Second event" }]);
+    await active.run(() => active.engine.transaction("ordinals", world => {
+      const b = world.resources[1], c = world.resources[2], d = world.resources[3];
+      b.title = "Moved and edited b";
+      world.resources = [b, c, d];
+    }), "ordinals");
+    const changed = await active.pool.query("SELECT id,ordinal,payload->>'title' AS title,deleted FROM world_resources WHERE world_id='ordinals' ORDER BY id");
+    assert.deepEqual(changed.rows, [
+      { id: "a", ordinal: 0, title: null, deleted: true },
+      { id: "b", ordinal: 0, title: "Moved and edited b", deleted: false },
+      { id: "d", ordinal: 3, title: "Appended d", deleted: false },
+    ]);
+    await store.close();
+    store = new Store(isolated.toString());
+    await store.init();
+    assert.deepEqual(store.engine.require("ordinals").resources.map(resource => resource.title), ["Moved and edited b", "c", "Appended d"]);
+  } finally {
+    await store?.close();
+    await admin.query('DROP DATABASE IF EXISTS "' + database + '" WITH (FORCE)');
+    await admin.end();
+  }
+});

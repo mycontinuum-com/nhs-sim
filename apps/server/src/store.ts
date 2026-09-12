@@ -24,6 +24,7 @@ export class Store {
   keys: TeamKey[] = [];
   private tail: Promise<unknown> = Promise.resolve();
   private persistence = new RowPersistence();
+  private resourceReads = new WeakMap<Resource[], Map<string, Resource[]>>();
   lockClient?: pg.PoolClient;
   constructor(url: string) {
     this.pool = new pg.Pool({ connectionString: url, max: 4 });
@@ -336,28 +337,49 @@ export class Store {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(start))
         throw new SimError("Use a calendar date in YYYY-MM-DD format");
     }
-    const resources: Resource[] = [];
-    let resourceTotal = 0;
-    for (const resource of this.engine.require(world).resources) {
-      if (resource.kind === "genome-record" && site !== "hospital" && site !== "control") continue;
-      if (site !== "control" && !resource.visibleTo.includes(site)) continue;
-      if (patient && resource.patientId != null && resource.patientId !== patient) continue;
-      if (kind && resource.kind !== kind) continue;
-      if (start !== undefined) {
-        const startsAt = resource.data.startsAt;
-        const occursAt = (typeof startsAt === "number" || typeof startsAt === "string") && /^\d+$/.test(String(startsAt))
-          ? Number(startsAt) : resource.createdAt;
-        if (occursAt < start || occursAt >= start + 86400000) continue;
+    const source = this.engine.require(world).resources;
+    const key = JSON.stringify([site, patient || null, kind || null, date || null]);
+    let queries = this.resourceReads.get(source);
+    let matches = queries?.get(key);
+    if (!matches) {
+      matches = [];
+      for (const resource of source) {
+        if (resource.kind === "genome-record" && site !== "hospital" && site !== "control") continue;
+        if (site !== "control" && !resource.visibleTo.includes(site)) continue;
+        if (patient && resource.patientId != null && resource.patientId !== patient) continue;
+        if (kind && resource.kind !== kind) continue;
+        if (start !== undefined) {
+          const startsAt = resource.data.startsAt;
+          const occursAt = (typeof startsAt === "number" || typeof startsAt === "string") && /^\d+$/.test(String(startsAt))
+            ? Number(startsAt) : resource.createdAt;
+          if (occursAt < start || occursAt >= start + 86400000) continue;
+        }
+        matches.push(resource);
       }
-      if (resourceTotal >= offset && resources.length < limit) resources.push(resource);
-      resourceTotal++;
+      if (!queries) {
+        queries = new Map();
+        this.resourceReads.set(source, queries);
+      }
+      let references = matches.length;
+      for (const cached of queries.values()) references += cached.length;
+      for (const [oldest, cached] of queries) {
+        if (queries.size < 8 && references <= source.length) break;
+        queries.delete(oldest);
+        references -= cached.length;
+      }
+      queries.set(key, matches);
     }
     return {
-      resources,
-      resourceTotal,
+      resources: matches.slice(offset, offset + limit),
+      resourceTotal: matches.length,
       resourceOffset: offset,
       resourceLimit: limit,
     };
+  }
+  async health(): Promise<void> {
+    if (!this.lockClient) throw new Error("Store is not initialized");
+    const query = { text: "SELECT 1", query_timeout: 2000 };
+    await this.lockClient.query(query);
   }
   async close() {
     await this.tail;
