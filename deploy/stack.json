@@ -2,6 +2,11 @@
   "AWSTemplateFormatVersion": "2010-09-09",
   "Description": "NHS-SIM single-host hackathon deployment",
   "Parameters": {
+    "InstanceType": {
+      "Type": "String",
+      "Default": "t3.large",
+      "Description": "EC2 instance type compatible with the x86_64 AMI. Changing it interrupts this single-host service."
+    },
     "AvailabilityZone": {
       "Type": "AWS::EC2::AvailabilityZone::Name",
       "Default": "eu-west-2a"
@@ -551,7 +556,9 @@
         "ImageId": {
           "Ref": "AmiId"
         },
-        "InstanceType": "t3.large",
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
         "IamInstanceProfile": {
           "Ref": "HostProfile"
         },

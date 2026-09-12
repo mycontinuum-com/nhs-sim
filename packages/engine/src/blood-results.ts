@@ -1,3 +1,4 @@
+import { current, isDraft } from "immer";
 import type { World } from "../../contracts/src/index.ts";
 import { bloodPanels, type BloodAnalyte, type BloodResult } from "../../contracts/src/blood-results.ts";
 
@@ -82,11 +83,13 @@ export function upgradeBloodResultWorld(world: World): World {
 
 export function seedPatientBloodResults(world: World, patientId: string): void {
   if (world.counters[`bloodPatient:${patientId}`] === 1) return;
-  const patient = world.patients.find(item => item.id === patientId);
+  const patients = isDraft(world.patients) ? current(world.patients) : world.patients;
+  const patient = patients.find(item => item.id === patientId);
   if (!patient) return;
   const sample: World = { ...world, patients: [patient], resources: [], counters: {} };
   seedBloodResults(sample);
-  const ids = new Set(world.resources.filter(resource => resource.patientId === patientId).map(resource => resource.id));
+  const resources = isDraft(world.resources) ? current(world.resources) : world.resources;
+  const ids = new Set(resources.filter(resource => resource.patientId === patientId).map(resource => resource.id));
   world.resources.push(...sample.resources.filter(resource => !ids.has(resource.id)));
   world.counters[`bloodPatient:${patientId}`] = 1;
 }

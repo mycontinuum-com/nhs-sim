@@ -74,3 +74,45 @@ test("A disconnected call returns behind older waiting callers", () => {
   act({ kind: "next", callId: null, version: null, note: "" }, bob);
   assert.equal(calls().find(call => call.state.kind === "active")?.id, second.id);
 });
+
+test("Call snapshots see pending additions, ownership edits and release within one transaction", () => {
+  const engine = new Engine();
+  let firstId = "";
+  engine.transaction("default", world => {
+    replenishCalls(world, 1000);
+    const first = telephonyCalls(world)[0];
+    firstId = first.id;
+    applyTelephonyCommand(world, alice, team, { kind: "answer", callId: first.id, version: first.version }, 2000);
+    const active = telephonyCalls(world).find(call => call.id === first.id);
+    assert.ok(active);
+    assert.equal(active.state.kind === "active" && active.state.memberId, "alice");
+    releaseCalls(world, new Set([alice.id]), 3000);
+    const released = telephonyCalls(world).find(call => call.id === first.id);
+    assert.ok(released);
+    assert.deepEqual(released.state, { kind: "waiting", queuedAt: 3000 });
+    applyTelephonyCommand(world, bob, team, { kind: "answer", callId: released.id, version: released.version }, 4000);
+    assert.equal(telephonyCalls(world).filter(call => call.state.kind === "waiting").length, 8);
+  });
+  const calls = telephonyCalls(engine.require("default"));
+  assert.equal(calls.length, 9);
+  assert.equal(new Set(calls.map(call => call.id)).size, 9);
+  const active = calls.find(call => call.id === firstId);
+  assert.equal(active?.state.kind === "active" && active.state.memberId, "bob");
+  assert.equal(active?.version, 4);
+});
+
+test("Commands and release update drafts without mutating the preceding world", () => {
+  const { engine, calls, act } = setup();
+  const first = calls()[0];
+  const before = engine.require("default");
+  act({ kind: "answer", callId: first.id, version: first.version });
+  assert.equal(telephonyCalls(before).find(call => call.id === first.id)?.state.kind, "waiting");
+  const answered = engine.require("default");
+  assert.throws(() => engine.transaction("default", world => {
+    releaseCalls(world, null, 3000);
+    assert.equal(telephonyCalls(world).find(call => call.id === first.id)?.state.kind, "waiting");
+    throw new Error("Discard release");
+  }), /Discard release/);
+  assert.equal(engine.require("default"), answered);
+  assert.equal(calls().find(call => call.id === first.id)?.state.kind, "active");
+});
