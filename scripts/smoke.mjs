@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { setTimeout } from "node:timers/promises";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { practiceApps } from "../packages/contracts/src/practice-apps.ts";
+import { verifySecondaryCare } from "./verify-secondary-care.mjs";
+import { verifyPrimaryCare } from "./verify-primary-care.mjs";
 const base = process.env.TEST_ORIGIN ?? "http://localhost:8080";
 const call = async (path, options = {}) => {
   const r = await fetch(base + path, options);
@@ -45,6 +47,11 @@ assert.deepEqual((await call("/openapi.json")).data, openapi);
 assert.equal(catalogue.documentation.openapi, "/api/openapi.json");
 assert.equal(catalogue.wearables.devices, "/api/sites/wearables/devices");
 assert.equal(catalogue.wearables.readings, "/api/sites/wearables/readings");
+assert.equal(catalogue.secondaryCare.consultations, "/api/sites/hospital/consultations");
+assert.equal(catalogue.secondaryCare.genomes, "/api/sites/hospital/genomes");
+for (const collection of ["consultations", "genomes"]) {
+  assert.deepEqual(openapi.paths[`/api/sites/hospital/${collection}`].get.tags, ["Secondary care"]);
+}
 const handbook = await call("/docs/handbook.json");
 assert.equal(handbook.status, 200);
 assert.ok(handbook.data.pages.length >= 18);
@@ -114,6 +121,8 @@ const headers = {
   Authorization: "Bearer " + issued.data.apiKey,
   "Content-Type": "application/json",
 };
+await verifySecondaryCare(base, issued.data, otherTeam.data.apiKey);
+await verifyPrimaryCare(base, issued.data, otherTeam.data.apiKey);
 for (const collection of ["devices", "readings"]) {
   const path = `/api/sites/wearables/${collection}?patient=SIM-000006`;
   assert.equal((await call(path)).status, 401, "wearable data requires authentication");

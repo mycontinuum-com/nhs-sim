@@ -1,3 +1,5 @@
+import { seedGenomeRecords } from "../../../packages/engine/src/genomics.ts";
+import { migrateGenomicRecords } from "./genomic-migration.ts";
 import { initializeOperatorAudit } from './operator.ts';
 import type { OperatorAllTeamIncident, OperatorBulkDeletion, OperatorDeletion, OperatorSession } from '../../../packages/contracts/src/operator.ts';
 import { teamNameSchema, normalizeTeamName } from "../../../packages/contracts/src/team.ts";
@@ -13,7 +15,7 @@ import { migrateMedicationHistory } from "./medication-migration.ts";
 import { Engine, SimError } from "../../../packages/engine/src/index.ts";
 import type { Patient, Resource, SiteId } from "../../../packages/contracts/src/index.ts";
 import { createHash, randomBytes } from "node:crypto";
-import { RowPersistence, patientRowsSql, resourceRowsSql } from "./persistence.ts";
+import { RowPersistence, patientRowsSql } from "./persistence.ts";
 
 export type TeamKey = { hash: string; team: string; world: string; scopes: string[]; recoverable_key?: string | null };
 export class Store {
@@ -56,6 +58,7 @@ export class Store {
         }
         await this.persistence.write(client, null, this.engine.state);
       }
+      await migrateGenomicRecords(client);
       await migrateMedicationHistory(client);
       await migrateRecordAttribution(client);
       const loaded = await this.persistence.load(client);
@@ -126,6 +129,7 @@ export class Store {
     this.engine.transaction(worldId, (world) => {
       world.patients = patients;
       world.resources = resources;
+      seedGenomeRecords(world);
       world.nextId = Math.max(world.nextId, this.engine.require(sourceWorldId).nextId);
     });
     this.persistence.attachPopulation(worldId, sourceWorldId);
@@ -171,13 +175,15 @@ export class Store {
           this.engine.create(world);
           const baseline = this.persistence.baseline("default");
           const target = this.engine.require(world);
-          this.engine.save(upgradeMessagingWorld(upgradeAppointmentWorld(upgradeDocumentWorld(upgradePharmacyWorld(upgradeHospitalWorld({
+          const upgraded = upgradeMessagingWorld(upgradeAppointmentWorld(upgradeDocumentWorld(upgradePharmacyWorld(upgradeHospitalWorld({
             ...target,
             patients: baseline.patients,
             resources: baseline.resources,
             counters: { ...target.counters, hospitalAttendanceVersion: 0, pharmacyVersion: 0, documentVersion: 0, documentAuthorVersion: 0, appointmentSessionVersion: 0, messagingVersion: 0, bloodResultVersion: 0 },
             nextId: Math.max(target.nextId, this.engine.require("default").nextId),
-          }))))));
+          })))));
+          if (upgraded.resources.length === baseline.resources.length && upgraded.resources.every((record, index) => record === baseline.resources[index])) upgraded.resources = baseline.resources;
+          this.engine.save(upgraded);
           this.persistence.attachPopulation(world, "default");
         },
         world,
@@ -314,8 +320,8 @@ export class Store {
     resourceOffset: number;
     resourceLimit: number;
   }> {
-    this.engine.require(world);
-    if (patient && ["gp", "hospital", "diagnostics"].includes(site)) {
+    const current = this.engine.require(world);
+    if (patient && ["gp", "hospital", "diagnostics"].includes(site) && current.counters[`bloodPatient:${patient}`] !== 1) {
       await this.enqueue(() => this.write(() => {
         const current = this.engine.require(world);
         if (current.counters[`bloodPatient:${patient}`] === 1) return;
@@ -324,39 +330,31 @@ export class Store {
     }
     offset = Math.max(0, Math.trunc(offset));
     limit = Math.max(1, Math.min(1000, Math.trunc(limit)));
-    const values: unknown[] = [world],
-      filters: string[] = [];
-    if (site !== "control") {
-      values.push(site);
-      filters.push(`payload->'visibleTo' ? $${values.length}`);
-    }
-    if (patient) {
-      values.push(patient);
-      filters.push(`(patient_id=$${values.length} OR patient_id IS NULL)`);
-    }
-    if (kind) {
-      values.push(kind);
-      filters.push(`kind=$${values.length}`);
-    }
+    let start: number | undefined;
     if (date) {
-      const start = Date.parse(date + "T00:00:00Z");
+      start = Date.parse(date + "T00:00:00Z");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(start))
         throw new SimError("Use a calendar date in YYYY-MM-DD format");
-      values.push(start, start + 86400000);
-      filters.push(`occurs_at >= $${values.length - 1} AND occurs_at < $${values.length}`);
     }
-    const where = filters.length ? " WHERE " + filters.join(" AND ") : "";
-    const count = await this.pool.query(
-      `SELECT count(*)::integer AS total FROM (${resourceRowsSql}) visible${where}`,
-      values,
-    );
-    const result = await this.pool.query(
-      `SELECT payload FROM (${resourceRowsSql}) visible${where} ORDER BY ordinal,id OFFSET $${values.length + 1} LIMIT $${values.length + 2}`,
-      [...values, offset, limit],
-    );
+    const resources: Resource[] = [];
+    let resourceTotal = 0;
+    for (const resource of this.engine.require(world).resources) {
+      if (resource.kind === "genome-record" && site !== "hospital" && site !== "control") continue;
+      if (site !== "control" && !resource.visibleTo.includes(site)) continue;
+      if (patient && resource.patientId != null && resource.patientId !== patient) continue;
+      if (kind && resource.kind !== kind) continue;
+      if (start !== undefined) {
+        const startsAt = resource.data.startsAt;
+        const occursAt = (typeof startsAt === "number" || typeof startsAt === "string") && /^\d+$/.test(String(startsAt))
+          ? Number(startsAt) : resource.createdAt;
+        if (occursAt < start || occursAt >= start + 86400000) continue;
+      }
+      if (resourceTotal >= offset && resources.length < limit) resources.push(resource);
+      resourceTotal++;
+    }
     return {
-      resources: result.rows.map((row) => row.payload),
-      resourceTotal: count.rows[0].total,
+      resources,
+      resourceTotal,
       resourceOffset: offset,
       resourceLimit: limit,
     };

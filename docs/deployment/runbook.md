@@ -22,6 +22,8 @@ An unhealthy app deployment restores the prior application image. Public workflo
 
 Use Systems Manager Session Manager or Run Command for host administration. The host has no SSH key or inbound SSH port. Deployment files are at `/opt/nhs-sim`; the data mount is `/srv/nhs-sim`. Avoid displaying `.env` or secret values in command logs.
 
+After deploying the secondary care genomic migration, run `docker compose --env-file .env -f compose.yaml exec -T app node dist/verify-genomic-coverage.mjs` from `/opt/nhs-sim`. This read-only check validates every effective patient's hospital-accessible SNP panel, including shared populations, patient overlays, and overridden records. It exits unsuccessfully if any patient lacks a complete panel or the migration marker is absent. Record its counts before and after an application restart to check persistence.
+
 ## Monitoring and cost
 
 Runtime logs are in CloudWatch `/nhs-sim/runtime`, retained for 14 days. Alarms cover host status, data-disk use and memory. The `nhs-sim-monthly` budget tracks `Project=nhs-sim` costs and alerts at 80% of $120. Cost allocation updates can take time to appear. A budget alert does not stop spending.

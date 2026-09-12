@@ -35,7 +35,11 @@ import { handleFhir, operationOutcome } from "../../../packages/nhs-mocks/src/fh
 import { ModelAgent } from "../../../packages/agents/src/index.ts";
 import { openApiDocument } from "./openapi.ts";
 import { wearableApi, wearableQuerySchema, wearableReadingsQuerySchema } from "../../../packages/contracts/src/wearables.ts";
+import { secondaryCareApi, secondaryCareQuerySchema } from "../../../packages/contracts/src/secondary-care.ts";
+import { secondaryCarePage } from "../../../packages/engine/src/secondary-care.ts";
 import { wearablePage } from "../../../packages/engine/src/wearables.ts";
+import { primaryCareApi, prescriptionQuerySchema } from "../../../packages/contracts/src/primary-care.ts";
+import { prescriptionPage } from "../../../packages/engine/src/primary-care.ts";
 
 const port = Number(process.env.PORT ?? 8080);
 const origins = new PublicOrigins(process.env.PUBLIC_ORIGIN ?? "http://localhost:" + port, process.env.PUBLIC_ORIGINS);
@@ -144,6 +148,8 @@ const server = createServer(async (req, res) => {
         workspaces: Object.values(practiceApps),
         wearables: wearableApi,
         messaging: messagingApi,
+        secondaryCare: secondaryCareApi,
+        primaryCare: primaryCareApi,
         scenarios,
         identity: { issuer: origin + "/cis2", clientId: "nhs-sim-client" },
         documentation: { handbook: "/docs/", explorer: "/docs/explorer/", openapi: "/api/openapi.json" },
@@ -474,7 +480,7 @@ const server = createServer(async (req, res) => {
       }
       throw new SimError("Unsupported mock operation", 405);
     }
-    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents|messaging-workspace|messages|devices|readings)$/);
+    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents|messaging-workspace|messages|devices|readings|consultations|genomes|prescriptions)$/);
     if (match) {
       const site = match[1] as SiteId,
         id = site === "control" ? operator() : authenticated();
@@ -485,6 +491,18 @@ const server = createServer(async (req, res) => {
         });
       if (site === "control" && !admin) throw new SimError("Operator only", 403);
       if (!admin && !key!.scopes.includes(site === "patient" ? "gp" : site)) throw new SimError("Key lacks service scope", 403);
+      if (match[2] === "prescriptions") {
+        if (site !== "gp") throw new SimError("Primary care service required", 404);
+        if (method !== "GET") throw new SimError("Method not allowed", 405);
+        const query = prescriptionQuerySchema.parse(Object.fromEntries(url.searchParams));
+        return send(res, 200, prescriptionPage(store.engine.require(id), query));
+      }
+      if (match[2] === "consultations" || match[2] === "genomes") {
+        if (site !== "hospital") throw new SimError("Secondary care service required", 404);
+        if (method !== "GET") throw new SimError("Method not allowed", 405);
+        const query = secondaryCareQuerySchema.parse(Object.fromEntries(url.searchParams));
+        return send(res, 200, secondaryCarePage(store.engine.require(id), match[2], query));
+      }
       if (match[2] === "devices" || match[2] === "readings") {
         if (site !== "wearables") throw new SimError("Wearables service required", 404);
         if (method !== "GET") throw new SimError("Method not allowed", 405);

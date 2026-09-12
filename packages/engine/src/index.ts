@@ -1,3 +1,4 @@
+import { seedGenomeRecords } from "./genomics.ts";
 import { bloodTestOrderSchema } from "../../contracts/src/clinical-orders.ts";
 import { hospitalNoteSchema } from "../../contracts/src/clinical-notes.ts";
 import { seedBloodResults, orderedBloodResult } from "./blood-results.ts";
@@ -481,6 +482,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
   seedAppointmentSessions(w);
   populateHistories(w);
   seedBloodResults(w);
+  seedGenomeRecords(w);
   for (const record of w.resources) {
     const created: RecordChange = {
       actor: { kind: "simulation", name: "Synthetic seed" },
@@ -575,6 +577,7 @@ export class Engine {
     const w = this.require(id);
     const resources = w.resources.filter(
       (r) =>
+        (r.kind !== "genome-record" || site === "hospital" || site === "control") &&
         (site === "control" || r.visibleTo.includes(site)) &&
         (!patientId || r.patientId === patientId || !r.patientId),
     );
@@ -667,6 +670,7 @@ export class Engine {
         if (a.expectedVersion !== undefined && r.version !== a.expectedVersion)
           throw new SimError("Stale resource version", 409);
       }
+      if (r?.kind === "genome-record") throw new SimError("Secondary care genome records are read-only and cannot be shared", 403);
       if (r && ["conversation", "message-template"].includes(r.kind) && a.type !== "messaging_action") throw new SimError("Use the messaging workflow for this record", 409);
       const existingId = r?.id;
       const create: Partial<Record<Action["type"], [string, SiteId]>> = {
@@ -1143,9 +1147,15 @@ export class Engine {
           if (a.type === "allocate_shift") r.data.allocated = !r.data.allocated;
           this.event(w, "staffing.changed", actor, "A&E staffed capacity recalculated", r, false);
         } else {
+          const primaryCareApproval = site === "gp" && r.kind === "prescription" &&
+            r.provenance?.created?.source === "gp" && r.provenance.created.action === "draft_prescription" &&
+            ["review", "accept"].includes(a.type);
+          if (primaryCareApproval && a.expectedVersion === undefined)
+            throw new SimError("Versioned prescription required");
           if (
             site !== "control" &&
             r.owner !== site &&
+            !primaryCareApproval &&
             !(a.type === "collect" && site === "patient") &&
             !(a.type === "review" && site === "gp" && r.kind === "test" && r.status === "available") &&
             !(r.kind === "referral" && ["review", "accept", "reject", "complete"].includes(a.type) &&

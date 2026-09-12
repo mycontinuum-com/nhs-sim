@@ -44,6 +44,14 @@ For a versioned update, send the resource's current `version` as `expectedVersio
 
 `POST /api/clock` controls only the authenticated team's clock. Send `paused: true` with `advanceMinutes` to pause and process scheduled results, visits, deliveries, and other activity. Stepping a running clock without pausing returns `409`. The explorer executes real changes in that synthetic world.
 
+## Raw secondary care records
+
+The **Secondary care** Explorer group publishes `GET /api/sites/hospital/consultations` and `GET /api/sites/hospital/genomes`. Both require `hospital` scope. They preserve the stored resource payload, including consultation text and genomic SNP calls, with versions and provenance.
+
+Both operations accept an exact `patient` filter and `offset` and `limit` pagination. Responses contain `items`, `total`, `offset`, `limit`, and `now`. The default page size is 100, with a maximum of 500. Team keys always access their own world.
+
+See [clinical and genomic records](/docs/clinical-records/) for included consultation kinds, synthetic CYP2C19 data, and the hospital-only access boundary.
+
 ## Wearable data
 
 The **Wearables** Explorer group publishes the Home Health records in the authenticated team's world. Both operations require `wearables` scope.

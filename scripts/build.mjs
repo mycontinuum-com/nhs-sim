@@ -36,4 +36,13 @@ await bundle({
   format: "esm",
   packages: "external",
 });
+await bundle({
+  entryPoints: ["scripts/verify-genomic-coverage.mjs"],
+  outfile: "dist/verify-genomic-coverage.mjs",
+  bundle: true,
+  platform: "node",
+  target: "node24",
+  format: "esm",
+  packages: "external",
+});
 console.log("Built all sites and the single-port application server.");
