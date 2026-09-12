@@ -5,9 +5,27 @@ import { z } from "zod";
 import { actionExamples, openApiDocument } from "../apps/server/src/openapi.ts";
 import { actionSchema, activeServices } from "../packages/contracts/src/index.ts";
 import { catalogue } from "../packages/nhs-mocks/src/index.ts";
+import { wearableApi, wearableDeviceDataSchema, wearableReadingDataSchema } from "../packages/contracts/src/wearables.ts";
 
 const operationSchema = z.object({ operationId: z.string(), parameters: z.array(z.object({ in: z.string(), name: z.string(), required: z.boolean().optional(), schema: z.record(z.string(), z.unknown()) })).optional(), responses: z.record(z.string(), z.unknown()), security: z.array(z.record(z.string(), z.array(z.string()))).optional() });
 const paths = openApiDocument.paths;
+test("wearable APIs are discoverable with named runtime data schemas and bounded filters", () => {
+  assert.ok(openApiDocument.tags.some(tag => tag.name === "Wearables"));
+  for (const [path, page] of [[wearableApi.devices, "WearableDevicesPage"], [wearableApi.readings, "WearableReadingsPage"]]) {
+    const operation = paths[path ?? ""]?.get;
+    assert.ok(operation);
+    assert.deepEqual(operation.tags, ["Wearables"]);
+    assert.deepEqual(operation.responses["200"], { description: "Success", content: { "application/json": { schema: { $ref: `#/components/schemas/${page}` } } } });
+    const parameters = operationSchema.parse(operation).parameters;
+    assert.equal(parameters?.find(parameter => parameter.name === "limit")?.schema.maximum, 500);
+    assert.equal(parameters?.find(parameter => parameter.name === "patient")?.schema.minLength, 1);
+    assert.ok(operation.responses["405"]);
+  }
+  for (const [name, schema] of Object.entries({ WearableDeviceData: wearableDeviceDataSchema, WearableReadingData: wearableReadingDataSchema })) {
+    const { $schema, ...runtime } = z.toJSONSchema(schema, { io: "input" });
+    assert.deepEqual(openApiDocument.components.schemas[name], runtime);
+  }
+});
 test("OpenAPI is serializable, resolves every internal reference and declares each path parameter", () => {
   const document = JSON.parse(JSON.stringify(openApiDocument));
   assert.equal(document.openapi, "3.1.0");

@@ -24,6 +24,24 @@ Return to the home desktop and launch **Messages**. Select the same resident to 
 
 ## Connect an agent
 
-Use `GET /api/sites/wearables/view?patient=SIM-000006` for the resident's shared wearable records. Post `type: "connect_device"`, `patientId`, and `title: "Home activity watch"` to `/api/sites/wearables/actions`. These requests require a team key with wearable scope.
+Open the **Wearables** group in the <a href="/docs/explorer/">API explorer</a> and authorize with your team key. The key must include `wearables` scope. New teams created without a `site` restriction include this scope; joining an existing team preserves its permissions.
 
-Read the [API reference](./api.mdx) for the wearable adapter and clock operations, or try requests in the <a href="/docs/explorer/">API explorer</a>.
+Read a resident's devices with `GET /api/sites/wearables/devices?patient=SIM-000006`. Read their recorded values with `GET /api/sites/wearables/readings?patient=SIM-000006`. Fresh simulator seeds include activity, resting heart rate, and sleep history for this resident. Existing published populations retain their stored history and can return empty lists. Connect a simulated watch to generate new activity readings.
+
+Add `metric=steps`, `metric=heart-rate`, or `metric=sleep` to filter readings. Each response contains `items`, `total`, `offset`, `limit`, and the simulation time `now`. Requests default to 100 records; use `limit` from 1 to 500 and increase `offset` to retrieve further pages. Omitting `patient` returns matching records across your team's world.
+
+Read each item's `data` for its metric, value, unit, quality, and observation time. Timestamps use Unix milliseconds. Preserve `null` values and their quality labels when a device disconnects. A missing reading is not zero.
+
+To generate readings for another resident, post this JSON to `/api/sites/wearables/actions`:
+
+```json
+{
+	"type": "connect_device",
+	"patientId": "SIM-000003",
+	"title": "Home activity watch"
+}
+```
+
+Post `{"paused": true, "advanceMinutes": 10}` to `/api/clock`, then request `/api/sites/wearables/readings?patient=SIM-000003` to retrieve the first activity reading.
+
+Use `GET /api/sites/wearables/view?patient=SIM-000006` when you also need shared service records and events. See the [API reference](./api.mdx) for authentication and clock operations. The <a href="/api/openapi.json">OpenAPI JSON</a> includes the wearable request parameters and response schemas.

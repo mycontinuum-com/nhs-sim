@@ -38,11 +38,17 @@ const openapi = await specification.json();
 assert.equal(openapi.openapi, "3.1.0");
 assert.ok(openapi.paths["/api/keys"].post.requestBody);
 assert.ok(openapi.paths["/api/sites/{site}/actions"].post.requestBody);
+for (const collection of ["devices", "readings"]) {
+  assert.deepEqual(openapi.paths[`/api/sites/wearables/${collection}`].get.tags, ["Wearables"]);
+}
 assert.deepEqual((await call("/openapi.json")).data, openapi);
 assert.equal(catalogue.documentation.openapi, "/api/openapi.json");
+assert.equal(catalogue.wearables.devices, "/api/sites/wearables/devices");
+assert.equal(catalogue.wearables.readings, "/api/sites/wearables/readings");
 const handbook = await call("/docs/handbook.json");
 assert.equal(handbook.status, 200);
 assert.ok(handbook.data.pages.length >= 18);
+assert.ok(handbook.data.pages.find(page => page.url === "/docs/home/")?.content.includes("/api/sites/wearables/readings"), "published handbook documents wearable data access");
 for (const page of handbook.data.pages) {
   assert.ok(page.content.length > 100, page.url);
   assert.equal((await fetch(base + page.url)).status, 200, page.url);
@@ -108,6 +114,15 @@ const headers = {
   Authorization: "Bearer " + issued.data.apiKey,
   "Content-Type": "application/json",
 };
+for (const collection of ["devices", "readings"]) {
+  const path = `/api/sites/wearables/${collection}?patient=SIM-000006`;
+  assert.equal((await call(path)).status, 401, "wearable data requires authentication");
+  assert.equal((await call(path, { headers: { Authorization: "Bearer " + otherTeam.data.apiKey } })).status, 403, "wearable data requires wearable scope");
+  const response = await call(path, { headers });
+  assert.equal(response.status, 200);
+  assert.ok(response.data.items.every(item => item.owner === "wearables" && item.patientId === "SIM-000006" && item.kind === (collection === "devices" ? "device" : "observation")));
+}
+assert.equal((await call("/api/sites/wearables/readings?limit=501", { headers })).status, 400);
 assert.equal((await call("/api/sites/gp/view", { headers })).status, 200);
 const gpView = await call("/api/sites/gp/view", {headers});
 const bookDate = new Date(gpView.data.now).toISOString().slice(0, 10);
@@ -210,6 +225,25 @@ const step = await call("/api/clock", {
 assert.equal(step.status, 200);
 const homeReadings = await call("/api/sites/wearables/view?patient=SIM-000003", { headers });
 assert.ok(homeReadings.data.resources.some((item) => item.kind === "observation" && item.owner === "wearables" && item.patientId === "SIM-000003"), "newly connected patient's watch emits a reading");
+const apiReadings = await call("/api/sites/wearables/readings?patient=SIM-000003&metric=steps", { headers });
+assert.equal(apiReadings.status, 200);
+assert.ok(apiReadings.data.items.some(item => item.data.quality === "good" && typeof item.data.value === "number"), "connected watch readings are available through the published API");
+assert.ok(apiReadings.data.total >= 2, "connected watch generates repeated readings");
+const wearablePage = await call("/api/sites/wearables/readings?patient=SIM-000003&metric=steps&limit=1", { headers });
+assert.equal(wearablePage.status, 200);
+assert.equal(wearablePage.data.total, apiReadings.data.total);
+assert.equal(wearablePage.data.items.length, 1);
+assert.ok(wearablePage.data.items.every(item => item.patientId === "SIM-000003" && item.data.metric === "steps" && item.data.unit === "steps/day"));
+const wearableNext = await call("/api/sites/wearables/readings?patient=SIM-000003&metric=steps&limit=1&offset=1", { headers });
+assert.equal(wearableNext.status, 200);
+assert.equal(wearableNext.data.items.length, 1);
+assert.notEqual(wearableNext.data.items[0].id, wearablePage.data.items[0].id);
+const apiDevices = await call("/api/sites/wearables/devices?patient=SIM-000003", { headers });
+assert.equal(apiDevices.status, 200);
+assert.ok(apiDevices.data.items.some(item => item.id === connectedWatch.data.id), "connected watch is available through the published API");
+const isolatedDevices = await call(`/api/sites/wearables/devices?patient=SIM-000003&world=${encodeURIComponent(otherTeam.data.world)}`, { headers });
+assert.equal(isolatedDevices.status, 200);
+assert.deepEqual(isolatedDevices.data.items, apiDevices.data.items, "team key remains in its own world when another world is requested");
 assert.equal(step.data.paused, true, "one click pauses and advances a running clock");
 assert.ok(step.data.events.some((event) => event.actor === issued.data.team && event.type.startsWith("clock.")),
   "team clock actions appear in the activity trail");
@@ -275,7 +309,14 @@ writeFileSync(
     allergyId: allergy.data.id,
   }),
 );
+mkdirSync(".verification/evidence", { recursive: true });
+writeFileSync(".verification/evidence/wearables.json", JSON.stringify({
+  at: new Date().toISOString(), origin: base, world: issued.data.world,
+  action: { type: "connect_device", patientId: "SIM-000003", resourceId: connectedWatch.data.id },
+  observed: { devices: apiDevices.data.total, readings: apiReadings.data.total, reading: wearablePage.data.items[0] },
+  checks: ["OpenAPI publication", "catalogue discovery", "handbook", "authentication", "service scope", "patient and metric filters", "pagination", "world isolation"],
+}, null, 2) + "\n");
 console.log(
-  "PASS: all sites and assets, all NHS namespaces, authorization, legacy boundary and delayed result workflow",
+  "PASS: all sites and assets, all NHS namespaces, wearable devices and readings, authorization, legacy boundary and delayed result workflow",
 );
 await import("./verify-telephony.mjs");

@@ -32,6 +32,8 @@ import { handleCis2 } from "./cis2.ts";
 import { handleFhir, operationOutcome } from "../../../packages/nhs-mocks/src/fhir.ts";
 import { ModelAgent } from "../../../packages/agents/src/index.ts";
 import { openApiDocument } from "./openapi.ts";
+import { wearableApi, wearableQuerySchema, wearableReadingsQuerySchema } from "../../../packages/contracts/src/wearables.ts";
+import { wearablePage } from "../../../packages/engine/src/wearables.ts";
 
 const port = Number(process.env.PORT ?? 8080);
 const origins = new PublicOrigins(process.env.PUBLIC_ORIGIN ?? "http://localhost:" + port, process.env.PUBLIC_ORIGINS);
@@ -138,6 +140,7 @@ const server = createServer(async (req, res) => {
         sites,
         apis: catalogue,
         workspaces: Object.values(practiceApps),
+        wearables: wearableApi,
         scenarios,
         identity: { issuer: origin + "/cis2", clientId: "nhs-sim-client" },
         documentation: { handbook: "/docs/", explorer: "/docs/explorer/", openapi: "/api/openapi.json" },
@@ -464,7 +467,7 @@ const server = createServer(async (req, res) => {
       }
       throw new SimError("Unsupported mock operation", 405);
     }
-    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents|messaging-workspace)$/);
+    const match = path.match(/^\/api\/sites\/([a-z-]+)\/(view|patients|actions|appointments|attendances|pharmacy-workspace|documents|messaging-workspace|devices|readings)$/);
     if (match) {
       const site = match[1] as SiteId,
         id = site === "control" ? operator() : authenticated();
@@ -475,6 +478,12 @@ const server = createServer(async (req, res) => {
         });
       if (site === "control" && !admin) throw new SimError("Operator only", 403);
       if (!admin && !key!.scopes.includes(site === "patient" ? "gp" : site)) throw new SimError("Key lacks service scope", 403);
+      if (match[2] === "devices" || match[2] === "readings") {
+        if (site !== "wearables") throw new SimError("Wearables service required", 404);
+        if (method !== "GET") throw new SimError("Method not allowed", 405);
+        const query = (match[2] === "readings" ? wearableReadingsQuerySchema : wearableQuerySchema).parse(Object.fromEntries(url.searchParams));
+        return send(res, 200, wearablePage(store.engine.require(id), match[2] === "devices" ? "device" : "observation", query));
+      }
       if (match[2] === "messaging-workspace") {
         if (method !== "GET") throw new SimError("Method not allowed", 405);
         if (site !== "gp" && site !== "patient") throw new SimError("Messaging workspace required", 404);

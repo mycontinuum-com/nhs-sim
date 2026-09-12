@@ -44,6 +44,21 @@ For a versioned update, send the resource's current `version` as `expectedVersio
 
 `POST /api/clock` controls only the authenticated team's clock. Send `paused: true` with `advanceMinutes` to pause and process scheduled results, visits, deliveries, and other activity. Stepping a running clock without pausing returns `409`. The explorer executes real changes in that synthetic world.
 
+## Wearable data
+
+The **Wearables** Explorer group publishes the Home Health records in the authenticated team's world. Both operations require `wearables` scope.
+
+| Operation | Records | Filters |
+| --- | --- | --- |
+| `GET /api/sites/wearables/devices` | Connected synthetic devices, including battery and sync data where recorded | `patient` |
+| `GET /api/sites/wearables/readings` | Wearable observations with recorded values, units, quality, and timestamps | `patient`, `metric` |
+
+Both responses contain `items`, `total`, `offset`, `limit`, and `now`. Pagination defaults to 100 records, with a maximum `limit` of 500. `total` counts all matching records before pagination. The optional `patient` filter matches an exact SIM identifier. The optional `metric` filter matches an exact recorded metric, such as `steps`, `heart-rate`, or `sleep`.
+
+Each item uses the simulator's resource envelope, with wearable fields inside `data`. Timestamps use Unix milliseconds. Disconnected devices can produce readings with `data.value: null` and `data.quality: "missing"`. These endpoints contain synthetic wearable records; laboratory results remain separate.
+
+The [Home Health guide](/docs/home/) includes the watch connection and first-reading workflow. These operations and their schemas also appear in the downloadable OpenAPI document.
+
 ## Follow a workflow
 
 - [GP Records](/docs/systemtwo/) covers GP consultations and patient records.
@@ -51,6 +66,7 @@ For a versioned update, send the resource's current `version` as `expectedVersio
 - [Clinical records and hospital orders](/docs/clinical-records/) covers signed notes, addenda, prescriptions, and laboratory requests.
 - [Document processing](/docs/documents/) covers hospital discharge letters and GP filing.
 - [Practice and patient messaging](/docs/messaging/) covers conversations, delivery, and replies.
+- [Home Health and wearable data](/docs/home/) covers connected devices, recorded readings, and simulated watch updates.
 - [Pharmacy](/docs/pharmacy/) covers referrals, dispensing, supplier quotes, purchasing, and stock costs.
 - [FHIR-shaped APIs](/docs/fhir/) covers supported demographics and organisation search.
 - [Legacy browser integration](/docs/legacy/) covers the HTML-only service and session cookies.

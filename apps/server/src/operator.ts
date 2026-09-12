@@ -79,7 +79,7 @@ export async function operatorActivity(store: Store, world: string): Promise<Ope
   return {team,requests,patients,changes:changes.slice(0,500),events:(store.engine.state.events[world] ?? []).slice(-200).reverse(),logging:await logging(store)};
 }
 
-const publicSegments = new Set('api browser sites nhs control teams activity catalogue openapi.json team clock session plan-lab keys gp hospital community pharmacy diagnostics referrals wearables patient legacy view patients actions appointments attendances pharmacy-workspace documents messaging-workspace population publish attach worlds incidents agents model-propose snapshot pds ods Patient Organization OrganizationAffiliation Practitioner PractitionerRole Observation Encounter MedicationRequest ServiceRequest DocumentReference Communication Task Bundle metadata'.split(' '));
+const publicSegments = new Set('api browser sites nhs control teams activity catalogue openapi.json team clock session plan-lab keys gp hospital community pharmacy diagnostics referrals wearables patient legacy view patients actions appointments attendances pharmacy-workspace documents messaging-workspace devices readings population publish attach worlds incidents agents model-propose snapshot pds ods Patient Organization OrganizationAffiliation Practitioner PractitionerRole Observation Encounter MedicationRequest ServiceRequest DocumentReference Communication Task Bundle metadata'.split(' '));
 for (const adapter of catalogue) publicSegments.add(adapter.id);
 export function auditPath(path: string) {
   return path.split('/').map(segment => !segment || publicSegments.has(segment) ? segment : ':id').join('/').slice(0,512);

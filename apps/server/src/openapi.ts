@@ -5,6 +5,7 @@ import { medicationOrderSchema, bloodTestOrderSchema } from "../../../packages/c
 import { catalogue } from "../../../packages/nhs-mocks/src/index.ts";
 import { cis2SettingsSchema } from "../../../packages/nhs-mocks/src/cis2.ts";
 import { telephonyClientMessageSchema, telephonyServerMessageSchema } from "../../../packages/contracts/src/telephony.ts";
+import { wearableApi, wearableDeviceDataSchema, wearableReadingDataSchema } from "../../../packages/contracts/src/wearables.ts";
 
 type Schema = Record<string, unknown>;
 const string = { type: "string" };
@@ -40,6 +41,12 @@ const siteParameter = parameter("site", { type: "string", enum: siteIds, default
 const patientParameter = parameter("patient", { ...string, example: "SIM-000006" }, "Exact synthetic patient ID. Site view also includes service resources without a patient.");
 const patientIdParameter = parameter("patientId", { ...string, example: "SIM-000006" }, "Exact synthetic patient ID.", true);
 const schemas: Record<string, Schema> = {
+  WearableDeviceData: jsonSchema(wearableDeviceDataSchema),
+  WearableReadingData: jsonSchema(wearableReadingDataSchema),
+  WearableDevice: { allOf: [ref("Resource"), object({ kind: { const: "device" }, owner: { const: "wearables" }, data: ref("WearableDeviceData") })] },
+  WearableReading: { allOf: [ref("Resource"), object({ kind: { const: "observation" }, owner: { const: "wearables" }, data: ref("WearableReadingData") })] },
+  WearableDevicesPage: object({ items: array(ref("WearableDevice")), total: integer, offset: integer, limit: integer, now: timestamp }),
+  WearableReadingsPage: object({ items: array(ref("WearableReading")), total: integer, offset: integer, limit: integer, now: timestamp }),
   TelephonyClientMessage: jsonSchema(telephonyClientMessageSchema),
   TelephonyServerMessage: jsonSchema(telephonyServerMessageSchema),
   Error: object({ error: string, message: string }, ["error"]),
@@ -69,6 +76,7 @@ const schemas: Record<string, Schema> = {
 };
 export const actionExamples = {
   task: { summary: "Create a GP or hospital task", value: { type: "create_task", patientId: "SIM-000006", title: "Review synthetic discharge correspondence", text: "Check the simulation record and arrange follow-up." } },
+  connectDevice: { summary: "Wearables: connect a synthetic activity watch for a patient", value: { type: "connect_device", patientId: "SIM-000003" } },
   consultation: { summary: "Save a GP consultation", value: { type: "save_consultation", patientId: "SIM-000006", title: "Synthetic telephone review", text: "Fictional review for integration testing.", consultationStatus: "saved" } },
   problem: { summary: "Add a GP problem", value: { type: "save_problem", patientId: "SIM-000006", title: "Synthetic mobility concern", problemStatus: "active" } },
   note: { summary: "Save a hospital note draft (hospital)", value: { type: "hospital_note", patientId: "SIM-000006", title: "Synthetic progress note", hospitalNoteCommand: { kind: "save", template: "free-text", sections: [{ id: "clinical-note", heading: "Clinical note", text: "Fictional record for integration testing." }] } } },
@@ -86,7 +94,7 @@ export const actionExamples = {
   prescription: { summary: "Draft a prescription for pharmacy review", value: { type: "draft_prescription", patientId: "SIM-000006", title: "Synthetic medication order", medicationOrder: { drug: "Example medicine", dose: "1", unit: "tablet", route: "Oral", frequency: "Once daily", duration: "7 days", quantity: 7, indication: "Fictional workflow testing; not a prescribing recommendation." } } },
 };
 read("/healthz", "health", "Discovery", "Check application and PostgreSQL health", object({ ok: boolean, database: { const: "postgresql" }, mode: { const: "synthetic" } }), { security: [] });
-read("/api/catalogue", "catalogue", "Discovery", "List live sites, active adapters and simulation incidents", object({ sites: array({ type: "object", additionalProperties: true }), workspaces: array({ type: "object", additionalProperties: true }), apis: array({ type: "object", additionalProperties: true }), scenarios: array({ type: "object", additionalProperties: true }), identity: object({ issuer: string, clientId: string }), notice: string, documentation: object({ handbook: string, explorer: string, openapi: string }) }), { security: [] });
+read("/api/catalogue", "catalogue", "Discovery", "List live sites, active adapters and simulation incidents", object({ sites: array({ type: "object", additionalProperties: true }), workspaces: array({ type: "object", additionalProperties: true }), wearables: object({ name: string, site: { const: "wearables" }, description: string, devices: { const: wearableApi.devices }, readings: { const: wearableApi.readings } }), apis: array({ type: "object", additionalProperties: true }), scenarios: array({ type: "object", additionalProperties: true }), identity: object({ issuer: string, clientId: string }), notice: string, documentation: object({ handbook: string, explorer: string, openapi: string }) }), { security: [] });
 add("/api/telephony/live", "get", {
   operationId: "telephonyLive", tags: ["Service workspaces"], summary: "Join the team's live reception switchboard over WebSocket", security: [],
   description: "Upgrade to WebSocket on the same origin. Within five seconds send TelephonyClientMessage kind authenticate with a GP-scoped team API key and receptionist name. Credentials never belong in the URL. The server assigns a memberId and broadcasts TelephonyServerMessage snapshots scoped to that world. Send command messages with unique requestId values; use the current call version for claims, hold, transfer, callback, end and end-and-next. Acknowledgements include requestId. Reuse a requestId only for the same command. Reconnect by authenticating again; calls held by a disconnected member return to the queue. Phone timestamps use wall-clock milliseconds, independent of simulation speed. HTTP clients without a WebSocket upgrade receive 426.",
@@ -112,6 +120,15 @@ for (const [site, workspace, summary, tag] of [
   ["gp", "messaging-workspace", "Read practice conversations and message templates", "Messaging"],
   ["patient", "messaging-workspace", "Read one patient's visible conversations", "Messaging"],
 ]) read(`/api/sites/${site}/${workspace}`, `${site}_${workspace.replaceAll("-", "_")}`, tag, summary, ref("Workspace"), { parameters: site === "patient" ? [patientIdParameter, worldParameter] : [worldParameter], description: site === "patient" ? "Requires GP scope. Staff-only entries and empty conversations are excluded." : "Mutations use the site actions endpoint; no separate CRUD endpoints are provided." });
+const wearableParameters = [
+  parameter("patient", { ...string, minLength: 1, example: "SIM-000006" }, "Exact synthetic patient ID; unknown patients return an empty page."),
+  parameter("offset", { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER, default: 0 }, "Number of matching records to skip."),
+  parameter("limit", { type: "integer", minimum: 1, maximum: 500, default: 100 }, "Maximum number of records to return."),
+  worldParameter,
+];
+const wearableDescription = "Requires wearables scope. Returns stored synthetic records owned by and visible to wearables in your team's world, including data, versions and provenance. total counts all matching records before pagination. Records retain storage insertion order (not observation-time order); advance offset by the number of items returned until offset reaches total. Pausing simulation time avoids new readings appearing during pagination. No real devices or external health accounts are accessed.";
+read(wearableApi.devices, "wearableDevices", "Wearables", "List connected synthetic wearable devices", ref("WearableDevicesPage"), { responses: { ...errors, "200": response(ref("WearableDevicesPage")), "405": response(ref("Error"), "Read-only endpoint; use GET") }, parameters: wearableParameters, description: `${wearableDescription} Device data includes available battery, quality, metric and lastSyncedAt fields; absent metadata is omitted. Connect a watch using POST /api/sites/wearables/actions with type connect_device and patientId.` });
+read(wearableApi.readings, "wearableReadings", "Wearables", "Read stored wearable measurements and history", ref("WearableReadingsPage"), { responses: { ...errors, "200": response(ref("WearableReadingsPage")), "405": response(ref("Error"), "Read-only endpoint; use GET") }, parameters: [...wearableParameters, parameter("metric", { ...string, minLength: 1, example: "steps" }, "Exact metric filter. Seeded metrics include steps, heart-rate and sleep; unknown metrics return an empty page.")], description: `${wearableDescription} data includes metric, value, unit, quality and observedAt (Unix milliseconds); baseline is present only when stored. A disconnected device produces quality=missing with value=null. Seeded history includes steps, heart rate and sleep; connected watches generate steps readings as simulation time advances. This API does not imply that the seeded glucose monitor has glucose measurements.` });
 for (const api of catalogue) {
   read(`/api/nhs/${api.id}`, `adapter_${api.id.replaceAll("-", "_")}`, "NHS-shaped adapters", api.name, ref("Bundle"), { parameters: [patientParameter, parameter("q", string, "Alias for patient. PDS searches demographics; most other adapters filter exact patient ID. ODS/DoS return their fixed fictional directory."), worldParameter], description: `${api.description}. Requires ${api.site} scope. Simplified JSON projection, not a certified NHS API or full FHIR implementation. At most 100 workflow resources are returned; total may be larger. PDS/ODS FHIR search/read routes are documented separately.` });
   write(`/api/nhs/${api.id}/actions`, `adapter_${api.id.replaceAll("-", "_")}_action`, "NHS-shaped adapters", `Submit an action through ${api.name}`, body(ref("Action")), ref("Resource"), { parameters: [idempotency, worldParameter], description: `Delegates to the ${api.site} site action engine with that scope and its existing permissions. This is the simulator's action envelope, not the production NHS API's write protocol.` });
@@ -156,7 +173,7 @@ export const openApiDocument = {
   openapi: "3.1.0",
   info: { title: "NHS-SIM API", version: "1.0.0", description: "Synthetic healthcare simulation APIs. Start with POST /api/keys, copy apiKey, then authorize using TeamKey. Try it out performs real changes within your team's simulated world. No real patient data, NHS credentials or clinical advice. Staff Identity access tokens and operator tokens are separate credentials. JSON request bodies are limited to 65,536 bytes, except authenticated bulk team deletion and all-team incidents, which allow 1,048,576 bytes for up to 5,000 teams. Site actions use optimistic versions and idempotency. Browser origin checks permit only the deployed application origin for mutations. Legacy HTML form integration is documented in the handbook and has no REST action API." },
   servers: [{ url: "/", description: "This deployment (same origin)" }],
-  tags: ["Discovery", "Team", "Service workspaces", "Primary care", "Hospital", "Pharmacy", "Messaging", "Simulation time", "NHS-shaped adapters", "FHIR read-only subsets", "Staff Identity", "Operator"].map(name => ({ name })),
+  tags: ["Discovery", "Team", "Service workspaces", "Primary care", "Hospital", "Pharmacy", "Messaging", "Wearables", "Simulation time", "NHS-shaped adapters", "FHIR read-only subsets", "Staff Identity", "Operator"].map(name => ({ name })),
   paths,
   components: { securitySchemes: { TeamKey: { type: "http", scheme: "bearer", description: "apiKey returned by POST /api/keys; scoped to one team world." }, OperatorKey: { type: "http", scheme: "bearer", description: "Deployment OPERATOR_TOKEN, for organisers only." }, BrowserSession: { type: "apiKey", in: "cookie", name: "sim_session", description: "HttpOnly session established by POST /api/session; browsers manage it." }, CIS2AccessToken: { type: "http", scheme: "bearer", description: "Opaque access_token from /cis2/token; identity userinfo only, not a team key." } }, schemas },
   "x-site-registry": sites.map(site => ({ id: site.id, name: site.name })),
