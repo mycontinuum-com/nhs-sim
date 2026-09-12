@@ -1,3 +1,4 @@
+import { createGenomeRecord } from "./genomics.ts";
 import { attributeSyntheticRecord } from "./synthetic-attribution.ts";
 import { generateMedicationHistory, generateAllergyHistory } from "./medication-history.ts";
 import type { Patient, Resource } from "../../contracts/src/index.ts";
@@ -13,7 +14,7 @@ export function populationBatchManifest(input: BatchInput) {
     ...input,
     version: POPULATION_BATCH_VERSION,
     endExclusive: input.start + input.count,
-    maximumResourcesPerPatient: 10,
+    maximumResourcesPerPatient: 11,
     maximumCollectionEntriesPerPatient: 28,
     calibration: profile.id,
     synthesis: "Authored life-course templates; aggregate collection counts only",
@@ -364,6 +365,7 @@ export function generatePopulationBatch(input: BatchInput): {
       synthetic: true,
     };
     patients.push(patient);
+    resources.push(createGenomeRecord(patient.id, input.now));
     const historySpan = Math.max(0, Math.min(input.now - birth, 1460 * day));
     const count = 3 + Math.floor(draw() * 6);
     const dates = Array.from(

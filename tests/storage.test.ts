@@ -77,7 +77,7 @@ test(
       assert.equal(Object.isFrozen(store.engine.require("default").resources), true);
       assert.deepEqual(
         (await store.pool.query("SELECT payload FROM simulation_state")).rows[0].payload,
-        legacy.state,
+        JSON.parse(JSON.stringify(legacy.state)),
       );
       assert.equal(
         (await store.pool.query("SELECT schema_version FROM simulation_storage")).rows[0]
@@ -305,7 +305,7 @@ test(
       assert.ok(store.authenticate(team.apiKey));
       assert.deepEqual(
         (await store.pool.query("SELECT payload FROM simulation_state")).rows[0].payload,
-        legacy.state,
+        JSON.parse(JSON.stringify(legacy.state)),
       );
     } finally {
       await store?.close();

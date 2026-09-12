@@ -1,3 +1,5 @@
+import { seedGenomeRecords } from "../../../packages/engine/src/genomics.ts";
+import { migrateGenomicRecords } from "./genomic-migration.ts";
 import { initializeOperatorAudit } from './operator.ts';
 import type { OperatorAllTeamIncident, OperatorBulkDeletion, OperatorDeletion, OperatorSession } from '../../../packages/contracts/src/operator.ts';
 import { teamNameSchema, normalizeTeamName } from "../../../packages/contracts/src/team.ts";
@@ -56,6 +58,7 @@ export class Store {
         }
         await this.persistence.write(client, null, this.engine.state);
       }
+      await migrateGenomicRecords(client);
       await migrateMedicationHistory(client);
       await migrateRecordAttribution(client);
       const loaded = await this.persistence.load(client);
@@ -126,6 +129,7 @@ export class Store {
     this.engine.transaction(worldId, (world) => {
       world.patients = patients;
       world.resources = resources;
+      seedGenomeRecords(world);
       world.nextId = Math.max(world.nextId, this.engine.require(sourceWorldId).nextId);
     });
     this.persistence.attachPopulation(worldId, sourceWorldId);
@@ -171,13 +175,15 @@ export class Store {
           this.engine.create(world);
           const baseline = this.persistence.baseline("default");
           const target = this.engine.require(world);
-          this.engine.save(upgradeMessagingWorld(upgradeAppointmentWorld(upgradeDocumentWorld(upgradePharmacyWorld(upgradeHospitalWorld({
+          const upgraded = upgradeMessagingWorld(upgradeAppointmentWorld(upgradeDocumentWorld(upgradePharmacyWorld(upgradeHospitalWorld({
             ...target,
             patients: baseline.patients,
             resources: baseline.resources,
             counters: { ...target.counters, hospitalAttendanceVersion: 0, pharmacyVersion: 0, documentVersion: 0, documentAuthorVersion: 0, appointmentSessionVersion: 0, messagingVersion: 0, bloodResultVersion: 0 },
             nextId: Math.max(target.nextId, this.engine.require("default").nextId),
-          }))))));
+          })))));
+          if (upgraded.resources.length === baseline.resources.length && upgraded.resources.every((record, index) => record === baseline.resources[index])) upgraded.resources = baseline.resources;
+          this.engine.save(upgraded);
           this.persistence.attachPopulation(world, "default");
         },
         world,
@@ -333,6 +339,7 @@ export class Store {
     const resources: Resource[] = [];
     let resourceTotal = 0;
     for (const resource of this.engine.require(world).resources) {
+      if (resource.kind === "genome-record" && site !== "hospital" && site !== "control") continue;
       if (site !== "control" && !resource.visibleTo.includes(site)) continue;
       if (patient && resource.patientId != null && resource.patientId !== patient) continue;
       if (kind && resource.kind !== kind) continue;

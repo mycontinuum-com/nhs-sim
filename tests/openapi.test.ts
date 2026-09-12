@@ -7,6 +7,9 @@ import { actionSchema, activeServices } from "../packages/contracts/src/index.ts
 import { catalogue } from "../packages/nhs-mocks/src/index.ts";
 import { wearableApi, wearableDeviceDataSchema, wearableReadingDataSchema } from "../packages/contracts/src/wearables.ts";
 
+import { secondaryCareApi } from "../packages/contracts/src/secondary-care.ts";
+import { genomeRecordDataSchema } from "../packages/contracts/src/genomics.ts";
+
 const operationSchema = z.object({ operationId: z.string(), parameters: z.array(z.object({ in: z.string(), name: z.string(), required: z.boolean().optional(), schema: z.record(z.string(), z.unknown()) })).optional(), responses: z.record(z.string(), z.unknown()), security: z.array(z.record(z.string(), z.array(z.string()))).optional() });
 const paths = openApiDocument.paths;
 test("wearable APIs are discoverable with named runtime data schemas and bounded filters", () => {
@@ -93,4 +96,19 @@ test("identity, operator, public and team authentication are distinct and FHIR r
   }
   const patientMessaging = operationSchema.parse(paths["/api/sites/patient/messaging-workspace"]?.get);
   assert.ok(patientMessaging.parameters?.some(parameter => parameter.name === "patientId" && parameter.required));
+});
+
+test("secondary care raw APIs publish schemas, hospital scope and pagination", () => {
+  assert.ok(openApiDocument.tags.some(tag => tag.name === "Secondary care"));
+  for (const path of [secondaryCareApi.consultations, secondaryCareApi.genomes]) {
+    const operation = paths[path]?.get;
+    assert.ok(operation);
+    assert.deepEqual(operation.tags, ["Secondary care"]);
+    assert.match(operation.description ?? "", /Requires hospital scope/);
+    assert.match(operation.description ?? "", /without truncating/);
+    assert.ok(operation.responses["405"]);
+    assert.equal(operationSchema.parse(operation).parameters?.find(parameter => parameter.name === "limit")?.schema.maximum, 500);
+  }
+  const { $schema, ...runtime } = z.toJSONSchema(genomeRecordDataSchema, { io: "input" });
+  assert.deepEqual(openApiDocument.components.schemas.GenomeRecordData, runtime);
 });

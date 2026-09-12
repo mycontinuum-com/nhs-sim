@@ -1,3 +1,4 @@
+import { seedGenomeRecords } from "./genomics.ts";
 import { attributeSyntheticRecord } from "./synthetic-attribution.ts";
 import { generateMedicationHistory, generateAllergyHistory } from "./medication-history.ts";
 import type { Patient, World } from "../../contracts/src/index.ts";
@@ -211,6 +212,7 @@ export function populateHistories(world: World) {
     }
   }
   enrichPatientStories(world);
+  seedGenomeRecords(world);
   world.resources.slice(initialResources).forEach(attributeSyntheticRecord);
 }
 
@@ -812,5 +814,6 @@ export function enrichPatientStories(world: World) {
       );
     }
   }
+  seedGenomeRecords(world);
   world.resources.slice(initialResources).forEach(attributeSyntheticRecord);
 }

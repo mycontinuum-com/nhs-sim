@@ -23,6 +23,27 @@ The **Orders** view retains the submitted details. **Results** shows measurement
 
 These workflows use `POST /api/sites/hospital/actions` with the team's API key. Patient records are read through `GET /api/sites/hospital/view?patient=SIM-000006`.
 
+The **Secondary care** group in the <a href="/docs/explorer/">API explorer</a> also exposes raw records:
+
+- `GET /api/sites/hospital/consultations?patient=SIM-000006` returns hospital-owned consultation records, including saved note sections, full text, signatures, and addenda where recorded.
+- `GET /api/sites/hospital/genomes?patient=SIM-000006` returns the resident's raw synthetic genomic records.
+
+Both require `hospital` scope and return `items`, `total`, `offset`, `limit`, and the simulation time `now`. Each item retains its resource ID, version, original `data`, and provenance. Use `limit` from 1 to 500 and increase `offset` to page through results. The default limit is 100. Omitting `patient` reads across the team's world. An unknown patient returns an empty list.
+
+The consultation endpoint includes hospital-owned `hospital-note`, `clinical-note`, `consultation`, and `encounter` records. Their data shapes depend on the record kind. GP consultations and discharge-summary documents are separate records.
+
+## Synthetic genomic records
+
+Every synthetic patient receives a hospital-only CYP2C19 SNP panel for the clopidogrel integration scenario. The panel contains unphased genotype calls for `rs4244285`, `rs4986893`, and `rs12248560`. The SNP identifiers and reference alleles follow [PharmVar's CYP2C19 catalogue](https://www.pharmvar.org/gene/cyp2c19). Patient genotypes are deterministic synthetic fixtures, unrelated to real patients or population frequencies.
+
+`data.variants` contains each SNP's identifier, reference allele, alternate allele, and diploid genotype. The panel labels itself as synthetic and identifies its source. It is a targeted SNP fixture, not a whole-genome sequence, inferred haplotype, or prescribing recommendation.
+
+Existing populations and team-specific patients receive missing panels through a transactional startup migration. Repeated startup preserves existing records. New patients receive a panel when generated. Genome records remain owned by and visible to `hospital`; generic actions cannot edit or share them with another service. Operator access remains available for simulation administration.
+
+The <a href="/api/openapi.json">OpenAPI document</a> describes the response schemas. The genome endpoint returns `genome-record` resources. The older `genomic-test` workflow stub is not a raw SNP record.
+
+## Submit hospital actions
+
 - Notes use `type: "hospital_note"` and `hospitalNoteCommand`. The command is `{kind: "save", template, sections}` for drafts, `{kind: "sign"}` for signing, or `{kind: "addendum", text}` for additions. Each section contains `id`, `heading` and `text`. Creation also requires `patientId` and `title`; edits require `resourceId` and `expectedVersion`.
 - Prescriptions use `type: "draft_prescription"`, `patientId`, `title` and `medicationOrder`, containing `drug`, `dose`, `unit`, `route`, `frequency`, `duration`, `quantity` and `indication`.
 - Laboratory requests use `type: "order_test"`, `patientId`, `title` and `bloodTestOrder`, containing `panel`, `panelId`, `specimen`, `priority`, `collection` and `clinicalDetails`. Supported panel IDs are `fbc`, `ue`, `hba1c`, `lft`, `crp` and `lipids`. Collection is `now` or `next-round`.

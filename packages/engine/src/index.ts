@@ -1,3 +1,4 @@
+import { seedGenomeRecords } from "./genomics.ts";
 import { bloodTestOrderSchema } from "../../contracts/src/clinical-orders.ts";
 import { hospitalNoteSchema } from "../../contracts/src/clinical-notes.ts";
 import { seedBloodResults, orderedBloodResult } from "./blood-results.ts";
@@ -481,6 +482,7 @@ export function seedWorld(id = "default", seed = 42, population = 500): World {
   seedAppointmentSessions(w);
   populateHistories(w);
   seedBloodResults(w);
+  seedGenomeRecords(w);
   for (const record of w.resources) {
     const created: RecordChange = {
       actor: { kind: "simulation", name: "Synthetic seed" },
@@ -575,6 +577,7 @@ export class Engine {
     const w = this.require(id);
     const resources = w.resources.filter(
       (r) =>
+        (r.kind !== "genome-record" || site === "hospital" || site === "control") &&
         (site === "control" || r.visibleTo.includes(site)) &&
         (!patientId || r.patientId === patientId || !r.patientId),
     );
@@ -667,6 +670,7 @@ export class Engine {
         if (a.expectedVersion !== undefined && r.version !== a.expectedVersion)
           throw new SimError("Stale resource version", 409);
       }
+      if (r?.kind === "genome-record") throw new SimError("Secondary care genome records are read-only and cannot be shared", 403);
       if (r && ["conversation", "message-template"].includes(r.kind) && a.type !== "messaging_action") throw new SimError("Use the messaging workflow for this record", 409);
       const existingId = r?.id;
       const create: Partial<Record<Action["type"], [string, SiteId]>> = {
