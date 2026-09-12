@@ -7,6 +7,9 @@ import { cis2SettingsSchema } from "../../../packages/nhs-mocks/src/cis2.ts";
 import { telephonyClientMessageSchema, telephonyServerMessageSchema } from "../../../packages/contracts/src/telephony.ts";
 import { wearableApi, wearableDeviceDataSchema, wearableReadingDataSchema } from "../../../packages/contracts/src/wearables.ts";
 
+import { conversationSchema } from "../../../packages/contracts/src/messaging.ts";
+import { messagingApi, patientMessageRequestSchema, practiceMessageRequestSchema } from "../../../packages/contracts/src/messaging-api.ts";
+
 type Schema = Record<string, unknown>;
 const string = { type: "string" };
 const integer = { type: "integer" };
@@ -41,6 +44,11 @@ const siteParameter = parameter("site", { type: "string", enum: siteIds, default
 const patientParameter = parameter("patient", { ...string, example: "SIM-000006" }, "Exact synthetic patient ID. Site view also includes service resources without a patient.");
 const patientIdParameter = parameter("patientId", { ...string, example: "SIM-000006" }, "Exact synthetic patient ID.", true);
 const schemas: Record<string, Schema> = {
+  PracticeMessageRequest: jsonSchema(practiceMessageRequestSchema),
+  PatientMessageRequest: jsonSchema(patientMessageRequestSchema),
+  ConversationData: jsonSchema(conversationSchema),
+  Conversation: { allOf: [ref("Resource"), object({ kind: { const: "conversation" }, owner: { const: "gp" }, data: ref("ConversationData") })] },
+  ConversationsPage: object({ items: array(ref("Conversation")), total: integer, offset: integer, limit: integer, now: timestamp }),
   WearableDeviceData: jsonSchema(wearableDeviceDataSchema),
   WearableReadingData: jsonSchema(wearableReadingDataSchema),
   WearableDevice: { allOf: [ref("Resource"), object({ kind: { const: "device" }, owner: { const: "wearables" }, data: ref("WearableDeviceData") })] },
@@ -94,7 +102,7 @@ export const actionExamples = {
   prescription: { summary: "Draft a prescription for pharmacy review", value: { type: "draft_prescription", patientId: "SIM-000006", title: "Synthetic medication order", medicationOrder: { drug: "Example medicine", dose: "1", unit: "tablet", route: "Oral", frequency: "Once daily", duration: "7 days", quantity: 7, indication: "Fictional workflow testing; not a prescribing recommendation." } } },
 };
 read("/healthz", "health", "Discovery", "Check application and PostgreSQL health", object({ ok: boolean, database: { const: "postgresql" }, mode: { const: "synthetic" } }), { security: [] });
-read("/api/catalogue", "catalogue", "Discovery", "List live sites, active adapters and simulation incidents", object({ sites: array({ type: "object", additionalProperties: true }), workspaces: array({ type: "object", additionalProperties: true }), wearables: object({ name: string, site: { const: "wearables" }, description: string, devices: { const: wearableApi.devices }, readings: { const: wearableApi.readings } }), apis: array({ type: "object", additionalProperties: true }), scenarios: array({ type: "object", additionalProperties: true }), identity: object({ issuer: string, clientId: string }), notice: string, documentation: object({ handbook: string, explorer: string, openapi: string }) }), { security: [] });
+read("/api/catalogue", "catalogue", "Discovery", "List live sites, active adapters and simulation incidents", object({ sites: array({ type: "object", additionalProperties: true }), workspaces: array({ type: "object", additionalProperties: true }), messaging: object({ name: string, practice: { const: messagingApi.practice }, patient: { const: messagingApi.patient }, replyPresets: { const: messagingApi.replyPresets }, scope: { const: "gp" } }), wearables: object({ name: string, site: { const: "wearables" }, description: string, devices: { const: wearableApi.devices }, readings: { const: wearableApi.readings } }), apis: array({ type: "object", additionalProperties: true }), scenarios: array({ type: "object", additionalProperties: true }), identity: object({ issuer: string, clientId: string }), notice: string, documentation: object({ handbook: string, explorer: string, openapi: string }) }), { security: [] });
 add("/api/telephony/live", "get", {
   operationId: "telephonyLive", tags: ["Service workspaces"], summary: "Join the team's live reception switchboard over WebSocket", security: [],
   description: "Upgrade to WebSocket on the same origin. Within five seconds send TelephonyClientMessage kind authenticate with a GP-scoped team API key and receptionist name. Credentials never belong in the URL. The server assigns a memberId and broadcasts TelephonyServerMessage snapshots scoped to that world. Send command messages with unique requestId values; use the current call version for claims, hold, transfer, callback, end and end-and-next. Acknowledgements include requestId. Reuse a requestId only for the same command. Reconnect by authenticating again; calls held by a disconnected member return to the queue. Phone timestamps use wall-clock milliseconds, independent of simulation speed. HTTP clients without a WebSocket upgrade receive 426.",
@@ -120,6 +128,30 @@ for (const [site, workspace, summary, tag] of [
   ["gp", "messaging-workspace", "Read practice conversations and message templates", "Messaging"],
   ["patient", "messaging-workspace", "Read one patient's visible conversations", "Messaging"],
 ]) read(`/api/sites/${site}/${workspace}`, `${site}_${workspace.replaceAll("-", "_")}`, tag, summary, ref("Workspace"), { parameters: site === "patient" ? [patientIdParameter, worldParameter] : [worldParameter], description: site === "patient" ? "Requires GP scope. Staff-only entries and empty conversations are excluded." : "Mutations use the site actions endpoint; no separate CRUD endpoints are provided." });
+export const practiceMessageExamples = {
+  create: { summary: "Start a practice conversation", value: { patientId: "SIM-000003", command: { kind: "create", subject: "Appointment preference", body: "Would a morning or afternoon appointment suit you?", channel: "sms", allowReply: true } } },
+  send: { summary: "Send another practice message", value: { resourceId: "REPLACE_WITH_CONVERSATION_ID", expectedVersion: 1, command: { kind: "send", body: "Please confirm your preferred day.", channel: "sms" } } },
+  script: { summary: "Configure a scripted patient response before delivery", value: { resourceId: "REPLACE_WITH_CONVERSATION_ID", expectedVersion: 1, command: { kind: "configure_auto_reply", steps: [{ body: "An afternoon appointment would suit me, thank you.", delayMinutes: 2 }] } } },
+  deliver: { summary: "Deliver a queued message and schedule its scripted reply", value: { resourceId: "REPLACE_WITH_CONVERSATION_ID", expectedVersion: 2, command: { kind: "delivery", entryId: "REPLACE_WITH_OUTGOING_ENTRY_ID", status: "delivered" } } },
+  disable: { summary: "Disable automation and cancel pending replies", value: { resourceId: "REPLACE_WITH_CONVERSATION_ID", expectedVersion: 3, command: { kind: "configure_auto_reply", steps: [] } } },
+};
+export const patientMessageExamples = {
+  create: { summary: "Patient starts a conversation with the practice", value: { patientId: "SIM-000003", command: { kind: "patient_create", subject: "Appointment request", body: "Could I arrange an afternoon appointment?", channel: "sms" } } },
+  reply: { summary: "Patient replies to a delivered practice message", value: { patientId: "SIM-000003", resourceId: "REPLACE_WITH_CONVERSATION_ID", expectedVersion: 3, command: { kind: "reply", body: "Tuesday afternoon works for me." } } },
+};
+read(messagingApi.replyPresets, "patientReplyPresets", "Messaging", "List editable scripted patient reply presets", object({ presets: array(object({ id: string, title: string, steps: array(object({ body: string, delayMinutes: { type: "number", minimum: 0, maximum: 10080 } })) })) }), { security: [], description: "Administrative simulation text only. Copy a preset's steps into the practice configure_auto_reply command. Listing presets does not enable them or send messages." });
+for (const site of ["gp", "patient"] as const) {
+  const patientMode = site === "patient";
+  const path = patientMode ? messagingApi.patient : messagingApi.practice;
+  read(path, patientMode ? "patientMessages" : "practiceMessages", "Messaging", patientMode ? "Read one patient's visible conversations" : "Read practice conversations", ref("ConversationsPage"), {
+    parameters: [parameter("patientId", { ...string, minLength: 1, example: "SIM-000003" }, "Exact synthetic patient ID.", patientMode), parameter("offset", { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER, default: 0 }, "Matching conversations to skip."), parameter("limit", { type: "integer", minimum: 1, maximum: 500, default: 100 }, "Maximum conversations in this page."), worldParameter],
+    description: "Requires GP scope. Team keys stay in their own world. Returns conversations in storage order. Patient reads omit internal notes, assignments, queued/failed outgoing messages and automation configuration. The team key permits role-playing synthetic patients; this is not patient identity authentication. Templates remain available through the practice messaging-workspace operation.",
+  });
+  write(path, patientMode ? "sendPatientMessage" : "sendPracticeMessage", "Messaging", patientMode ? "Start a patient conversation or send a patient reply" : "Send practice messages and configure scripted patient replies", body(ref(patientMode ? "PatientMessageRequest" : "PracticeMessageRequest"), patientMode ? patientMessageExamples : practiceMessageExamples), patientMode ? ref("Conversation") : ref("Resource"), {
+    parameters: [idempotency, worldParameter],
+    description: "Requires GP scope. Existing conversations/templates require resourceId and their latest expectedVersion. New conversations require patientId. Commands are validated by role. Mutations are attributed to the authenticated team; incoming/outgoing direction identifies the simulated role. Patient responses omit private practice information. Practice messages are queued until a delivery command marks them delivered. configure_auto_reply sets an ordered script for future successful deliveries: each delivered outgoing message consumes one step and schedules a reply after delayMinutes of simulation time. Configure before delivery, then POST /api/clock with paused:true and advanceMinutes. Reconfiguration resets the script and cancels pending replies; empty steps disable it. Manual patient replies and completing a conversation cancel pending replies without reusing consumed steps. Read the latest conversation version after clock changes. Existing generic messaging_action commands remain supported.",
+  });
+}
 const wearableParameters = [
   parameter("patient", { ...string, minLength: 1, example: "SIM-000006" }, "Exact synthetic patient ID; unknown patients return an empty page."),
   parameter("offset", { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER, default: 0 }, "Number of matching records to skip."),

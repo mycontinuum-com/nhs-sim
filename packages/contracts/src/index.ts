@@ -164,6 +164,13 @@ export type Scheduled = {
     | "service-demand";
   resourceId?: string;
   patientId?: string;
+} | {
+  type: "patient-auto-reply";
+  at: number;
+  resourceId: string;
+  patientId?: string;
+  entryId: string;
+  stepIndex: number;
 };
 export type World = {
   id: string;

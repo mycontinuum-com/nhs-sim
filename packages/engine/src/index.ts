@@ -1,7 +1,7 @@
 import { bloodTestOrderSchema } from "../../contracts/src/clinical-orders.ts";
 import { hospitalNoteSchema } from "../../contracts/src/clinical-notes.ts";
 import { seedBloodResults, orderedBloodResult } from "./blood-results.ts";
-import { applyMessaging } from "./messaging.ts";
+import { applyMessaging, applyScheduledPatientReply } from "./messaging.ts";
 import { seedMessaging } from "./messaging-seed.ts";
 import { documentSnomedConcepts } from "../../contracts/src/document-terminology.ts";
 import { seedAppointmentSessions } from "./appointment-sessions.ts";
@@ -1324,7 +1324,10 @@ export class Engine {
         : -1;
       const r = resourceIndex < 0 ? undefined : w.resources[resourceIndex];
       const enabled = (id: string) => w.agents.some((a) => a.id === id && a.enabled);
-      if (job.type === "acute") {
+      if (job.type === "patient-auto-reply") {
+        const replyActor = applyScheduledPatientReply(w, r, job);
+        if (replyActor) this.event(w, "messaging.patient_auto_reply", replyActor.name, "Scripted synthetic patient reply", r);
+      } else if (job.type === "acute") {
         if (enabled("acute-flow")) {
           const capacity = Math.floor(this.staffing(w, flowIndices.map((index) => w.resources[index])).staffedSpaces / 2);
           const queue = flowIndices
