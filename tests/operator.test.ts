@@ -6,7 +6,18 @@ import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
 import { Store } from '../apps/server/src/store.ts';
-import { auditPath, operatorActivity, operatorTeams, recordTeamRequest, pruneTeamRequests } from '../apps/server/src/operator.ts';
+import { auditPath, auditPatientIds, operatorActivity, operatorTeams, recordTeamRequest, pruneTeamRequests } from '../apps/server/src/operator.ts';
+
+test('audit patient references stay scoped and ordered after population replacement', async () => {
+  const store = new Store('postgres://unused');
+  const patients = store.engine.require('default').patients;
+  const references = ['SIM-000003', 'unknown', null, 'SIM-000001', 'SIM-000003'];
+  assert.deepEqual(auditPatientIds(patients, references), ['SIM-000001', 'SIM-000003']);
+  assert.deepEqual(auditPatientIds(patients, ['/api/clock']), []);
+  assert.deepEqual(auditPatientIds(patients.filter(patient => patient.id !== 'SIM-000001'), references), ['SIM-000003']);
+  assert.deepEqual(auditPatientIds(patients, references), ['SIM-000001', 'SIM-000003']);
+  await store.close();
+});
 
 test('request paths preserve operations but redact arbitrary identifiers and credentials', () => {
   assert.equal(auditPath('/api/sites/gp/actions'), '/api/sites/gp/actions');
