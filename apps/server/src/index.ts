@@ -600,7 +600,7 @@ const server = createServer(async (req, res) => {
         )
           throw new SimError("Invalid resource page; limit must be 1–500 and offset nonnegative");
         const w = store.engine.require(id);
-        const page = await store.readResources(id, site, url.searchParams.get("patient") ?? undefined, offset, limit ?? 500);
+        const page = await store.readResources(id, site, url.searchParams.get("patient") ?? undefined, offset, limit ?? 500, url.searchParams.get("kind") ?? undefined);
         if (site === "patient") page.resources = page.resources.map(r => r.kind === "conversation" ? patientConversation(r) : r).filter(r => r.kind !== "conversation" || (Array.isArray(r.data.entries) && r.data.entries.length > 0));
         return send(res, 200, {
           id: w.id,

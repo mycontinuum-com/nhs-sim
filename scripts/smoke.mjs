@@ -136,6 +136,10 @@ for (const collection of ["devices", "readings"]) {
 assert.equal((await call("/api/sites/wearables/readings?limit=501", { headers })).status, 400);
 assert.equal((await call("/api/sites/gp/view", { headers })).status, 200);
 const gpView = await call("/api/sites/gp/view", {headers});
+const taskView = await call("/api/sites/gp/view?kind=task&limit=500", {headers});
+assert.equal(taskView.status, 200);
+assert.ok(taskView.data.resources.length > 0 && taskView.data.resources.every(r => r.kind === "task"));
+assert.equal(taskView.data.resourceTotal, taskView.data.resources.length);
 const bookDate = new Date(gpView.data.now).toISOString().slice(0, 10);
 const appointmentBook = await call("/api/sites/gp/appointments?date=" + bookDate, {headers});
 assert.equal(appointmentBook.status, 200);

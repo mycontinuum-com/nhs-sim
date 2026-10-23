@@ -161,4 +161,6 @@ No live NHS credentials or public sandbox calls are required at runtime.
 
 Add `?limit=200&offset=0` to `GET /api/sites/{site}/view` to read up to 200 visible resources. `limit` accepts 1 through 500. The response includes `resourceTotal`, `resourceOffset`, and `resourceLimit`. Without `limit`, the endpoint returns all visible resources.
 
+Add `?kind=task` (or any resource kind) to read only that kind; the filter applies before paging, so `resourceTotal` counts matching resources.
+
 Add `?patient=SIM-000001` to read that patient's visible records plus service resources without a patient. The portal uses this query when you select a patient.
